@@ -21,11 +21,11 @@
 - 🟢 Thème Vert Néon (`#00ff9d`)
 
 ### Analyse des Pilotes
-- **Détection Matériel Réel** : Scan intelligent ciblé sur le matériel physique critique (GPU, Cartes réseau, Audio).
+- **Mode Simplifié** : Toggle dans les paramètres pour n'afficher que le matériel pertinent (GPU, cartes réseau, Bluetooth) - idéal pour un utilisateur lambda.
+- **Détection Matériel Réel** : Scan intelligent ciblé sur le matériel physique critique.
 - **Filtrage Avancé** : Exclusion automatique et stricte des périphériques virtuels (VM, VPN, tunnels réseau) et des périphériques d'interface (souris, claviers, casques).
-- **UX Bienveillante (Safe UX)** : Statuts non-anxiogènes ("Installed" ou "Verify Online") pour éviter de fausses alertes d'obsolescence à l'utilisateur lambda.
-- **OEM & Catalog Integration** : Association intelligente avec les sites de pilotes constructeurs officiels (NVIDIA, AMD, Intel, Realtek, etc.) ou recherche ciblée par Hardware ID sur le Microsoft Update Catalog.
-- **Recherche & Filtres** : Recherche par nom ou fournisseur et filtres par catégorie de périphérique.
+- **Safe UX** : Statuts non-anxiogènes ("Installed" ou "Verify Online") pour éviter de fausses alertes d'obsolescence.
+- **OEM Integration** : Liens directs vers les pilotes constructeurs officiels (NVIDIA, AMD, Intel, Realtek).
 
 ## 🎨 Design
 
@@ -47,6 +47,13 @@
 - **Uptime système en temps réel** dans le bandeau supérieur (`Xd Xh Xm Xs` avec pulsation continue)
 - **StatsBar (Liquid Glass Hub)** : Design de capsules haut de gamme avec des anneaux de progression néon circulaires SVG enroulés autour des icônes Lucide de statistiques.
 - **Animation Sakura** : pétales animés en arrière-plan (canvas HTML5, derrière toutes les informations)
+
+### Paramètres Persistants
+- **Mode Simplifié** : Affiche uniquement GPU, réseau et Bluetooth pour les utilisateurs lambdas.
+- **Intensité Sakura** : Ajuste le nombre de pétales (Désactivé, Faible, Moyen, Élevé).
+- **Intervalle de rafraîchissement** : Configure la fréquence de mise à jour des métriques (1s, 2s, 5s, 10s).
+- **Intervalle DNS** : Configure la fréquence de ping DNS (10s, 15s, 30s, 1min).
+- **Effet Glassmorphism** : Active/désactive le flou d'arrière-plan pour optimiser les performances.
 
 ### Interface
 - **Splash Screen Premium Glassmorphism** : Écran d'accueil dynamique au démarrage avec double orbite lumineuse en rotation, suivi de chargement étape par étape (matériel, DNS, pilotes) et transition fluide révélant l'interface Bento par glissement et fondu.
