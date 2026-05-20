@@ -7,7 +7,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   sakuraIntensity: 'medium',
   enableGlassmorphicBlur: true,
   dnsChecklist: ['Google', 'Cloudflare', 'Quad9', 'OpenDNS'],
-  simplifiedMode: false,
+  simplifiedMode: true,
 };
 
 const loadSettings = (): AppSettings => {

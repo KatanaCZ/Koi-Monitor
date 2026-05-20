@@ -4,6 +4,7 @@ import { HardDrive, RefreshCw, ExternalLink, ChevronDown, ChevronUp, Monitor, Wi
 import { useAppStore } from '../../store';
 import { DriverInfo } from '../../types';
 import { NeonBentoCard } from '../common';
+import { driverService } from '../../services/api';
 
 export const DriversWidget: React.FC = () => {
   const { drivers, isLoading, setDrivers, setLoading, settings } = useAppStore();
@@ -35,8 +36,7 @@ export const DriversWidget: React.FC = () => {
   const handleRefresh = async () => {
     setLoading(true);
     try {
-      const { invoke } = await import('@tauri-apps/api/core');
-      const result = await invoke<DriverInfo[]>('get_drivers');
+      const result = await driverService.getDrivers(settings.simplifiedMode);
       setDrivers(result);
     } catch (error) {
       console.error('Failed to refresh drivers:', error);
@@ -108,28 +108,7 @@ export const DriversWidget: React.FC = () => {
         </motion.button>
       </div>
 
-      {/* Search and Filter */}
-      <div className="flex flex-wrap gap-3 z-10 relative">
-        <input
-          type="text"
-          placeholder="Search drivers..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="flex-1 px-4 py-2 rounded-xl border border-[var(--border)] bg-[var(--background-accent)]/40 backdrop-blur-sm text-sm outline-none focus:border-[var(--neon-pink)]/50 focus:shadow-[0_0_15px_var(--neon-pink)] transition-all"
-        />
-        <select
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-          className="px-4 py-2 rounded-xl border border-[var(--border)] bg-[var(--background-accent)]/40 backdrop-blur-sm text-sm outline-none cursor-pointer focus:border-[var(--neon-pink)]/50 focus:shadow-[0_0_15px_var(--neon-pink)] transition-all min-w-[150px] appearance-none"
-        >
-          {categories.map(cat => (
-            <option key={cat} value={cat}>
-              {cat === 'all' ? 'All Categories' : cat}
-            </option>
-          ))}
-        </select>
-      </div>
-
+      
       {/* Driver List */}
       <div className="flex-1 overflow-y-auto flex flex-col gap-2 min-h-[200px] pr-1">
         <AnimatePresence mode="popLayout">
