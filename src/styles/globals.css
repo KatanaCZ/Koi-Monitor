@@ -1,0 +1,167 @@
+@import "tailwindcss";
+
+@import '@fontsource/geist-sans/400.css';
+@import '@fontsource/geist-sans/500.css';
+@import '@fontsource/geist-sans/600.css';
+@import '@fontsource/geist-sans/700.css';
+@import '@fontsource/jetbrains-mono/500.css';
+
+@theme {
+  --font-sans: 'Geist Sans', ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  :root {
+    /* Tokyo Night Sakura - Light Mode */
+    --background: #fcf8fa;
+    --background-accent: #f5eef2;
+    --foreground: #2d1b2e;
+    --card: rgba(255, 255, 255, 0.4);
+    --card-hover: rgba(255, 255, 255, 0.6);
+    --card-foreground: #2d1b2e;
+    --border: rgba(255, 107, 161, 0.15); /* Sakura pink tint border */
+    --bento-shadow: 0 8px 32px -4px rgba(255, 107, 161, 0.1), 0 4px 16px -2px rgba(0, 0, 0, 0.02);
+    
+    /* Neon Colors (Softened for Light Mode) */
+    --neon-pink: #ff4d9e;
+    --neon-cyan: #00b4d8;
+    --neon-purple: #8338ec;
+    --neon-turquoise: #00d2c9;
+    --neon-green: #00cc7a;
+
+    /* WCAG AA Compliant Text Colors for Light Mode */
+    --neon-pink-text: #d91a6c;
+    --neon-cyan-text: #007799;
+    --neon-purple-text: #621bbb;
+    --neon-turquoise-text: #00807b;
+    --neon-green-text: #00804c;
+    
+    --liquid-glass-bg: rgba(255, 255, 255, 0.45);
+    --liquid-glass-border: rgba(255, 255, 255, 0.7);
+    --liquid-glass-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 0 -1px 0 rgba(255, 107, 161, 0.1);
+  }
+
+  [data-theme="dark"] {
+    /* Tokyo Night Neon - Dark Mode (The True Experience) */
+    --background: #090514; /* Deep dark purple-black */
+    --background-accent: #110926;
+    --foreground: #f4ecf9;
+    --card: rgba(17, 9, 38, 0.4);
+    --card-hover: rgba(28, 16, 56, 0.6);
+    --card-foreground: #f4ecf9;
+    --border: rgba(255, 255, 255, 0.08);
+    --bento-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.8), 0 0 20px -5px rgba(255, 45, 149, 0.15);
+    
+    /* True Neon Colors */
+    --neon-pink: #ff2d95;
+    --neon-cyan: #00d4ff;
+    --neon-purple: #b24dff;
+    --neon-turquoise: #00fff7;
+    --neon-green: #00ff9d;
+
+    /* Text Colors mapped to vibrant colors for Dark Mode */
+    --neon-pink-text: var(--neon-pink);
+    --neon-cyan-text: var(--neon-cyan);
+    --neon-purple-text: var(--neon-purple);
+    --neon-turquoise-text: var(--neon-turquoise);
+    --neon-green-text: var(--neon-green);
+
+    --liquid-glass-bg: rgba(14, 8, 32, 0.4);
+    --liquid-glass-border: rgba(255, 255, 255, 0.06);
+    --liquid-glass-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15), inset 0 -1px 1px rgba(0, 0, 0, 0.4);
+  }
+
+  body {
+    background-color: var(--background);
+    background-image: 
+      radial-gradient(circle at 15% 50%, rgba(255, 45, 149, 0.03) 0%, transparent 50%),
+      radial-gradient(circle at 85% 30%, rgba(0, 212, 255, 0.03) 0%, transparent 50%);
+    background-attachment: fixed;
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100dvh;
+    margin: 0;
+    transition: background-color 0.5s ease;
+  }
+}
+
+@layer components {
+  .bento-card {
+    background: var(--card);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-radius: 2rem;
+    border: 1px solid var(--border);
+    box-shadow: var(--bento-shadow), var(--liquid-glass-shadow);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+  }
+  
+  /* Adds a subtle noise texture over cards for premium feel */
+  .bento-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.15;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+  
+  /* Inner content container to stay above noise */
+  .bento-card > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .liquid-glass {
+    background: var(--liquid-glass-bg);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--liquid-glass-border);
+    box-shadow: var(--liquid-glass-shadow);
+  }
+
+  .mono-text {
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Anti-slop focus states */
+  *:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--neon-pink);
+  }
+
+  /* Performance Tuning - Disable Blur */
+  html.no-blur .bento-card {
+    background: var(--card) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: var(--bento-shadow);
+  }
+  html.no-blur .liquid-glass {
+    background: var(--liquid-glass-bg) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(150, 150, 150, 0.3);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(150, 150, 150, 0.5);
+}

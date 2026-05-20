@@ -1,0 +1,36 @@
+{
+  "name": "koi-monitor",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@fontsource/geist-sans": "^5.2.5",
+    "@fontsource/jetbrains-mono": "^5.1.1",
+    "@tauri-apps/api": "^2.2.0",
+    "@tauri-apps/plugin-opener": "^2.2.3",
+    "framer-motion": "^11.15.0",
+    "lucide-react": "^0.468.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^2.15.0",
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.0",
+    "@tauri-apps/cli": "^2.2.4",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.5.0",
+    "postcss": "^8.5.15",
+    "tailwindcss": "^4.3.0",
+    "typescript": "~5.6.3",
+    "vite": "^6.0.7"
+  }
+}
