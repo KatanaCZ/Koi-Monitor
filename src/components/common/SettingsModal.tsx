@@ -142,7 +142,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
       sakuraIntensity: 'medium',
       enableGlassmorphicBlur: true,
       dnsChecklist: ['Google', 'Cloudflare', 'Quad9', 'OpenDNS'],
-      simplifiedMode: false,
+      simplifiedMode: true,
     };
     updateSettings(defaultSettings);
 
