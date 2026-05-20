@@ -172,8 +172,8 @@ async fn ping_all_dns() -> Result<Vec<DnsResult>, String> {
 }
 
 #[tauri::command]
-async fn get_drivers() -> Result<Vec<DriverInfo>, String> {
-    drivers::get_driver_list(false)
+async fn get_drivers(simplified: bool) -> Result<Vec<DriverInfo>, String> {
+    drivers::get_driver_list(simplified)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
