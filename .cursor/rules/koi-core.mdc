@@ -38,7 +38,7 @@ CLAUDE.md               # Contexte agents IA
 ## Commands
 
 - Dev: `dev.bat` or `npm run tauri dev`
-- Build: `build.bat` or `npm run tauri build`
+- Build: `build.bat` or `npm run tauri build -- --no-bundle` → **`src-tauri/target/release/koi-monitor.exe` only** (no MSI/NSIS; `bundle.active: false`)
 - Setup: `setup.bat` (admin, first install)
 - Frontend only: `npm run build`
 

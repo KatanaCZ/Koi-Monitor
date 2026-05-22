@@ -8,6 +8,9 @@ src-tauri/target/
 # IDE & AI tooling (local only)
 .claude/
 .agents/
+skills/
+skills-lock.json
+docs/superpowers/
 
 # OS artifacts
 nul

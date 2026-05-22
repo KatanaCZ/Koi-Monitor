@@ -163,11 +163,11 @@ Avant de lancer une partie en ligne :
 
 ### Vous voulez juste l’utiliser
 
-1. Téléchargez le fichier **`.exe`** ou l’installateur depuis les [Releases GitHub](https://github.com/VOTRE_USER/koi-monitor/releases)
-2. Double-cliquez et installez
+1. Récupérez **`koi-monitor.exe`** (build local ou fichier partagé)
+2. Copiez-le où vous voulez et double-cliquez
 3. C’est tout — **pas besoin d’installer Node.js, Rust ou quoi que ce soit d’autre**
 
-**Compatible :** Windows 10 ou 11 (64 bits). WebView2 est en général déjà présent sur Windows 11 ; sinon l’installateur vous guide.
+**Compatible :** Windows 10 ou 11 (64 bits). WebView2 est en général déjà présent sur Windows 11 ; sur Windows 10, installez-le via Windows Update ou Microsoft Edge si l’app ne démarre pas.
 
 ### Vous voulez compiler vous-même
 
@@ -175,11 +175,10 @@ Avant de lancer une partie en ligne :
 <summary><strong>Développeurs — cliquez pour développer</strong></summary>
 
 ```powershell
-git clone https://github.com/VOTRE_USER/koi-monitor.git
 cd koi-monitor
 .\setup.bat    # Admin — première installation
 .\dev.bat      # Lancer en mode développement
-.\build.bat    # Créer l'exécutable
+.\build.bat    # Créer koi-monitor.exe (sans setup MSI/NSIS)
 ```
 
 Prérequis : Node.js 20+, Rust, WebView2.

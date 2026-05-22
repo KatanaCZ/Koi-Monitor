@@ -8,13 +8,13 @@
 
 ## 💻 Prérequis système
 
-### Utilisateur final (installateur `.exe` / `.msi`)
+### Utilisateur final (exécutable portable `.exe`)
 
 | Critère | Détail |
 |---------|--------|
 | **OS** | Windows **10** ou **11**, **64 bits** (build récent recommandé) |
-| **WebView2** | Runtime Microsoft Edge WebView2 (souvent déjà présent). Windows 11 : inclus. Windows 10 : via Windows Update / Edge ; sinon proposé à l’installation |
-| **À installer** | **Rien d’autre** — pas de Node.js, Rust, ni outils dev |
+| **WebView2** | Runtime Microsoft Edge WebView2 (souvent déjà présent). Windows 11 : inclus. Windows 10 : via Windows Update / Edge |
+| **À installer** | **Rien** — copiez `koi-monitor.exe` où vous voulez et double-cliquez |
 | **Plateforme** | **Windows uniquement** (WMI, DXGI, PowerShell, scan pilotes) |
 | **Réseau** | Requis pour tests DNS, latence jeu et recherche de MàJ pilotes |
 | **Droits** | Compte utilisateur standard suffit en général ; environnements verrouillés (entreprise) peuvent limiter WMI ou PowerShell |
@@ -27,12 +27,12 @@ Node.js 20+, Rust (stable), npm, WebView2 — voir [Installation Rapide](#-insta
 
 | | Koi Monitor (Tauri) | Référence |
 |--|---------------------|-----------|
-| **Disque** | ~10–25 Mo installé | Bien en dessous d’Electron (~150 Mo+) |
+| **Disque** | ~10–25 Mo (exe + WebView2 partagé) | Bien en dessous d’Electron (~150 Mo+) |
 | **RAM au repos** | ~80–150 Mo | WebView2 + interface React |
 | **CPU** | Faible en veille dashboard | Pics possibles au **scan pilotes** (1–2 min en mode étendu) |
 | **Profil** | **Légère** pour une app desktop moderne | Pas **ultra-légère** (type utilitaire natif minimal) |
 
-> **Distribution recommandée :** livrer l’installateur NSIS/MSI ou l’exécutable compilé — pas le dossier source avec `setup.bat` (réservé aux développeurs).
+> **Distribution recommandée :** livrer **`koi-monitor.exe`** (`src-tauri\target\release\`) — pas de setup MSI/NSIS, pas le dossier source avec `setup.bat` (réservé aux développeurs).
 
 ## ✨ Fonctionnalités
 
@@ -121,7 +121,7 @@ Node.js 20+, Rust (stable), npm, WebView2 — voir [Installation Rapide](#-insta
 
 ## 🚀 Installation Rapide (One-Click)
 
-> Réservée à la **compilation depuis les sources**. Les utilisateurs finaux installent l’`.exe` ou le setup NSIS/MSI — voir [Prérequis système](#-prérequis-système).
+> Réservée à la **compilation depuis les sources**. Les utilisateurs finaux reçoivent **`koi-monitor.exe`** — voir [Prérequis système](#-prérequis-système).
 
 ### Étape 1: Extraire le ZIP
 1. Téléchargez `Koi-Monitor-v1.0.zip`
@@ -138,10 +138,10 @@ Le script installera automatiquement:
 - ✅ Rust (si manquant)
 - ✅ WebView2 (si nécessaire)
 - ✅ Toutes les dépendances npm
-- ✅ Build de l'exécutable .exe
+- ✅ Build de l'exécutable `koi-monitor.exe`
 
 ### Étape 3: Lancer l'Application
-- Double-cliquez sur le fichier `.exe` créé dans `src-tauri\target\release\`
+- Double-cliquez sur `src-tauri\target\release\koi-monitor.exe`
 
 ## 🤖 Développement avec Cursor
 
@@ -193,7 +193,8 @@ koi-monitor/
 │   │   ├── driver_version.rs # Comparaison multi-format versions
 │   │   └── security.rs       # Antivirus WMI
 │   ├── capabilities/
-│   └── tauri.conf.json       # CSP stricte
+│   └── tauri.conf.json       # CSP stricte, bundle.active false (exe seul)
+├── scripts/                  # diag-drivers.ps1 (diagnostic pilotes, dev)
 ├── setup.bat
 ├── build.bat
 ├── dev.bat
@@ -202,6 +203,15 @@ koi-monitor/
 ├── prompt-slides.txt         # Prompt présentation slide (IA)
 └── CLAUDE.md
 ```
+
+## 🔨 Build (développeur)
+
+```powershell
+.\build.bat
+# ou : npm run tauri build -- --no-bundle
+```
+
+**Sortie unique :** `src-tauri\target\release\koi-monitor.exe` — pas de dossier `bundle/`, pas de `.msi` ni setup NSIS.
 
 ## ⚡ Architecture technique (résumé)
 
@@ -258,7 +268,7 @@ npm install
 - [x] Animations sakura
 - [x] Toggle thème dark/light
 - [x] Zen Mode (Mode Méditation) avec tracking dynamique et économie de ressources
-- [x] Build Windows .exe
+- [x] Build Windows — `koi-monitor.exe` portable (sans MSI/NSIS)
 - [x] Script one-click installation
 - [x] Télémétrie événements Tauri + fallback IPC
 - [x] Ring buffer historiques + Recharts lazy

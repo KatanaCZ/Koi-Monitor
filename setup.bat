@@ -159,7 +159,7 @@ echo.
 echo   Build Tauri (compilation Rust)...
 echo.
 
-call npm run tauri build
+call npm run tauri build -- --no-bundle
 
 if %errorlevel% neq 0 (
     echo.
@@ -207,8 +207,7 @@ if defined EXE_FOUND (
     echo   Executable trouve:
     echo   !EXE_FOUND!
     echo.
-    echo   Pour lancer l'application, double-cliquez sur le fichier ci-dessus
-    echo   ou exécutez: !EXE_FOUND!
+    echo   Copiez koi-monitor.exe ou double-cliquez pour lancer.
     echo.
 
     set /p "LAUNCH=Voulez-vous lancer maintenant? (O/N): "

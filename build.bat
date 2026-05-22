@@ -1,12 +1,16 @@
 @echo off
 chcp 65001 >nul 2>&1
+setlocal EnableDelayedExpansion
 title Koi Monitor - Build
 
 :: ============================================
-:: Koi Monitor - Build executable
+:: Koi Monitor - Build executable (.exe only)
 :: ============================================
 
 cd /d "%~dp0"
+
+set "EXE_PATH=%~dp0src-tauri\target\release\koi-monitor.exe"
+set "BUNDLE_DIR=%~dp0src-tauri\target\release\bundle"
 
 echo.
 echo ================================================================================
@@ -25,11 +29,11 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-:: Build Tauri
+:: Build Tauri (no NSIS/MSI installers)
 echo.
-echo [2/2] Build Tauri (compilation Rust)...
+echo [2/2] Build Tauri (koi-monitor.exe uniquement)...
 echo.
-call npm run tauri build
+call npm run tauri build -- --no-bundle
 
 if %errorlevel% neq 0 (
     echo.
@@ -38,7 +42,13 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-:: Trouver l'exe
+:: Remove legacy installer artifacts if present
+if exist "%BUNDLE_DIR%" (
+    echo.
+    echo Nettoyage: suppression de %BUNDLE_DIR%
+    rmdir /s /q "%BUNDLE_DIR%" 2>nul
+)
+
 echo.
 echo ================================================================================
 echo.
@@ -47,14 +57,11 @@ echo.
 echo ================================================================================
 echo.
 
-for /r "%~dp0src-tauri\target\release" %%f in (*.exe) do (
-    echo "%%~nxf" | findstr /i "koi" >nul 2>&1
-    if !errorlevel! equ 0 (
-        echo   Executable trouve: %%f
-    )
+if exist "%EXE_PATH%" (
+    echo   Executable: %EXE_PATH%
+) else (
+    echo   [ATTENTION] koi-monitor.exe introuvable — verifiez src-tauri\target\release\
 )
 
-echo.
-echo   Cherchez aussi dans: %~dp0src-tauri\target\release\
 echo.
 pause

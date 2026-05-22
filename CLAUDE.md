@@ -23,12 +23,14 @@ Project rules for Cursor / Composer. Detailed rules live in `.cursor/rules/` (au
 
 ```bash
 dev.bat              # Dev server
-build.bat            # Production .exe
+build.bat            # koi-monitor.exe only (no MSI/NSIS)
 setup.bat            # First install (admin)
 npm run tauri dev    # Alternative dev
-npm run tauri build  # Alternative build
+npm run tauri build -- --no-bundle   # Alternative build
 npm run build        # Frontend only (Vite)
 ```
+
+**Build output:** `src-tauri/target/release/koi-monitor.exe` — `bundle.active: false` in `tauri.conf.json`, no installers.
 
 ## Coding Principles
 
