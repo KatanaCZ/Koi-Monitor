@@ -1,44 +1,60 @@
 @import "tailwindcss";
 
-@import '@fontsource/geist-sans/400.css';
-@import '@fontsource/geist-sans/500.css';
-@import '@fontsource/geist-sans/600.css';
-@import '@fontsource/geist-sans/700.css';
-@import '@fontsource/jetbrains-mono/500.css';
-
 @theme {
   --font-sans: 'Geist Sans', ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer base {
   :root {
-    /* Tokyo Night Sakura - Light Mode */
-    --background: #fcf8fa;
-    --background-accent: #f5eef2;
-    --foreground: #2d1b2e;
-    --card: rgba(255, 255, 255, 0.4);
-    --card-hover: rgba(255, 255, 255, 0.6);
-    --card-foreground: #2d1b2e;
-    --border: rgba(255, 107, 161, 0.15); /* Sakura pink tint border */
-    --bento-shadow: 0 8px 32px -4px rgba(255, 107, 161, 0.1), 0 4px 16px -2px rgba(0, 0, 0, 0.02);
-    
-    /* Neon Colors (Softened for Light Mode) */
-    --neon-pink: #ff4d9e;
-    --neon-cyan: #00b4d8;
-    --neon-purple: #8338ec;
-    --neon-turquoise: #00d2c9;
-    --neon-green: #00cc7a;
+    /* Brand neon — same identity as dark mode */
+    --neon-pink: #ff2d95;
+    --neon-cyan: #00d4ff;
+    --neon-purple: #9d4edd;
+    --neon-turquoise: #00fff7;
+    --neon-green: #00ff9d;
 
-    /* WCAG AA Compliant Text Colors for Light Mode */
-    --neon-pink-text: #d91a6c;
-    --neon-cyan-text: #007799;
-    --neon-purple-text: #621bbb;
-    --neon-turquoise-text: #00807b;
-    --neon-green-text: #00804c;
-    
-    --liquid-glass-bg: rgba(255, 255, 255, 0.45);
-    --liquid-glass-border: rgba(255, 255, 255, 0.7);
-    --liquid-glass-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 0 -1px 0 rgba(255, 107, 161, 0.1);
+    /* Daylight Neon — twilight canvas so glows stay visible */
+    --background: #e4e8f2;
+    --background-accent: #d8deeb;
+    --foreground: #100818;
+    --card-hover: #ffffff;
+    --card-foreground: #100818;
+    --border: color-mix(in srgb, var(--neon-purple) 10%, rgba(16, 8, 24, 0.12));
+    --border-strong: color-mix(in srgb, var(--neon-purple) 18%, rgba(16, 8, 24, 0.16));
+    --surface-inset: #e8ecf6;
+    --surface-muted: #dce2ef;
+    --surface-raised: #f7f8fd;
+    --bento-shadow:
+      0 8px 28px -6px rgba(16, 8, 32, 0.11),
+      0 0 22px -8px color-mix(in srgb, var(--neon-pink) 22%, transparent),
+      0 0 36px -14px color-mix(in srgb, var(--neon-cyan) 16%, transparent);
+
+    /* Metric labels — vivid on tinted surfaces (glow adds legibility) */
+    --neon-pink-text: #e6007a;
+    --neon-cyan-text: #0099c7;
+    --neon-purple-text: #7a1fd4;
+    --neon-turquoise-text: #00a8a0;
+    --neon-green-text: #00a868;
+
+    --text-muted: #3a3348;
+    --text-subtle: #2a2436;
+
+    --ring-track: color-mix(in srgb, var(--neon-cyan) 16%, #cdd3e2);
+
+    /* CPU per-core equalizer trough — lighter than surface-muted in Daylight Neon */
+    --spectrum-trough: color-mix(in srgb, var(--neon-pink) 4%, var(--surface-raised));
+
+    --card-solid: #f7f8fd;
+    --glass-surface: color-mix(in srgb, var(--card-solid) 78%, transparent);
+    --glass-blur: 24px;
+    --liquid-glass-solid: #f7f8fd;
+    --liquid-glass-bg: color-mix(in srgb, var(--card-solid) 78%, transparent);
+    --liquid-glass-border: color-mix(in srgb, var(--neon-purple) 14%, rgba(16, 8, 24, 0.12));
+    --liquid-glass-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.95),
+      inset 0 -1px 0 color-mix(in srgb, var(--neon-purple) 6%, transparent);
+    --overlay: rgba(16, 8, 24, 0.5);
+    --card: var(--card-solid);
   }
 
   [data-theme="dark"] {
@@ -46,10 +62,17 @@
     --background: #090514; /* Deep dark purple-black */
     --background-accent: #110926;
     --foreground: #f4ecf9;
+    --card-solid: rgb(17, 9, 38);
     --card: rgba(17, 9, 38, 0.4);
+    --glass-surface: rgba(17, 9, 38, 0.4);
+    --glass-blur: 24px;
     --card-hover: rgba(28, 16, 56, 0.6);
     --card-foreground: #f4ecf9;
     --border: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.14);
+    --surface-inset: rgba(255, 255, 255, 0.05);
+    --surface-muted: rgba(255, 255, 255, 0.08);
+    --surface-raised: rgba(28, 16, 56, 0.55);
     --bento-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.8), 0 0 20px -5px rgba(255, 45, 149, 0.15);
     
     /* True Neon Colors */
@@ -59,16 +82,26 @@
     --neon-turquoise: #00fff7;
     --neon-green: #00ff9d;
 
-    /* Text Colors mapped to vibrant colors for Dark Mode */
-    --neon-pink-text: var(--neon-pink);
+    /* WCAG AAA Compliant Text Colors for Dark Mode (Increased contrast pastel neon hues) */
+    --neon-pink-text: #ff80bf;
     --neon-cyan-text: var(--neon-cyan);
-    --neon-purple-text: var(--neon-purple);
+    --neon-purple-text: #d499ff;
     --neon-turquoise-text: var(--neon-turquoise);
     --neon-green-text: var(--neon-green);
 
+    /* WCAG AAA secondary text (≥ 7:1 on --background) */
+    --text-muted: #c8bfd0;
+    --text-subtle: #d8d0de;
+
+    --ring-track: rgba(255, 255, 255, 0.06);
+
+    --spectrum-trough: color-mix(in srgb, var(--neon-pink) 8%, var(--surface-muted));
+
+    --liquid-glass-solid: rgb(17, 9, 38);
     --liquid-glass-bg: rgba(14, 8, 32, 0.4);
     --liquid-glass-border: rgba(255, 255, 255, 0.06);
     --liquid-glass-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15), inset 0 -1px 1px rgba(0, 0, 0, 0.4);
+    --overlay: rgba(0, 0, 0, 0.55);
   }
 
   body {
@@ -85,17 +118,26 @@
     margin: 0;
     transition: background-color 0.5s ease;
   }
+
+  [data-theme="light"] body {
+    background-image:
+      radial-gradient(circle at 12% 42%, rgba(255, 45, 149, 0.09) 0%, transparent 48%),
+      radial-gradient(circle at 88% 28%, rgba(0, 212, 255, 0.08) 0%, transparent 48%),
+      radial-gradient(circle at 50% 92%, rgba(157, 78, 221, 0.07) 0%, transparent 42%);
+  }
 }
 
 @layer components {
   .bento-card {
-    background: var(--card);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
+    background: var(--card-solid);
     border-radius: 2rem;
     border: 1px solid var(--border);
-    box-shadow: var(--bento-shadow), var(--liquid-glass-shadow);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--bento-shadow);
+    transition:
+      background 0.35s ease,
+      backdrop-filter 0.35s ease,
+      box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+      border-color 0.3s ease;
     position: relative;
     overflow: hidden;
   }
@@ -119,11 +161,85 @@
   }
 
   .liquid-glass {
-    background: var(--liquid-glass-bg);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
+    background: var(--liquid-glass-solid);
     border: 1px solid var(--liquid-glass-border);
+    box-shadow: var(--bento-shadow);
+    transition:
+      background 0.35s ease,
+      backdrop-filter 0.35s ease,
+      box-shadow 0.3s ease;
+  }
+
+  /* Glassmorphism ON — both themes */
+  html:not(.no-blur) .bento-card {
+    background: var(--glass-surface);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    box-shadow: var(--bento-shadow), var(--liquid-glass-shadow);
+  }
+
+  html:not(.no-blur) .liquid-glass {
+    background: var(--liquid-glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
     box-shadow: var(--liquid-glass-shadow);
+  }
+
+  /* Grain + translucency + blur = muddy texture — solid cards only */
+  html:not(.no-blur) .bento-card::before {
+    display: none;
+  }
+
+  /* Zen dark + glass: smoother panel, less backdrop sampling */
+  html:not(.no-blur)[data-theme="dark"][data-zen-mode="true"] .bento-card {
+    background: color-mix(in srgb, var(--card-solid) 88%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  html:not(.no-blur)[data-theme="dark"][data-zen-mode="true"] body {
+    background-image:
+      radial-gradient(circle at 15% 50%, rgba(255, 45, 149, 0.04) 0%, transparent 50%),
+      radial-gradient(circle at 85% 30%, rgba(0, 212, 255, 0.035) 0%, transparent 50%);
+  }
+
+  [data-theme="light"] .bento-card::before {
+    opacity: 0.06;
+  }
+
+  html:not(.no-blur) [data-theme="light"] .bento-card::before {
+    opacity: 0.1;
+  }
+
+  [data-theme="light"] .bento-card.group:hover {
+    box-shadow:
+      var(--bento-shadow),
+      0 0 28px -6px color-mix(in srgb, var(--neon-pink) 28%, transparent);
+  }
+
+  html:not(.no-blur) [data-theme="light"] .bento-card.group:hover {
+    box-shadow:
+      var(--bento-shadow),
+      var(--liquid-glass-shadow),
+      0 0 28px -6px color-mix(in srgb, var(--neon-pink) 28%, transparent);
+  }
+
+  [data-theme="light"] ::-webkit-scrollbar-thumb {
+    background: rgba(26, 16, 28, 0.25);
+  }
+
+  [data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+    background: rgba(26, 16, 28, 0.4);
+  }
+
+  .surface-inset {
+    background: var(--surface-inset);
+    border-color: var(--border);
+  }
+
+  .surface-raised {
+    background: var(--surface-raised);
+    border-color: var(--border);
   }
 
   .mono-text {
@@ -136,17 +252,116 @@
     box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--neon-pink);
   }
 
-  /* Performance Tuning - Disable Blur */
+  /* Glassmorphism OFF — solid surfaces, zero backdrop blur app-wide */
   html.no-blur .bento-card {
-    background: var(--card) !important;
+    background: var(--card-solid) !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
-    box-shadow: var(--bento-shadow);
+    box-shadow: var(--bento-shadow) !important;
   }
+
   html.no-blur .liquid-glass {
-    background: var(--liquid-glass-bg) !important;
+    background: var(--liquid-glass-solid) !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
+    box-shadow: var(--bento-shadow) !important;
+  }
+
+  html.no-blur [class*='backdrop-blur'] {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* Splash screen — premium motion */
+  @keyframes splash-aurora-drift {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.45; }
+    50% { transform: translate(-48%, -52%) scale(1.08); opacity: 0.7; }
+  }
+
+  @keyframes splash-progress-shimmer {
+    0% { background-position: 200% center; }
+    100% { background-position: -200% center; }
+  }
+
+  @keyframes splash-scan-line {
+    0% { transform: translateX(-100%); opacity: 0; }
+    20% { opacity: 0.6; }
+    100% { transform: translateX(200%); opacity: 0; }
+  }
+
+  .splash-aurora {
+    animation: splash-aurora-drift 14s ease-in-out infinite;
+  }
+
+  .splash-aurora-delayed {
+    animation: splash-aurora-drift 18s ease-in-out infinite reverse;
+  }
+
+  .splash-progress-glow {
+    background-size: 200% 100%;
+    animation: splash-progress-shimmer 2.8s linear infinite;
+  }
+
+  .splash-row-scan::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in srgb, var(--row-accent, var(--neon-pink)) 18%, transparent),
+      transparent
+    );
+    animation: splash-scan-line 2.4s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  .splash-title-gradient {
+    background-image: linear-gradient(
+      105deg,
+      var(--neon-pink) 0%,
+      var(--neon-purple) 42%,
+      var(--neon-cyan) 78%,
+      var(--neon-pink) 120%
+    );
+    background-size: 200% auto;
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    animation: splash-title-shimmer 4s linear infinite;
+  }
+
+  @keyframes splash-title-shimmer {
+    0% { background-position: 200% center; }
+    100% { background-position: -200% center; }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .splash-title-gradient {
+    animation: none !important;
+    background-position: center center;
   }
 }
 

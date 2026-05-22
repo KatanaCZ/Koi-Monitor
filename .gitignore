@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+src-tauri/target/
+
+# IDE & AI tooling (local only)
+.claude/
+.agents/
+
+# OS artifacts
+nul
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Env & logs
+.env
+.env.*
+*.log
+
+# Tauri generated
+src-tauri/gen/

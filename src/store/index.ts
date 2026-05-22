@@ -1,12 +1,23 @@
 import { create } from 'zustand';
-import { SystemInfo, DnsResult, DriverInfo, ThemeMode, AppSettings } from '../types';
+import { SystemInfo, DnsResult, DriverInfo, ThemeMode, AppSettings, DEFAULT_DNS_CHECKLIST, GamingLatencySnapshot, DEFAULT_GAMING_LATENCY } from '../types';
+import { sanitizeAppSettings } from '../utils/settingsOptions';
+import {
+  createHistoryRing,
+  pushHistoryRing,
+  ringToArray,
+  type HistoryRing,
+  type HistoryPoint,
+} from './historyRing';
+
+export type { HistoryPoint };
 
 const DEFAULT_SETTINGS: AppSettings = {
   refreshInterval: 2000,
   dnsInterval: 15000,
   sakuraIntensity: 'medium',
+  sakuraColor: 'pink',
   enableGlassmorphicBlur: true,
-  dnsChecklist: ['Google', 'Cloudflare', 'Quad9', 'OpenDNS'],
+  dnsChecklist: [...DEFAULT_DNS_CHECKLIST],
   simplifiedMode: true,
 };
 
@@ -15,7 +26,11 @@ const loadSettings = (): AppSettings => {
     const saved = localStorage.getItem('koi_settings');
     if (saved) {
       const parsed = JSON.parse(saved);
-      return { ...DEFAULT_SETTINGS, ...parsed };
+      const sanitized = sanitizeAppSettings({ ...DEFAULT_SETTINGS, ...parsed });
+      if (JSON.stringify(sanitized) !== JSON.stringify({ ...DEFAULT_SETTINGS, ...parsed })) {
+        localStorage.setItem('koi_settings', JSON.stringify(sanitized));
+      }
+      return sanitized;
     }
   } catch (e) {
     console.error('Failed to load settings:', e);
@@ -23,44 +38,69 @@ const loadSettings = (): AppSettings => {
   return DEFAULT_SETTINGS;
 };
 
+export type StatusToastType = 'success' | 'warning' | 'error';
+
 interface AppState {
   theme: ThemeMode;
   settings: AppSettings;
   systemInfo: SystemInfo | null;
   dnsResults: DnsResult[];
+  gamingLatency: GamingLatencySnapshot;
   drivers: DriverInfo[];
   isLoading: boolean;
-  cpuHistory: { timestamp: number; value: number }[];
-  ramHistory: { timestamp: number; value: number }[];
-  gpuHistory: { timestamp: number; value: number }[];
-  networkDownloadHistory: { timestamp: number; value: number }[];
-  networkUploadHistory: { timestamp: number; value: number }[];
+  dnsFetchAttempted: boolean;
+  cpuHistoryRing: HistoryRing;
+  ramHistoryRing: HistoryRing;
+  gpuHistoryRing: HistoryRing;
+  networkDownloadRing: HistoryRing;
+  networkUploadRing: HistoryRing;
+  zenMode: boolean;
+  statusToast: { message: string; type: StatusToastType } | null;
   setTheme: (theme: ThemeMode) => void;
   updateSettings: (settings: Partial<AppSettings>) => void;
   setSystemInfo: (info: SystemInfo) => void;
+  applyTelemetrySnapshot: (info: SystemInfo, recordHistory: boolean) => void;
   setDnsResults: (results: DnsResult[]) => void;
+  setGamingLatency: (snapshot: GamingLatencySnapshot) => void;
+  setDnsFetchAttempted: (attempted: boolean) => void;
   setDrivers: (drivers: DriverInfo[]) => void;
   setLoading: (loading: boolean) => void;
-  addCpuHistory: (value: number) => void;
-  addRamHistory: (value: number) => void;
-  addGpuHistory: (value: number) => void;
-  addNetworkHistory: (download: number, upload: number) => void;
+  setZenMode: (zen: boolean) => void;
+  pushStatusToast: (message: string, type?: StatusToastType) => void;
+  clearStatusToast: () => void;
 }
 
-const MAX_HISTORY_POINTS = 288;
+export const selectCpuHistory = (s: AppState): HistoryPoint[] =>
+  ringToArray(s.cpuHistoryRing);
+
+export const selectRamHistory = (s: AppState): HistoryPoint[] =>
+  ringToArray(s.ramHistoryRing);
+
+export const selectGpuHistory = (s: AppState): HistoryPoint[] =>
+  ringToArray(s.gpuHistoryRing);
+
+export const selectNetworkDownloadHistory = (s: AppState): HistoryPoint[] =>
+  ringToArray(s.networkDownloadRing);
+
+export const selectNetworkUploadHistory = (s: AppState): HistoryPoint[] =>
+  ringToArray(s.networkUploadRing);
 
 export const useAppStore = create<AppState>((set) => ({
   theme: (localStorage.getItem('koi_theme') as ThemeMode) || 'dark',
   settings: loadSettings(),
   systemInfo: null,
   dnsResults: [],
+  gamingLatency: DEFAULT_GAMING_LATENCY,
   drivers: [],
   isLoading: false,
-  cpuHistory: [],
-  ramHistory: [],
-  gpuHistory: [],
-  networkDownloadHistory: [],
-  networkUploadHistory: [],
+  dnsFetchAttempted: false,
+  cpuHistoryRing: createHistoryRing(),
+  ramHistoryRing: createHistoryRing(),
+  gpuHistoryRing: createHistoryRing(),
+  networkDownloadRing: createHistoryRing(),
+  networkUploadRing: createHistoryRing(),
+  zenMode: false,
+  statusToast: null,
 
   setTheme: (theme) => {
     localStorage.setItem('koi_theme', theme);
@@ -69,7 +109,7 @@ export const useAppStore = create<AppState>((set) => ({
 
   updateSettings: (newSettings) =>
     set((state) => {
-      const updated = { ...state.settings, ...newSettings };
+      const updated = sanitizeAppSettings({ ...state.settings, ...newSettings });
       try {
         localStorage.setItem('koi_settings', JSON.stringify(updated));
       } catch (e) {
@@ -80,45 +120,53 @@ export const useAppStore = create<AppState>((set) => ({
 
   setSystemInfo: (info) => set({ systemInfo: info }),
 
-  setDnsResults: (results) => set({ dnsResults: results }),
+  applyTelemetrySnapshot: (info, recordHistory) =>
+    set((state) => {
+      if (!recordHistory) {
+        return { systemInfo: info };
+      }
+
+      const next: Partial<AppState> = {
+        systemInfo: info,
+        networkDownloadRing: pushHistoryRing(
+          state.networkDownloadRing,
+          info.network.download_speed,
+        ),
+        networkUploadRing: pushHistoryRing(
+          state.networkUploadRing,
+          info.network.upload_speed,
+        ),
+      };
+
+      if (info.cpu) {
+        next.cpuHistoryRing = pushHistoryRing(state.cpuHistoryRing, info.cpu.usage);
+      }
+      if (info.memory) {
+        next.ramHistoryRing = pushHistoryRing(
+          state.ramHistoryRing,
+          info.memory.usage_percent,
+        );
+      }
+      if (info.gpu && info.gpu.length > 0) {
+        next.gpuHistoryRing = pushHistoryRing(state.gpuHistoryRing, info.gpu[0].usage);
+      }
+
+      return next;
+    }),
+
+  setDnsResults: (results) => set({ dnsResults: results, dnsFetchAttempted: true }),
+
+  setGamingLatency: (gamingLatency) => set({ gamingLatency }),
+
+  setDnsFetchAttempted: (dnsFetchAttempted) => set({ dnsFetchAttempted }),
 
   setDrivers: (drivers) => set({ drivers }),
 
   setLoading: (loading) => set({ isLoading: loading }),
 
-  addCpuHistory: (value) =>
-    set((state) => ({
-      cpuHistory: [
-        ...state.cpuHistory.slice(-(MAX_HISTORY_POINTS - 1)),
-        { timestamp: Date.now(), value },
-      ],
-    })),
+  setZenMode: (zenMode) => set({ zenMode }),
 
-  addRamHistory: (value) =>
-    set((state) => ({
-      ramHistory: [
-        ...state.ramHistory.slice(-(MAX_HISTORY_POINTS - 1)),
-        { timestamp: Date.now(), value },
-      ],
-    })),
+  pushStatusToast: (message, type = 'warning') => set({ statusToast: { message, type } }),
 
-  addGpuHistory: (value) =>
-    set((state) => ({
-      gpuHistory: [
-        ...state.gpuHistory.slice(-(MAX_HISTORY_POINTS - 1)),
-        { timestamp: Date.now(), value },
-      ],
-    })),
-
-  addNetworkHistory: (download, upload) =>
-    set((state) => ({
-      networkDownloadHistory: [
-        ...state.networkDownloadHistory.slice(-(MAX_HISTORY_POINTS - 1)),
-        { timestamp: Date.now(), value: download },
-      ],
-      networkUploadHistory: [
-        ...state.networkUploadHistory.slice(-(MAX_HISTORY_POINTS - 1)),
-        { timestamp: Date.now(), value: upload },
-      ],
-    })),
+  clearStatusToast: () => set({ statusToast: null }),
 }));

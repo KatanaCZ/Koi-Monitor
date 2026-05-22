@@ -6,12 +6,17 @@ use std::process::Command;
 pub struct DriverInfo {
     pub name: String,
     pub version: String,
+    pub latest_version: String,
     pub date: String,
     pub provider: String,
     pub status: String,
     pub category: String,
     pub hardware_id: String,
+    #[serde(default)]
+    pub hardware_ids: Vec<String>,
     pub update_url: String,
+    #[serde(default)]
+    pub update_source: String,
 }
 
 const BLACKLIST: &[&str] = &[
@@ -21,59 +26,214 @@ const BLACKLIST: &[&str] = &[
     "tap-windows", "wireguard", "zerotier", "cisco", "fortinet", "sonicwall",
     "ndis", "miniport", "wan ", "ras async", "pptp", "l2tp", "sstp", "ikev2",
     "mac bridge", "wi-fi direct", "virtual adapter", "pci-e virtual",
-    
+
     // Peripherals
     "mouse", "keyboard", "hid-compliant", "hid ", "touchpad", "trackpad",
-    "webcam", "camera", "printer", "scanner", "fax", "composite", "usb hub",
+    "webcam", "printer", "scanner", "fax", "usb hub",
     "gamepad", "joystick", "game controller", "xbox",
-    
+
     // Audio endpoints (casques, micros simples, hd audio)
     "headset", "headphone", "hands-free", "handsfree", "earphone", "bluetooth audio",
-    "high definition audio", "streaming audio", "usb audio", "lightspeed",
-    
+    "streaming audio", "usb audio", "lightspeed",
+    "stereo mix", "line in", "line out", "digital output", "speakers (",
+    "microphone (", "hands free", "ag audio", "wave mapper", "legacy audio",
+    "nvidia virtual audio", "nvidia high definition audio",
+
     // Generic Bluetooth & Network
-    "a2dp", "personal area network", "bth", "avrcp",
-    
-    // Generic
+    "a2dp", "personal area network", "avrcp", "identification service", "rfcomm",
+    "bthhfenum", "bthenum", "bluetooth low energy",
+
+    // Generic / software / bus
     "generic software", "microsoft basic", "remote desktop", "system timer",
+    "software component", "software device", "root enumerator", "bus enumerator",
+    "usb root hub", "usb4 root", "usb composite device", "generic volume", "volume shadow",
+    "standard pci",
+    "microsoft device", "microsoft streaming", "monitor ", " edid",
+    "amdpsp", "amdgpio", "amdappcompat", "amd3dvcache", "amdfdans", "amdvlk",
+    "amdwin-", "amdppkg", "amdxe", "amdfendr", "amdsdw", "amdpcidev", "amdafd",
+    "amdi2c", "smbusamd", "amdpcibridge",
 ];
+
+const SIMPLIFIED_CATEGORIES: &[&str] = &["Graphics", "Network", "Bluetooth"];
+const FULL_MODE_CATEGORIES: &[&str] =
+    &["Graphics", "Network", "Bluetooth", "Audio", "Storage", "Firmware"];
+
+const WMI_DEVICE_CLASSES_FULL: &[&str] = &[
+    "Display", "Net", "Media", "MEDIA", "Bluetooth", "SCSIAdapter", "HDC", "FIRMWARE",
+];
+
+fn build_driver_scan_script(classes: &[&str]) -> String {
+    let class_filter = classes
+        .iter()
+        .map(|class_name| format!("DeviceClass='{class_name}'"))
+        .collect::<Vec<_>>()
+        .join(" OR ");
+
+    format!(
+        r#"
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$query = "SELECT DeviceName, DriverVersion, DriverDate, DriverProviderName, DeviceClass, HardwareID FROM Win32_PnPSignedDriver WHERE {class_filter}"
+Get-CimInstance -Query $query | Where-Object {{
+    $_.DeviceName -ne $null -and $_.DriverVersion -ne $null
+}} | Select-Object DeviceName, DriverVersion,
+    @{{N='Date';E={{if($_.DriverDate){{$_.DriverDate.ToString('yyyy-MM-dd')}}else{{'N/A'}}}}}},
+    DriverProviderName, DeviceClass, HardwareID | ConvertTo-Json -Depth 3
+"#
+    )
+}
+
+fn is_blacklisted(name: &str) -> bool {
+    let name_lower = name.to_lowercase();
+    BLACKLIST.iter().any(|pattern| name_lower.contains(pattern))
+}
+
+fn is_physical_driver(hw_ids: &[String]) -> bool {
+    hw_ids.iter().any(|id| {
+        let upper = id.to_uppercase();
+        upper.starts_with("PCI\\")
+            || upper.starts_with("USB\\")
+            || upper.starts_with("ACPI\\")
+            || upper.starts_with("SCSI\\")
+            || upper.starts_with("HDAUDIO\\")
+    })
+}
+
+fn is_relevant_for_full_mode(driver: &DriverInfo) -> bool {
+    if !FULL_MODE_CATEGORIES.contains(&driver.category.as_str()) {
+        return false;
+    }
+
+    if !driver.hardware_ids.is_empty() && !is_physical_driver(&driver.hardware_ids) {
+        return false;
+    }
+
+    let name = driver.name.to_lowercase();
+    let provider = driver.provider.to_lowercase();
+
+    if provider.contains("microsoft") && driver.category == "Storage" {
+        return false;
+    }
+
+    if driver.category == "Firmware" && provider.contains("microsoft") {
+        return false;
+    }
+
+    if driver.category == "Audio" {
+        const SKIP: &[&str] = &[
+            "nvidia virtual audio",
+            "usb audio",
+            "realtek audio effects",
+            "intel smart sound technology for usb",
+            "audio endpoint",
+        ];
+        if SKIP.iter().any(|pattern| name.contains(pattern)) {
+            return false;
+        }
+    }
+
+    if driver.category == "Storage" {
+        if name.contains("disk drive") || name.contains("generic") {
+            return false;
+        }
+        if name.contains("storage spaces") {
+            return false;
+        }
+    }
+
+    true
+}
+
+fn is_integrated_gpu(name: &str) -> bool {
+    let lower = name.to_lowercase();
+    lower.contains("tm) graphics")
+        || lower.contains("integrated graphics")
+        || (lower.contains("radeon") && lower.contains("graphics") && !lower.contains("rx "))
+}
+
+fn is_ethernet_adapter(name: &str) -> bool {
+    let lower = name.to_lowercase();
+    lower.contains("ethernet")
+        || lower.contains("gbe")
+        || lower.contains("2.5g")
+        || lower.contains("gigabit")
+}
+
+fn is_wifi_adapter(name: &str) -> bool {
+    let lower = name.to_lowercase();
+    lower.contains("wi-fi") || lower.contains("wifi") || lower.contains("wlan") || lower.contains("802.11")
+}
+
+fn pick_primary_in_category(drivers: &[DriverInfo], category: &str) -> Option<DriverInfo> {
+    let matches: Vec<&DriverInfo> = drivers
+        .iter()
+        .filter(|d| d.category == category)
+        .collect();
+
+    if matches.is_empty() {
+        return None;
+    }
+
+    let picked = match category {
+        "Graphics" => matches
+            .iter()
+            .find(|d| !is_integrated_gpu(&d.name))
+            .copied(),
+        "Network" => matches
+            .iter()
+            .find(|d| is_ethernet_adapter(&d.name))
+            .or_else(|| matches.iter().find(|d| is_wifi_adapter(&d.name)))
+            .copied(),
+        _ => matches.first().copied(),
+    };
+
+    picked.cloned()
+}
+
+fn collapse_simplified_primary(drivers: &[DriverInfo]) -> Vec<DriverInfo> {
+    ["Graphics", "Network", "Bluetooth"]
+        .iter()
+        .filter_map(|category| pick_primary_in_category(drivers, category))
+        .collect()
+}
 
 pub fn get_driver_list(simplified: bool) -> Result<Vec<DriverInfo>, String> {
     let mut drivers = Vec::new();
 
     #[cfg(target_os = "windows")]
     {
-        let ps_script = r#"
-$classes = @('Display','Net','Media','MEDIA')
-Get-CimInstance Win32_PnPSignedDriver | Where-Object {
-    $_.DeviceName -ne $null -and
-    $_.DriverVersion -ne $null -and
-    $_.DeviceClass -in $classes
-} | Select-Object DeviceName, DriverVersion,
-    @{N='Date';E={if($_.DriverDate){$_.DriverDate.ToString('yyyy-MM-dd')}else{'N/A'}}},
-    DriverProviderName, DeviceClass, HardwareID | ConvertTo-Json -Depth 3
-"#;
+        let ps_script = build_driver_scan_script(WMI_DEVICE_CLASSES_FULL);
 
         let output = Command::new("powershell")
-            .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps_script])
+            .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &ps_script])
             .creation_flags(0x08000000)
             .output();
 
         match output {
             Ok(result) => {
+                if !result.status.success() {
+                    let stderr = String::from_utf8_lossy(&result.stderr);
+                    log::warn!("PowerShell driver scan failed: {}", stderr.trim());
+                    return Err(format!(
+                        "Driver scan failed (exit {}): {}",
+                        result.status.code().unwrap_or(-1),
+                        stderr.trim()
+                    ));
+                }
+
                 if let Ok(stdout) = String::from_utf8(result.stdout) {
-                    if let Ok(json) = serde_json::from_str::<serde_json::Value>(&stdout) {
-                        let items: Vec<&serde_json::Value> = if json.is_array() {
-                            json.as_array().unwrap().iter().collect()
+                    if stdout.trim().is_empty() {
+                        log::warn!("PowerShell driver scan returned empty output");
+                    } else if let Ok(json) = serde_json::from_str::<serde_json::Value>(&stdout) {
+                        let items: Vec<&serde_json::Value> = if let Some(arr) = json.as_array() {
+                            arr.iter().collect()
                         } else {
                             vec![&json]
                         };
 
                         for d in items {
                             let name = d["DeviceName"].as_str().unwrap_or("Unknown").to_string();
-                            let name_lower = name.to_lowercase();
 
-                            if BLACKLIST.iter().any(|b| name_lower.contains(b)) {
+                            if is_blacklisted(&name) {
                                 continue;
                             }
 
@@ -81,29 +241,35 @@ Get-CimInstance Win32_PnPSignedDriver | Where-Object {
                             let date = d["Date"].as_str().unwrap_or("N/A").to_string();
                             let provider = d["DriverProviderName"].as_str().unwrap_or("Unknown").to_string();
                             let class = d["DeviceClass"].as_str().unwrap_or("Other");
-                            let hw_id = d["HardwareID"].as_str().unwrap_or("").to_string();
+                            let hw_ids = extract_hardware_ids(&d["HardwareID"]);
+                            let hw_id = hw_ids.first().cloned().unwrap_or_default();
 
                             let status = eval_status(&version, &date);
                             let update_url = make_update_url(&provider, &name, &hw_id);
-                            let category = match class {
-                                "Display" => "Graphics",
-                                "Net" => "Network",
-                                "HDC" | "SCSIAdapter" => "Storage",
-                                "Media" | "MEDIA" => "Audio",
-                                "Bluetooth" => "Bluetooth",
-                                "Firmware" => "Firmware",
+                            
+                            let class_upper = class.to_uppercase();
+                            let category = match class_upper.as_str() {
+                                "DISPLAY" => "Graphics",
+                                "NET" => "Network",
+                                "HDC" | "SCSIADAPTER" => "Storage",
+                                "MEDIA" => "Audio",
+                                "BLUETOOTH" => "Bluetooth",
+                                "FIRMWARE" => "Firmware",
                                 _ => class,
                             };
 
                             drivers.push(DriverInfo {
                                 name,
                                 version,
+                                latest_version: String::new(),
                                 date,
                                 provider,
                                 status,
                                 category: category.to_string(),
                                 hardware_id: hw_id,
+                                hardware_ids: hw_ids.clone(),
                                 update_url,
+                                update_source: String::new(),
                             });
                         }
                     }
@@ -115,8 +281,12 @@ Get-CimInstance Win32_PnPSignedDriver | Where-Object {
 
     if simplified {
         drivers.retain(|d| {
-            matches!(d.category.as_str(), "Graphics" | "Network" | "Bluetooth")
+            SIMPLIFIED_CATEGORIES.contains(&d.category.as_str())
+                && (d.hardware_ids.is_empty() || is_physical_driver(&d.hardware_ids))
         });
+        drivers = collapse_simplified_primary(&drivers);
+    } else {
+        drivers.retain(is_relevant_for_full_mode);
     }
 
     drivers.sort_by(|a, b| a.category.cmp(&b.category).then(a.name.cmp(&b.name)));
@@ -126,16 +296,43 @@ Get-CimInstance Win32_PnPSignedDriver | Where-Object {
         drivers.push(DriverInfo {
             name: "No hardware drivers detected".to_string(),
             version: "N/A".to_string(),
+            latest_version: String::new(),
             date: "N/A".to_string(),
             provider: "System".to_string(),
             status: "Unknown".to_string(),
             category: "System".to_string(),
             hardware_id: String::new(),
+            hardware_ids: Vec::new(),
             update_url: String::new(),
+            update_source: String::new(),
         });
     }
 
+    #[cfg(target_os = "windows")]
+    crate::driver_updates::enrich_drivers_with_updates(&mut drivers);
+
     Ok(drivers)
+}
+
+fn extract_hardware_ids(value: &serde_json::Value) -> Vec<String> {
+    match value {
+        serde_json::Value::String(text) => {
+            let trimmed = text.trim();
+            if trimmed.is_empty() {
+                Vec::new()
+            } else {
+                vec![trimmed.to_string()]
+            }
+        }
+        serde_json::Value::Array(values) => values
+            .iter()
+            .filter_map(|entry| entry.as_str())
+            .map(str::trim)
+            .filter(|entry| !entry.is_empty())
+            .map(str::to_string)
+            .collect(),
+        _ => Vec::new(),
+    }
 }
 
 fn eval_status(version: &str, date: &str) -> String {
@@ -184,4 +381,42 @@ fn make_update_url(provider: &str, name: &str, hw_id: &str) -> String {
         return format!("https://www.catalog.update.microsoft.com/Search.aspx?q={}", q);
     }
     format!("https://www.google.com/search?q={}+driver+download", name.replace(' ', "+"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sample(name: &str, category: &str) -> DriverInfo {
+        DriverInfo {
+            name: name.into(),
+            version: "1.0".into(),
+            latest_version: String::new(),
+            date: "2026-01-01".into(),
+            provider: "Test".into(),
+            status: "Installed".into(),
+            category: category.into(),
+            hardware_id: String::new(),
+            hardware_ids: vec![],
+            update_url: String::new(),
+            update_source: String::new(),
+        }
+    }
+
+    #[test]
+    fn simplified_collapses_to_one_primary_per_category() {
+        let input = vec![
+            sample("AMD Radeon RX 7900 XTX", "Graphics"),
+            sample("AMD Radeon(TM) Graphics", "Graphics"),
+            sample("Realtek Gaming 2.5GbE Family Controller", "Network"),
+            sample("RZ608 Wi-Fi 6E 80MHz", "Network"),
+            sample("RZ608 Bluetooth(R) Adapter", "Bluetooth"),
+        ];
+
+        let collapsed = collapse_simplified_primary(&input);
+        assert_eq!(collapsed.len(), 3);
+        assert_eq!(collapsed[0].name, "AMD Radeon RX 7900 XTX");
+        assert_eq!(collapsed[1].name, "Realtek Gaming 2.5GbE Family Controller");
+        assert_eq!(collapsed[2].name, "RZ608 Bluetooth(R) Adapter");
+    }
 }

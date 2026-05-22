@@ -1,0 +1,52 @@
+name: Audit & Build
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  audit:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: npm audit
+        run: npm audit --audit-level=moderate
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Bundle budget (recharts chunk)
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem -Path dist/assets -Filter "recharts-*.js" -ErrorAction SilentlyContinue
+          if (-not $files) { Write-Error "recharts chunk not found"; exit 1 }
+          $kb = [math]::Round(($files | Measure-Object Length -Sum).Sum / 1KB, 1)
+          Write-Host "recharts bundle: ${kb} KB"
+          if ($kb -gt 550) { Write-Error "recharts chunk exceeds 550 KB budget ($kb KB)"; exit 1 }
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
+
+      - name: cargo audit
+        working-directory: src-tauri
+        run: cargo audit
+
+      - name: cargo check (release)
+        working-directory: src-tauri
+        run: cargo check --release
+
+      - name: cargo clippy
+        working-directory: src-tauri
+        run: cargo clippy --release -- -D warnings
