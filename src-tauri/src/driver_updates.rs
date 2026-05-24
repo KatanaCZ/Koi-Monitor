@@ -133,7 +133,7 @@ pub fn open_windows_update_settings() -> Result<(), String> {
         .args(["/C", "start", "", "ms-settings:windowsupdate"])
         .creation_flags(0x08000000)
         .spawn()
-        .map_err(|error| format!("Failed to open Windows Update: {}", error))?;
+        .map_err(|error| format!("Failed to open Windows Update: {error}"))?;
     Ok(())
 }
 
@@ -169,11 +169,10 @@ fn fetch_pending_driver_updates() -> Vec<PendingDriverUpdate> {
         return Vec::new();
     };
 
-    let items: Vec<serde_json::Value> = if let Some(array) = json.as_array() {
-        array.clone()
-    } else {
-        vec![json]
-    };
+    let items: Vec<serde_json::Value> = json
+        .as_array()
+        .map(|array| array.to_vec())
+        .unwrap_or_else(|| vec![json]);
 
     items
         .into_iter()

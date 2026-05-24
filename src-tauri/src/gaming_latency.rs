@@ -158,7 +158,7 @@ fn measure_latency(host: &str) -> Option<f64> {
         return None;
     }
 
-    parse_ping_ms(&String::from_utf8_lossy(&output.stdout))
+    parse_ping_ms(&std::str::from_utf8_lossy(&output.stdout))
 }
 
 #[cfg(not(target_os = "windows"))]
@@ -171,7 +171,7 @@ fn measure_latency(host: &str) -> Option<f64> {
         .output()
         .ok()?;
 
-    parse_ping_ms(&String::from_utf8_lossy(&output.stdout))
+    parse_ping_ms(&std::str::from_utf8_lossy(&output.stdout))
 }
 
 fn measure_tcp_latency(host: &str, port: u16) -> Option<f64> {

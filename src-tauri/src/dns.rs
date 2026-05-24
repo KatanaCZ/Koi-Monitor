@@ -94,7 +94,7 @@ const DNS_CONNECT_TIMEOUT_MS: u64 = 800;
 
 pub async fn ping_dns_server(server: &str) -> Result<f64, String> {
     let start = Instant::now();
-    let addr = format!("{}:53", server);
+    let addr = format!("{server}:53");
     let timeout = tokio::time::Duration::from_millis(DNS_CONNECT_TIMEOUT_MS);
 
     match tokio::time::timeout(timeout, tokio::net::TcpStream::connect(&addr)).await {
@@ -102,7 +102,7 @@ pub async fn ping_dns_server(server: &str) -> Result<f64, String> {
             let elapsed = start.elapsed().as_secs_f64() * 1000.0;
             Ok(elapsed)
         }
-        Ok(Err(e)) => Err(format!("Connection failed: {}", e)),
+        Ok(Err(e)) => Err(format!("Connection failed: {e}")),
         Err(_) => Err("Timeout".to_string()),
     }
 }
@@ -145,7 +145,7 @@ pub async fn ping_all_dns_servers(
 
     for server in &servers {
         if !is_allowed_dns_ip(&server.ip) {
-            return Err(format!("DNS IP not allowed: {}", server.ip));
+            return Err(format!("DNS IP not allowed: {ip}", ip = server.ip));
         }
     }
 

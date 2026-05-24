@@ -70,7 +70,11 @@ fn normalize_brand_name(raw: &str) -> String {
                 match chars.next() {
                     None => String::new(),
                     Some(first) => {
-                        first.to_uppercase().collect::<String>() + &chars.as_str().to_lowercase()
+                        format!(
+                            "{}{}",
+                            first.to_uppercase().collect::<String>(),
+                            chars.as_str().to_lowercase()
+                        )
                     }
                 }
             })
@@ -80,7 +84,8 @@ fn normalize_brand_name(raw: &str) -> String {
 }
 
 fn jedec_brand(code: &str) -> Option<&'static str> {
-    match code.trim().to_uppercase().as_str() {
+    let code_upper = code.trim().to_uppercase();
+    match code_upper.as_str() {
         "029E" => Some("Corsair"),
         "0198" | "9801" | "80AD" | "0098" => Some("Kingston"),
         "80CE" | "5105" => Some("Samsung"),

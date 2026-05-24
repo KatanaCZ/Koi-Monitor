@@ -378,9 +378,10 @@ fn make_update_url(provider: &str, name: &str, hw_id: &str) -> String {
     }
     if !hw_id.is_empty() {
         let q = hw_id.replace('&', "%26").replace('\\', "%5C");
-        return format!("https://www.catalog.update.microsoft.com/Search.aspx?q={}", q);
+        return format!("https://www.catalog.update.microsoft.com/Search.aspx?q={q}");
     }
-    format!("https://www.google.com/search?q={}+driver+download", name.replace(' ', "+"))
+    let query = name.replace(' ', "+");
+    format!("https://www.google.com/search?q={query}+driver+download")
 }
 
 #[cfg(test)]

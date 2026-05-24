@@ -10,7 +10,7 @@
 
 If you discover a security issue in Koi Monitor, please **do not** open a public GitHub issue with exploit details.
 
-Instead, open a [GitHub Security Advisory](https://github.com/KatanaCZ/koi-monitor/security/advisories/new) or contact the maintainer privately.
+Instead, open a [GitHub Security Advisory](https://github.com/KatanaCZ/Koi-Monitor/security/advisories/new) or contact the maintainer privately.
 
 Include:
 

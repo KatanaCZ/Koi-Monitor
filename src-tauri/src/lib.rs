@@ -39,7 +39,7 @@ struct SelectedGpuAdapter {
 }
 
 fn format_luid_wmi_fragment(high: u32, low: u32) -> String {
-    format!("luid_0x{:08x}_0x{:08x}", high, low)
+    format!("luid_0x{high:08x}_0x{low:08x}")
 }
 
 fn engine_contributes_to_gpu_load(name: &str) -> bool {
@@ -437,7 +437,7 @@ fn get_gaming_latency(
 #[tauri::command]
 async fn get_system_info(state: tauri::State<'_, MonitorState>) -> Result<SystemInfo, String> {
     let monitor = {
-        let guard = state.lock().map_err(|e| format!("Lock error: {}", e))?;
+        let guard = state.lock().map_err(|e| format!("Lock error: {e}"))?;
         guard.clone()
     };
 
@@ -481,7 +481,7 @@ async fn get_drivers(
                 drivers
             })
             .await
-            .map_err(|e| format!("Driver enrich task failed: {}", e))?;
+            .map_err(|e| format!("Driver enrich task failed: {e}"))?;
 
             if let Ok(mut guard) = cache.inner.lock() {
                 guard.insert(
@@ -500,7 +500,7 @@ async fn get_drivers(
     let mut drivers =
         tauri::async_runtime::spawn_blocking(move || drivers::get_driver_list(simplified))
             .await
-            .map_err(|e| format!("Driver scan task failed: {}", e))??;
+            .map_err(|e| format!("Driver scan task failed: {e}"))??;
 
     if enrich {
         drivers = tauri::async_runtime::spawn_blocking(move || {
@@ -508,7 +508,7 @@ async fn get_drivers(
             drivers
         })
         .await
-        .map_err(|e| format!("Driver enrich task failed: {}", e))?;
+        .map_err(|e| format!("Driver enrich task failed: {e}"))?;
     }
 
     if let Ok(mut guard) = cache.inner.lock() {
@@ -528,7 +528,7 @@ async fn get_drivers(
 async fn open_windows_update() -> Result<(), String> {
     tauri::async_runtime::spawn_blocking(driver_updates::open_windows_update_settings)
         .await
-        .map_err(|error| format!("Windows Update task failed: {}", error))?
+        .map_err(|error| format!("Windows Update task failed: {error}"))?
 }
 
 #[tauri::command]

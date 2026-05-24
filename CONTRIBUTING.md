@@ -10,7 +10,7 @@ Thank you for your interest in Koi Monitor. This project targets **Windows 10/11
 ## Development setup
 
 ```powershell
-git clone https://github.com/KatanaCZ/koi-monitor.git
+git clone https://github.com/KatanaCZ/Koi-Monitor.git
 cd koi-monitor
 .\koi.bat setup    # First time — admin
 .\koi.bat dev      # Full Tauri + Vite (port 1420)

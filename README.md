@@ -2,8 +2,8 @@
 
 # 🌸 Koi Monitor
 
-[![Audit & Build](https://github.com/KatanaCZ/koi-monitor/actions/workflows/audit.yml/badge.svg)](https://github.com/KatanaCZ/koi-monitor/actions/workflows/audit.yml)
-[![Release](https://img.shields.io/github/v/release/KatanaCZ/koi-monitor?label=Release&color=9d4edd)](https://github.com/KatanaCZ/koi-monitor/releases/latest)
+[![Audit & Build](https://github.com/KatanaCZ/Koi-Monitor/actions/workflows/audit.yml/badge.svg)](https://github.com/KatanaCZ/Koi-Monitor/actions/workflows/audit.yml)
+[![Release](https://img.shields.io/github/v/release/KatanaCZ/Koi-Monitor?label=Release&color=9d4edd)](https://github.com/KatanaCZ/Koi-Monitor/releases/latest)
 
 ### *Votre PC, enfin lisible. Beau. Léger. Fiable.*
 
@@ -156,7 +156,7 @@ Un message à la fois. Raté quelque chose ? La **cloche** garde le journal de l
 
 ### Télécharger (recommandé)
 
-1. Ouvrez la **[dernière Release](https://github.com/KatanaCZ/koi-monitor/releases/latest)**
+1. Ouvrez la **[dernière Release](https://github.com/KatanaCZ/Koi-Monitor/releases/latest)**
 2. Téléchargez **`koi-monitor.exe`**
 3. Copiez-le où vous voulez et double-cliquez
 
@@ -174,7 +174,7 @@ Un message à la fois. Raté quelque chose ? La **cloche** garde le journal de l
 <summary><strong>Développeurs — compiler depuis les sources</strong></summary>
 
 ```powershell
-git clone https://github.com/KatanaCZ/koi-monitor.git
+git clone https://github.com/KatanaCZ/Koi-Monitor.git
 cd koi-monitor
 .\koi.bat setup    # Admin — première installation
 .\koi.bat dev      # Tauri + Vite (port 1420)
