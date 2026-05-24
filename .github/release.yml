@@ -1,0 +1,21 @@
+# Config GitHub « Generate release notes » (complément si besoin).
+# Source principale des patchnotes : CHANGELOG.md → scripts/extract-release-notes.ps1
+changelog:
+  exclude:
+    labels:
+      - dependencies
+  categories:
+    - title: Ajouté
+      labels:
+        - enhancement
+        - feature
+    - title: Corrigé
+      labels:
+        - bug
+        - fix
+    - title: Documentation
+      labels:
+        - documentation
+    - title: Maintenance
+      labels:
+        - chore

@@ -38,7 +38,25 @@ Open a PR on GitHub → wait for **Audit & Build** green → merge. Solo maintai
 
 ### Releases
 
-Tags `v*` on **`master` only** (after merge + green CI) → workflow **Release** publishes `koi-monitor.exe`.
+Patchnotes utilisateur : **[`CHANGELOG.md`](CHANGELOG.md)** (français, [Keep a Changelog](https://keepachangelog.com/fr/)).
+
+**Avant chaque version :**
+
+1. Remplir la section **`## [Unreleased]`** pendant le dev (Ajouté / Modifié / Corrigé).
+2. Sur `master` vert :
+
+```powershell
+.\scripts\prepare-release.ps1 -Version 1.0.1   # promeut [Unreleased] → [1.0.1]
+git add CHANGELOG.md
+git commit -m "chore(release): prepare v1.0.1"
+git push origin master
+git tag v1.0.1
+git push origin v1.0.1
+```
+
+3. Le workflow **Release** extrait la section du CHANGELOG et publie **`koi-monitor.exe`** + notes sur GitHub.
+
+**SemVer :** `1.0.x` correctifs · `1.x.0` features · `x.0.0` rupture majeure.
 
 ## Development setup
 
