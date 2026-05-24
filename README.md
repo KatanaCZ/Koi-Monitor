@@ -18,7 +18,7 @@
 
 <br />
 
-![Aperçu de Koi Monitor — dashboard](docs/screenshots/dashboard-dark.png)
+![Aperçu de Koi Monitor — dashboard](docs/screenshots/MockupViews_1x_PNG_20260524_274.png)
 
 *Verre dépoli · Thème sombre & clair · Ambiance sakura*
 
