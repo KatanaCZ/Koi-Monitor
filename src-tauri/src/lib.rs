@@ -261,7 +261,7 @@ fn read_selected_gpu_adapter() -> SelectedGpuAdapter {
                     vram_total: vram,
                     luid_fragment: format_luid_wmi_fragment(
                         luid.HighPart as u32,
-                        luid.LowPart as u32,
+                        luid.LowPart,
                     ),
                 };
                 if is_discrete_gpu_name(&name) {

@@ -10,7 +10,7 @@ const ICON_PATHS: &[&str] = &[
 ];
 
 fn icon_digest(data: &[u8]) -> String {
-    let mut h: u64 = 0xcbf29ce4_8422_2325;
+    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
     for byte in data {
         h ^= u64::from(*byte);
         h = h.wrapping_mul(0x1000_0000_01b3);
