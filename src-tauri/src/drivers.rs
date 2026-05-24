@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::os::windows::process::CommandExt;
-use std::process::Command;
+use crate::subprocess::run_powershell_with_timeout;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DriverInfo {
@@ -203,10 +202,7 @@ pub fn get_driver_list(simplified: bool) -> Result<Vec<DriverInfo>, String> {
     {
         let ps_script = build_driver_scan_script(WMI_DEVICE_CLASSES_FULL);
 
-        let output = Command::new("powershell")
-            .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &ps_script])
-            .creation_flags(0x08000000)
-            .output();
+        let output = run_powershell_with_timeout(&ps_script, 90);
 
         match output {
             Ok(result) => {
@@ -223,7 +219,9 @@ pub fn get_driver_list(simplified: bool) -> Result<Vec<DriverInfo>, String> {
                 if let Ok(stdout) = String::from_utf8(result.stdout) {
                     if stdout.trim().is_empty() {
                         log::warn!("PowerShell driver scan returned empty output");
-                    } else if let Ok(json) = serde_json::from_str::<serde_json::Value>(&stdout) {
+                        return Err("Driver scan returned empty output".to_string());
+                    }
+                    if let Ok(json) = serde_json::from_str::<serde_json::Value>(&stdout) {
                         let items: Vec<&serde_json::Value> = if let Some(arr) = json.as_array() {
                             arr.iter().collect()
                         } else {
@@ -272,10 +270,15 @@ pub fn get_driver_list(simplified: bool) -> Result<Vec<DriverInfo>, String> {
                                 update_source: String::new(),
                             });
                         }
+                    } else {
+                        log::warn!("PowerShell driver scan returned invalid JSON");
+                        return Err("Driver scan returned invalid JSON".to_string());
                     }
+                } else {
+                    return Err("Driver scan returned invalid UTF-8 output".to_string());
                 }
             }
-            Err(e) => return Err(format!("Failed to get drivers: {}", e)),
+            Err(e) => return Err(format!("Failed to get drivers: {e}")),
         }
     }
 
@@ -307,9 +310,6 @@ pub fn get_driver_list(simplified: bool) -> Result<Vec<DriverInfo>, String> {
             update_source: String::new(),
         });
     }
-
-    #[cfg(target_os = "windows")]
-    crate::driver_updates::enrich_drivers_with_updates(&mut drivers);
 
     Ok(drivers)
 }

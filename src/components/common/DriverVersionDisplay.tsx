@@ -37,15 +37,15 @@ const VersionHighlight = memo(function VersionHighlight({
   const baseTone =
     emphasis === 'available'
       ? 'text-sky-600 dark:text-sky-300'
-      : 'text-[var(--text-muted)]';
+      : 'text-[var(--neon-purple-text)]';
 
   const diffTone =
     emphasis === 'available'
       ? 'text-sky-700 dark:text-sky-200 font-bold bg-sky-500/20 ring-1 ring-sky-500/35'
-      : 'text-[var(--foreground)] font-semibold bg-[var(--surface-muted)] ring-1 ring-[var(--border-strong)]';
+      : 'text-[var(--neon-purple-text)] font-bold bg-[color-mix(in_srgb,var(--neon-purple)_18%,transparent)] ring-1 ring-[var(--neon-purple)]/35';
 
   return (
-    <span className={`mono-text font-semibold tabular-nums ${textSize} ${baseTone}`}>
+    <span className={`mono-text tabular-nums ${textSize} ${baseTone} ${emphasis === 'installed' ? 'font-bold' : 'font-semibold'}`}>
       v
       {segments.map((segment, index) => (
         <React.Fragment key={`${segment}-${index}`}>
@@ -197,7 +197,7 @@ export const EssentialVersionsSummary = memo(function EssentialVersionsSummary({
             }`}
             title={driver?.name}
           >
-            {driver?.name ?? '—'}
+            {driver?.name ? driver.name : 'Non détecté'}
           </p>
           {driver && hasDriverUpdate(driver) ? (
             <DriverVersionCompare

@@ -1,14 +1,41 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { X, RotateCcw, Monitor, Eye, Wifi, Info } from 'lucide-react';
+import { X, RotateCcw, Monitor, Eye, Wifi, Info, Bell } from 'lucide-react';
 import { useAppStore } from '../../store';
-import { AppSettings, POPULAR_DNS_SERVERS, DEFAULT_DNS_CHECKLIST, normalizeDnsChecklist } from '../../types';
+import {
+  AppSettings,
+  POPULAR_DNS_SERVERS,
+  DEFAULT_DNS_CHECKLIST,
+  DEFAULT_ALERT_THRESHOLDS,
+  normalizeDnsChecklist,
+} from '../../types';
 import { syncGlassBlurClass } from '../../utils/glassBlur';
-import { REFRESH_OPTIONS, DNS_OPTIONS } from '../../utils/settingsOptions';
+import {
+  isMaxAtmosphereProfile,
+  MAX_ATMOSPHERE_TOAST,
+} from '../../utils/atmosphereSettings';
+import {
+  ATMOSPHERE_PRESET_SEGMENT,
+  applyAtmospherePreset,
+  inferAtmospherePreset,
+  type AtmospherePresetId,
+} from '../../utils/atmospherePresets';
+import { REFRESH_OPTIONS, DNS_OPTIONS, BACKGROUND_AURA_SEGMENT, NEON_GLOW_SEGMENT } from '../../utils/settingsOptions';
+import { isValidCustomDnsIpv4 } from '../../utils/dnsPing';
+import {
+  ALERT_SENSITIVITY_SEGMENT,
+  applyDesktopSensitivity,
+  applyGamingNetworkAlerts,
+  inferDesktopSensitivity,
+  isGamingNetworkAlertsEnabled,
+} from '../../utils/alertPresets';
+import type { AlertDesktopSensitivity } from '../../types';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { SlashTitle } from './SlashTitle';
+import { DonateButton } from './DonateButton';
+import { toastToneClass } from './StatusToast';
 
-type TabId = 'general' | 'visual' | 'network' | 'about';
+type TabId = 'general' | 'visual' | 'network' | 'alerts' | 'about';
 
 export type SettingsTabId = TabId;
 
@@ -19,23 +46,24 @@ interface Tab {
 }
 
 const tabs: Tab[] = [
-  { id: 'general', label: 'Général', icon: <Monitor size={14} /> },
-  { id: 'visual', label: 'Visuel', icon: <Eye size={14} /> },
-  { id: 'network', label: 'Réseau & DNS', icon: <Wifi size={14} /> },
-  { id: 'about', label: 'À propos', icon: <Info size={14} /> },
+  { id: 'general', label: 'Essentiel', icon: <Monitor size={15} /> },
+  { id: 'visual', label: 'Atmosphère', icon: <Eye size={15} /> },
+  { id: 'network', label: 'Connexion', icon: <Wifi size={15} /> },
+  { id: 'alerts', label: 'Veille', icon: <Bell size={15} /> },
+  { id: 'about', label: 'À propos', icon: <Info size={15} /> },
 ];
 
 const SAKURA_OPTIONS: { value: AppSettings['sakuraIntensity']; label: string }[] = [
-  { value: 'off', label: 'Désactivé' },
-  { value: 'low', label: 'Faible' },
-  { value: 'medium', label: 'Moyen' },
-  { value: 'high', label: 'Élevé' },
+  { value: 'off', label: 'Aucun' },
+  { value: 'low', label: 'Léger' },
+  { value: 'medium', label: 'Doux' },
+  { value: 'high', label: 'Dense' },
 ];
 
 const SAKURA_COLOR_OPTIONS: { value: AppSettings['sakuraColor']; label: string }[] = [
-  { value: 'pink', label: 'Rose Sakura' },
-  { value: 'purple', label: 'Violet Fuji' },
-  { value: 'blue', label: 'Bleu Néon' },
+  { value: 'pink', label: 'Rose' },
+  { value: 'purple', label: 'Violet' },
+  { value: 'blue', label: 'Bleu' },
   { value: 'green', label: 'Menthe' },
 ];
 
@@ -46,17 +74,30 @@ const THEME_OPTIONS = [
 
 const SegmentControl: <T extends string | number>(props: {
   options: { value: T; label: string }[];
-  value: T;
+  value: T | null;
   onChange: (value: T) => void;
   ariaLabel: string;
-}) => React.ReactElement = ({ options, value, onChange, ariaLabel }) => (
-  <div role="radiogroup" aria-label={ariaLabel} className="inline-flex bg-[var(--surface-inset)] p-1 rounded-xl gap-1">
+  wrap?: boolean;
+  compact?: boolean;
+}) => React.ReactElement = ({
+  options,
+  value,
+  onChange,
+  ariaLabel,
+  wrap = false,
+  compact = false,
+}) => (
+  <div
+    role="radiogroup"
+    aria-label={ariaLabel}
+    className={`${wrap ? 'flex flex-wrap w-full' : 'inline-flex'} bg-[var(--surface-inset)] p-1 rounded-xl gap-1`}
+  >
     {options.map((option, index) => (
       <button
         key={option.value}
         role="radio"
         aria-checked={value === option.value}
-        tabIndex={value === option.value ? 0 : -1}
+        tabIndex={value === option.value ? 0 : value === null && index === 0 ? 0 : -1}
         onClick={() => onChange(option.value)}
         onKeyDown={(e) => {
           if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
@@ -67,9 +108,9 @@ const SegmentControl: <T extends string | number>(props: {
             onChange(options[(index - 1 + options.length) % options.length].value);
           }
         }}
-        className={`px-3 py-2 text-xs font-medium rounded-lg transition-all duration-200 cursor-pointer ${
+        className={`${wrap ? 'flex-1 min-w-0 justify-center' : ''} ${compact ? 'px-2.5 py-1.5 text-[11px]' : 'px-3 py-2 text-xs'} font-medium rounded-lg transition-all duration-200 cursor-pointer whitespace-nowrap ${
           value === option.value
-            ? 'bg-[var(--neon-pink)] text-white shadow-lg shadow-[var(--neon-pink)]/30'
+            ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/30'
             : 'text-[var(--text-muted)] hover:text-[var(--foreground)]'
         }`}
       >
@@ -79,26 +120,36 @@ const SegmentControl: <T extends string | number>(props: {
   </div>
 );
 
+const SettingRow: React.FC<{
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}> = ({ label, hint, children }) => (
+  <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 sm:gap-4 sm:items-center py-2 border-b border-[var(--border)] last:border-b-0">
+    <div className="min-w-0">
+      <p className="text-sm font-medium text-[var(--foreground)] leading-snug">{label}</p>
+      {hint && (
+        <p className="text-[11px] text-[var(--text-muted)] mt-0.5 leading-snug">{hint}</p>
+      )}
+    </div>
+    <div className="sm:justify-self-end">{children}</div>
+  </div>
+);
+
 const NeonSwitch: React.FC<{
   checked: boolean;
   onChange: (checked: boolean) => void;
   label: string;
-  description?: string;
-}> = ({ checked, onChange, label, description }) => (
-  <div className="flex items-center justify-between py-2">
-    <div className="flex flex-col">
-      <span className="text-sm font-medium text-[var(--foreground)]">{label}</span>
-      {description && (
-        <span className="text-xs text-[var(--text-muted)]">{description}</span>
-      )}
-    </div>
+  hint?: string;
+}> = ({ checked, onChange, label, hint }) => (
+  <SettingRow label={label} hint={hint}>
     <button
       role="switch"
       aria-checked={checked}
       aria-label={label}
       onClick={() => onChange(!checked)}
-      className={`relative w-11 h-6 rounded-full transition-colors duration-300 cursor-pointer ${
-        checked ? 'bg-[var(--neon-pink)]' : 'bg-[var(--surface-muted)]'
+      className={`relative w-11 h-6 shrink-0 rounded-full transition-colors duration-300 cursor-pointer ${
+        checked ? 'bg-[var(--accent)]' : 'bg-[var(--surface-muted)]'
       }`}
     >
       <motion.div
@@ -107,50 +158,56 @@ const NeonSwitch: React.FC<{
         transition={{ type: 'spring', stiffness: 500, damping: 30 }}
       />
     </button>
+  </SettingRow>
+);
+
+const SettingSection: React.FC<{
+  title: string;
+  children: React.ReactNode;
+}> = ({ title, children }) => (
+  <div className="pb-1">
+    <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--text-subtle)] mb-1 pt-2 first:pt-0">
+      {title}
+    </p>
+    <div className="rounded-xl border border-[var(--border)]/60 bg-[var(--surface-inset)]/30 px-3">
+      {children}
+    </div>
   </div>
 );
 
-const CheckboxItem: React.FC<{
+const DnsCheckbox: React.FC<{
   label: string;
-  description?: string;
+  description: string;
   checked: boolean;
   onChange: (checked: boolean) => void;
 }> = ({ label, description, checked, onChange }) => (
   <button
     role="checkbox"
     aria-checked={checked}
-    aria-label={description ? `${label} (${description})` : label}
+    aria-label={`${label} ${description}`}
     onClick={() => onChange(!checked)}
-    className="flex items-start gap-2 py-2 cursor-pointer group w-full min-w-0 text-left"
+    className={`flex items-center gap-2 px-2.5 py-2 rounded-xl border text-left transition-colors cursor-pointer ${
+      checked
+        ? 'border-[color-mix(in_srgb,var(--accent)_40%,transparent)] bg-[color-mix(in_srgb,var(--accent)_8%,transparent)]'
+        : 'border-[var(--border)] bg-[var(--surface-inset)] hover:border-[var(--border-strong)]'
+    }`}
   >
-    <div
-      className={`w-4 h-4 rounded-md border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all duration-200 ${
+    <span
+      className={`w-3.5 h-3.5 rounded-md border-2 shrink-0 flex items-center justify-center ${
         checked
-          ? 'bg-[var(--neon-pink)] border-[var(--neon-pink)]'
-          : 'border-[var(--border-strong)] group-hover:border-[var(--neon-pink)]'
+          ? 'bg-[var(--accent)] border-[var(--accent)]'
+          : 'border-[var(--border-strong)]'
       }`}
     >
       {checked && (
-        <motion.svg
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          className="w-3 h-3 text-white"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={3}
-        >
+        <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-        </motion.svg>
+        </svg>
       )}
-    </div>
-    <span className="flex-1 min-w-0">
-      <span className="block text-sm text-[var(--foreground)] leading-snug">{label}</span>
-      {description && (
-        <span className="block text-xs text-[var(--text-muted)] mono-text leading-snug mt-0.5">
-          {description}
-        </span>
-      )}
+    </span>
+    <span className="min-w-0 flex-1">
+      <span className="block text-xs font-medium text-[var(--foreground)] truncate">{label}</span>
+      <span className="block text-[10px] text-[var(--text-muted)] mono-text">{description}</span>
     </span>
   </button>
 );
@@ -159,17 +216,26 @@ interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialTab?: SettingsTabId;
+  onEasterSecretTap?: () => void;
 }
+
+const customDnsInputClass =
+  'w-full h-10 px-3 rounded-xl border border-[var(--border)] bg-[var(--background)] text-sm text-[var(--foreground)] placeholder:italic placeholder:font-light placeholder:tracking-wide placeholder:text-[color-mix(in_srgb,var(--text-subtle)_50%,transparent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]';
+
+const customDnsIpInputClass = `${customDnsInputClass} mono-text placeholder:font-sans placeholder:tracking-wide placeholder:text-[color-mix(in_srgb,var(--text-muted)_42%,transparent)]`;
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
   onClose,
   initialTab,
+  onEasterSecretTap,
 }) => {
   const [activeTab, setActiveTab] = useState<TabId>('general');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'warning' } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const [aboutSlashKey, setAboutSlashKey] = useState(0);
+  const [customIpDraft, setCustomIpDraft] = useState('');
+  const [customLabelDraft, setCustomLabelDraft] = useState('');
   const settings = useAppStore((s) => s.settings);
   const updateSettings = useAppStore((s) => s.updateSettings);
   const theme = useAppStore((s) => s.theme);
@@ -203,7 +269,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     if (initialTab) {
       setActiveTab(initialTab);
     }
-  }, [isOpen, initialTab]);
+    setCustomIpDraft(settings.customDns?.ip ?? '');
+    setCustomLabelDraft(settings.customDns?.label ?? '');
+  }, [isOpen, initialTab, settings.customDns?.ip, settings.customDns?.label]);
 
   useEffect(() => {
     if (confirmReset) {
@@ -230,17 +298,62 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         : settings.dnsChecklist.filter((n) => n !== name),
     );
     if (newList.length === 0) {
-      showToast("Au moins un serveur DNS doit rester actif", "warning");
+      showToast('Gardez au moins un serveur sous observation', 'warning');
       return;
     }
     updateSettings({ dnsChecklist: newList });
-    showToast(`DNS ${name} ${checked ? 'ajouté' : 'retiré'}`);
+    showToast(checked ? `${name} rejoint l'observation` : `${name} retiré de l'observation`);
+  };
+
+  const customIpError =
+    customIpDraft.trim().length > 0 && !isValidCustomDnsIpv4(customIpDraft.trim())
+      ? 'Adresse invalide'
+      : '';
+
+  const customDnsDraftIp = customIpDraft.trim();
+  const customDnsDraftLabel = customLabelDraft.trim().slice(0, 24);
+  const customDnsDirty =
+    customDnsDraftIp !== (settings.customDns?.ip ?? '') ||
+    customDnsDraftLabel !== (settings.customDns?.label ?? '');
+  const canValidateCustomDns =
+    customDnsDraftIp.length > 0 &&
+    isValidCustomDnsIpv4(customDnsDraftIp) &&
+    customDnsDirty;
+
+  const commitCustomDns = () => {
+    const ip = customDnsDraftIp;
+    const label = customDnsDraftLabel;
+    if (!ip) {
+      if (settings.customDns !== null) {
+        updateSettings({ customDns: null });
+      }
+      return;
+    }
+    if (!isValidCustomDnsIpv4(ip)) return;
+    const current = settings.customDns;
+    if (current?.ip === ip && current.label === label) return;
+    updateSettings({ customDns: { ip, label } });
+    showToast('Serveur personnel mémorisé');
+  };
+
+  const handleCustomDnsKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && canValidateCustomDns) {
+      e.preventDefault();
+      commitCustomDns();
+    }
+  };
+
+  const clearCustomDns = () => {
+    setCustomIpDraft('');
+    setCustomLabelDraft('');
+    updateSettings({ customDns: null });
+    showToast('Serveur personnel retiré');
   };
 
   const handleReset = () => {
     if (!confirmReset) {
       setConfirmReset(true);
-      showToast("Cliquez à nouveau pour confirmer la réinitialisation", "warning");
+      showToast('Confirmez une seconde fois pour tout effacer', 'warning');
       return;
     }
 
@@ -250,34 +363,89 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       sakuraIntensity: 'medium',
       sakuraColor: 'pink',
       enableGlassmorphicBlur: true,
+      backgroundAura: 'full',
+      neonGlow: 'balanced',
+      calmMotion: false,
       dnsChecklist: [...DEFAULT_DNS_CHECKLIST],
+      customDns: null,
       simplifiedMode: true,
+      minimizeToTray: false,
+      launchAtStartup: false,
+      ambientMusicMuted: false,
+      zenMetricsVisible: true,
+      alertThresholds: { ...DEFAULT_ALERT_THRESHOLDS },
     };
     updateSettings(defaultSettings);
 
     syncGlassBlurClass(defaultSettings.enableGlassmorphicBlur);
     setConfirmReset(false);
-    showToast("Paramètres réinitialisés avec succès !");
+    showToast('Tout revient à l\'essentiel');
   };
 
+  const handleDesktopSensitivity = (sensitivity: AlertDesktopSensitivity) => {
+    updateSettings({
+      alertThresholds: {
+        ...settings.alertThresholds,
+        desktop: applyDesktopSensitivity(sensitivity),
+      },
+    });
+    showToast('Seuil de veille mémorisé');
+  };
+
+  const handleGamingNetworkAlerts = (networkAlerts: boolean) => {
+    updateSettings({
+      alertThresholds: {
+        ...settings.alertThresholds,
+        gaming: applyGamingNetworkAlerts(networkAlerts),
+      },
+    });
+    showToast('Préférence mémorisée');
+  };
+
+  const desktopSensitivity = inferDesktopSensitivity(settings.alertThresholds.desktop);
+  const gamingNetworkAlerts = isGamingNetworkAlertsEnabled(settings.alertThresholds.gaming);
+  const atmospherePreset = inferAtmospherePreset(settings);
+  const alertsEnabled = settings.alertThresholds.enabled;
+
   const handleSettingChange = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
+    const nextSettings = { ...settings, [key]: value };
+    const reachedMaxAtmosphere =
+      isMaxAtmosphereProfile(nextSettings) && !isMaxAtmosphereProfile(settings);
+
     updateSettings({ [key]: value });
 
     if (key === 'enableGlassmorphicBlur') {
       syncGlassBlurClass(Boolean(value));
     }
+    if (reachedMaxAtmosphere) {
+      showToast(MAX_ATMOSPHERE_TOAST, 'warning');
+      return;
+    }
     if (key === 'simplifiedMode') {
       if (value) {
-        showToast('Mode pilotes essentiels activé — rescan en cours');
+        showToast('Mode essentiel activé. Analyse en cours');
       } else {
-        showToast(
-          "Mode étendu activé — l'analyse complète peut prendre 1 à 2 minutes",
-          'warning',
-        );
+        showToast('Analyse complète en cours. Comptez une à deux minutes', 'warning');
       }
     } else {
-      showToast("Option enregistrée instantanément !");
+      showToast('Préférence mémorisée');
     }
+  };
+
+  const handleAtmospherePreset = (id: AtmospherePresetId) => {
+    const patch = applyAtmospherePreset(id);
+    const nextSettings = { ...settings, ...patch };
+    const reachedMaxAtmosphere =
+      isMaxAtmosphereProfile(nextSettings) && !isMaxAtmosphereProfile(settings);
+
+    updateSettings(patch);
+    syncGlassBlurClass(Boolean(patch.enableGlassmorphicBlur));
+
+    if (reachedMaxAtmosphere) {
+      showToast(MAX_ATMOSPHERE_TOAST, 'warning');
+      return;
+    }
+    showToast('Préférence mémorisée');
   };
 
   const handleTabKeyDown = (e: React.KeyboardEvent, tabId: TabId) => {
@@ -291,34 +459,42 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
+  const panelMotion = {
+    initial: { opacity: 0, x: 8 },
+    animate: { opacity: 1, x: 0 },
+  };
+
+  const tabContentClass =
+    activeTab === 'about'
+      ? 'overflow-visible'
+      : 'overflow-y-auto min-h-0';
+
   return (
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
+            aria-hidden="true"
             className="fixed inset-0 bg-[var(--overlay)] backdrop-blur-sm z-50"
           />
 
-          {/* Modal */}
           <motion.div
             ref={dialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="settings-modal-title"
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            initial={{ opacity: 0, scale: 0.96, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            exit={{ opacity: 0, scale: 0.96, y: 16 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg z-50"
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(100%,44rem)] z-50 px-4"
           >
-            <div className="bento-card p-6 max-h-[85vh] flex flex-col min-h-0">
-              {/* Header */}
-              <div className="flex items-center justify-between mb-6">
+            <div className="bento-card overflow-hidden flex flex-col">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)] shrink-0">
                 <h2 id="settings-modal-title" className="text-lg font-semibold text-[var(--foreground)]">
                   Paramètres
                 </h2>
@@ -331,305 +507,417 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </button>
               </div>
 
-              {/* Tabs */}
-              <div
-                role="tablist"
-                aria-label="Catégories de paramètres"
-                className="flex gap-1 mb-6 bg-[var(--surface-inset)] p-1 rounded-xl"
-              >
-                {tabs.map((tab) => (
-                  <button
-                    key={tab.id}
-                    id={`tab-${tab.id}`}
-                    role="tab"
-                    aria-selected={activeTab === tab.id}
-                    aria-controls={`tabpanel-${tab.id}`}
-                    tabIndex={activeTab === tab.id ? 0 : -1}
-                    onClick={() => setActiveTab(tab.id)}
-                    onKeyDown={(e) => handleTabKeyDown(e, tab.id)}
-                    className={`flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg transition-all duration-200 cursor-pointer min-h-[44px] ${
-                      activeTab === tab.id
-                        ? 'bg-[var(--neon-pink)] text-white shadow-lg'
-                        : 'text-[var(--text-muted)] hover:text-[var(--foreground)]'
-                    }`}
-                  >
-                    {tab.icon}
-                    <span className="hidden sm:inline">{tab.label}</span>
-                  </button>
-                ))}
-              </div>
+              <div className="flex min-h-[26rem]">
+                <nav
+                  role="tablist"
+                  aria-label="Catégories de paramètres"
+                  className="w-[7.25rem] shrink-0 border-r border-[var(--border)] p-2 flex flex-col gap-1 bg-[var(--surface-inset)]/40"
+                >
+                  {tabs.map((tab) => (
+                    <button
+                      key={tab.id}
+                      id={`tab-${tab.id}`}
+                      role="tab"
+                      aria-selected={activeTab === tab.id}
+                      aria-current={activeTab === tab.id ? 'page' : undefined}
+                      aria-controls={`tabpanel-${tab.id}`}
+                      tabIndex={activeTab === tab.id ? 0 : -1}
+                      onClick={() => setActiveTab(tab.id)}
+                      onKeyDown={(e) => handleTabKeyDown(e, tab.id)}
+                      className={`flex flex-col items-center justify-center gap-1 px-2 py-2.5 rounded-xl text-[11px] font-medium transition-all cursor-pointer min-h-[3.25rem] ${
+                        activeTab === tab.id
+                          ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/25'
+                          : 'text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]'
+                      }`}
+                    >
+                      {tab.icon}
+                      <span className="leading-tight text-center">{tab.label}</span>
+                    </button>
+                  ))}
+                </nav>
 
-              {/* Tab Content */}
-              <div className="flex-1 min-h-0 overflow-y-auto space-y-6">
-                {activeTab === 'general' && (
-                  <motion.div
-                    role="tabpanel"
-                    id="tabpanel-general"
-                    aria-labelledby="tab-general"
-                    initial={{ opacity: 0, x: 10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="space-y-6"
-                  >
-                    <div className="space-y-3">
-                      <label className="text-sm font-medium text-[var(--foreground)]">
-                        Thème de l'application
-                      </label>
-                      <div className="flex justify-start">
-                        <SegmentControl
-                          options={THEME_OPTIONS}
-                          value={theme}
-                          onChange={(v) => setTheme(v)}
-                          ariaLabel="Thème de l'application"
-                        />
-                      </div>
-                      <p className="text-xs text-[var(--text-muted)]">
-                        Personnalisez l'ambiance visuelle globale de l'interface
-                      </p>
-                    </div>
-
-                    <div className="pt-4 border-t border-[var(--border)] space-y-3">
-                      <label className="text-sm font-medium text-[var(--foreground)]">
-                        Intervalle de rafraîchissement
-                      </label>
-                      <div className="flex justify-start">
-                        <SegmentControl
-                          options={REFRESH_OPTIONS}
-                          value={settings.refreshInterval}
-                          onChange={(v) => handleSettingChange('refreshInterval', v)}
-                          ariaLabel="Intervalle de rafraîchissement des métriques"
-                        />
-                      </div>
-                      <p className="text-xs text-[var(--text-muted)]">
-                        Fréquence de mise à jour des métriques système
-                      </p>
-                    </div>
-
-                    <div className="space-y-3">
-                      <label className="text-sm font-medium text-[var(--foreground)]">
-                        Intervalle DNS
-                      </label>
-                      <div className="flex justify-start">
-                        <SegmentControl
-                          options={DNS_OPTIONS}
-                          value={settings.dnsInterval}
-                          onChange={(v) => handleSettingChange('dnsInterval', v)}
-                          ariaLabel="Intervalle de test du ping DNS"
-                        />
-                      </div>
-                      <p className="text-xs text-[var(--text-muted)]">
-                        Fréquence de ping vers les serveurs DNS
-                      </p>
-                    </div>
-
-                    <div className="pt-4 border-t border-[var(--border)]">
-                      <NeonSwitch
-                        checked={settings.simplifiedMode}
-                        onChange={(v) => handleSettingChange('simplifiedMode', v)}
-                        label="Mode Pilotes simplifiés"
-                        description={
-                          settings.simplifiedMode
-                            ? "N'afficher que les pilotes essentiels (GPU, Réseau, Bluetooth)"
-                            : "Analyse étendue (audio, stockage, iGPU…) — le rescan peut prendre 1 à 2 min."
-                        }
-                      />
-                    </div>
-                  </motion.div>
-                )}
-
-                {activeTab === 'visual' && (
-                  <motion.div
-                    role="tabpanel"
-                    id="tabpanel-visual"
-                    aria-labelledby="tab-visual"
-                    initial={{ opacity: 0, x: 10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="space-y-6"
-                  >
-                    <div className="space-y-3">
-                      <label className="text-sm font-medium text-[var(--foreground)]">
-                        Intensité Sakura
-                      </label>
-                      <div className="flex justify-start">
-                        <SegmentControl
-                          options={SAKURA_OPTIONS}
-                          value={settings.sakuraIntensity}
-                          onChange={(v) => handleSettingChange('sakuraIntensity', v)}
-                          ariaLabel="Intensité des pétales Sakura animés"
-                        />
-                      </div>
-                      <p className="text-xs text-[var(--text-muted)]">
-                        Nombre de pétales animées (impacte les performances GPU)
-                      </p>
-                    </div>
-
-                    {settings.sakuraIntensity !== 'off' && (
+                <div className="flex-1 flex flex-col min-w-0">
+                  <div className={`flex-1 px-5 py-4 ${tabContentClass}`}>
+                    {activeTab === 'general' && (
                       <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="pt-4 border-t border-[var(--border)] space-y-3 overflow-hidden"
+                        role="tabpanel"
+                        id="tabpanel-general"
+                        aria-labelledby="tab-general"
+                        {...panelMotion}
                       >
-                        <label className="text-sm font-medium text-[var(--foreground)]">
-                          Couleur des pétales
-                        </label>
-                        <div className="flex justify-start">
+                        <SettingRow label="Cadence" hint="À quelle vitesse Koi lit votre machine">
                           <SegmentControl
-                            options={SAKURA_COLOR_OPTIONS}
-                            value={settings.sakuraColor || 'pink'}
-                            onChange={(v) => handleSettingChange('sakuraColor', v)}
-                            ariaLabel="Couleur des pétales Sakura"
+                            compact
+                            options={REFRESH_OPTIONS}
+                            value={settings.refreshInterval}
+                            onChange={(v) => handleSettingChange('refreshInterval', v)}
+                            ariaLabel="Cadence de lecture des métriques"
                           />
-                        </div>
-                        <p className="text-xs text-[var(--text-muted)]">
-                          Sélectionnez la couleur des pétales Sakura animés en arrière-plan
-                        </p>
+                        </SettingRow>
+                        <NeonSwitch
+                          checked={settings.simplifiedMode}
+                          onChange={(v) => handleSettingChange('simplifiedMode', v)}
+                          label="Pilotes essentiels"
+                          hint="Trois regards suffisent. L'analyse complète demande un moment de recueil"
+                        />
+                        <NeonSwitch
+                          checked={settings.launchAtStartup}
+                          onChange={(v) => handleSettingChange('launchAtStartup', v)}
+                          label="Éveil avec Windows"
+                          hint="Koi vous accompagne dès l'ouverture de session"
+                        />
+                        <NeonSwitch
+                          checked={settings.minimizeToTray}
+                          onChange={(v) => handleSettingChange('minimizeToTray', v)}
+                          label="Présence discrète"
+                          hint="Fermer masque l'app. Un clic dans la barre la réveille"
+                        />
                       </motion.div>
                     )}
 
-                    <div className="pt-4 border-t border-[var(--border)]">
-                      <NeonSwitch
-                        checked={settings.enableGlassmorphicBlur}
-                        onChange={(v) => handleSettingChange('enableGlassmorphicBlur', v)}
-                        label="Effet de flou Glassmorphism"
-                        description="Flou vitré sur cartes, panneaux et modales (sombre & clair)"
-                      />
-                      <p className="text-xs text-[var(--text-muted)] mt-1">
-                        Désactiver améliore les performances sur les PC modestes
-                      </p>
-                    </div>
-                  </motion.div>
-                )}
+                    {activeTab === 'visual' && (
+                      <motion.div
+                        role="tabpanel"
+                        id="tabpanel-visual"
+                        aria-labelledby="tab-visual"
+                        {...panelMotion}
+                        className="space-y-3"
+                      >
+                        <div className="pb-1">
+                          <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--text-subtle)] mb-1">
+                            Préréglage Koi
+                          </p>
+                          <SegmentControl
+                            wrap
+                            compact
+                            options={ATMOSPHERE_PRESET_SEGMENT}
+                            value={atmospherePreset}
+                            onChange={handleAtmospherePreset}
+                            ariaLabel="Préréglage d'atmosphère Koi"
+                          />
+                          <p className="text-[11px] text-[var(--text-muted)] mt-2 leading-snug">
+                            Un geste pour l&apos;ambiance — affinez en dessous si besoin
+                          </p>
+                        </div>
 
-                {activeTab === 'network' && (
-                  <motion.div
-                    role="tabpanel"
-                    id="tabpanel-network"
-                    aria-labelledby="tab-network"
-                    initial={{ opacity: 0, x: 10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="space-y-6"
-                  >
-                    <div className="space-y-3">
-                      <label className="text-sm font-medium text-[var(--foreground)]">
-                        Serveurs DNS à interroger
-                      </label>
-                      <p className="text-xs text-[var(--text-muted)]">
-                        Sélectionnez les serveurs DNS à inclure dans les tests de latence en temps réel :
-                      </p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 p-4 rounded-2xl bg-[var(--surface-inset)] border border-[var(--border)]">
-                        {POPULAR_DNS_SERVERS.map((dns) => {
-                          const isChecked = settings.dnsChecklist.includes(dns.name);
-                          return (
-                            <CheckboxItem
-                              key={dns.name}
-                              label={dns.name}
-                              description={dns.ip}
-                              checked={isChecked}
-                              onChange={(checked) => handleDnsToggle(dns.name, checked)}
+                        <SettingSection title="Lumière">
+                          <SettingRow label="Thème" hint="Clair pour le jour, sombre pour la nuit">
+                            <SegmentControl
+                              compact
+                              options={THEME_OPTIONS}
+                              value={theme}
+                              onChange={(v) => setTheme(v)}
+                              ariaLabel="Thème de l'application"
                             />
-                          );
-                        })}
-                      </div>
-                    </div>
+                          </SettingRow>
+                        </SettingSection>
 
-                    <div className="p-4 rounded-2xl bg-[var(--surface-inset)] border border-[var(--border)] text-xs text-[var(--neon-cyan-text)] space-y-2">
-                      <h4 className="font-semibold text-sm flex items-center gap-1.5">
-                        <Info size={14} /> Latence DNS
-                      </h4>
-                      <p>
-                        Les serveurs activés sont testés en parallèle. Celui qui
-                        affiche la latence la plus faible est identifié sur le
-                        tableau de bord.
-                      </p>
-                      <p>
-                        Désactiver un serveur exclut son test et le retire de
-                        l&apos;affichage.
-                      </p>
-                    </div>
-                  </motion.div>
-                )}
+                        <SettingSection title="Nature">
+                          <SettingRow label="Sakura" hint="Pétales flottants en fond d'écran">
+                            <SegmentControl
+                              compact
+                              options={SAKURA_OPTIONS}
+                              value={settings.sakuraIntensity}
+                              onChange={(v) => handleSettingChange('sakuraIntensity', v)}
+                              ariaLabel="Intensité des pétales Sakura"
+                            />
+                          </SettingRow>
+                          {settings.sakuraIntensity !== 'off' && (
+                            <SettingRow label="Teinte Sakura" hint="La couleur du vent et des touches de l'interface">
+                              <SegmentControl
+                                compact
+                                options={SAKURA_COLOR_OPTIONS}
+                                value={settings.sakuraColor || 'pink'}
+                                onChange={(v) => handleSettingChange('sakuraColor', v)}
+                                ariaLabel="Teinte des pétales Sakura"
+                              />
+                            </SettingRow>
+                          )}
+                        </SettingSection>
 
-                {activeTab === 'about' && (
-                  <motion.div
-                    role="tabpanel"
-                    id="tabpanel-about"
-                    aria-labelledby="tab-about"
-                    initial={{ opacity: 0, x: 10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="space-y-4"
-                  >
-                    <div className="text-center py-4 overflow-visible">
-                      <SlashTitle
-                        key={`about-slash-${aboutSlashKey}`}
-                        size="md"
-                        reducedMotion={prefersReducedMotion ?? false}
-                        className="mx-auto max-w-xs"
-                      />
-                    </div>
-                    <div className="p-4 rounded-2xl bg-[var(--surface-inset)] border border-[var(--border)] space-y-3">
-                      <p className="text-xs text-[var(--text-muted)] text-center leading-relaxed">
-                        Solution de supervision système pour Windows&nbsp;11. Visibilité
-                        en temps réel sur les performances, le réseau et l’état du poste,
-                        dans une expérience desktop native et soignée.
-                      </p>
-                      <p className="text-[10px] uppercase tracking-[0.22em] text-center text-[var(--text-subtle)] leading-relaxed">
-                        Développé avec Tauri, React et Rust
-                      </p>
-                      <p className="text-[10px] uppercase font-bold tracking-[0.28em] mono-text text-center text-[var(--text-subtle)] pt-3 border-t border-[var(--border)]">
-                        Version 1.0.0
-                      </p>
-                    </div>
-                  </motion.div>
-                )}
-              </div>
+                        <SettingSection title="Ambiance">
+                          <NeonSwitch
+                            checked={settings.enableGlassmorphicBlur}
+                            onChange={(v) => handleSettingChange('enableGlassmorphicBlur', v)}
+                            label="Verre dépoli"
+                            hint="Effet cristal sur les panneaux. Sans lui, l'interface gagne en légèreté"
+                          />
+                          <SettingRow label="Aura de fond" hint="Brume colorée derrière l'interface. Aucune pour un fond plus neutre">
+                            <SegmentControl
+                              compact
+                              options={BACKGROUND_AURA_SEGMENT}
+                              value={settings.backgroundAura}
+                              onChange={(v) => handleSettingChange('backgroundAura', v)}
+                              ariaLabel="Aura de fond"
+                            />
+                          </SettingRow>
+                          <SettingRow label="Lueur néon" hint="Intensité des reflets sur les chiffres et badges">
+                            <SegmentControl
+                              compact
+                              options={NEON_GLOW_SEGMENT}
+                              value={settings.neonGlow}
+                              onChange={(v) => handleSettingChange('neonGlow', v)}
+                              ariaLabel="Lueur néon"
+                            />
+                          </SettingRow>
+                          <NeonSwitch
+                            checked={settings.calmMotion}
+                            onChange={(v) => handleSettingChange('calmMotion', v)}
+                            label="Animations calmes"
+                            hint="Moins de mouvement à l'écran, même si Windows autorise les effets"
+                          />
+                        </SettingSection>
+                      </motion.div>
+                    )}
 
-              {/* Footer */}
-              <div className="mt-6 pt-4 border-t border-[var(--border)] shrink-0 space-y-4">
-                <AnimatePresence initial={false}>
-                  {toast && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-                      animate={{ opacity: 1, height: 'auto', marginBottom: 0 }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ type: 'spring', stiffness: 450, damping: 28 }}
-                      className="overflow-hidden"
-                    >
-                      <div
-                        role="status"
-                        aria-live="polite"
-                        className={`px-4 py-3 rounded-2xl shadow-lg border text-xs font-semibold flex items-center justify-center gap-2.5 backdrop-blur-md ${
-                          toast.type === 'warning'
-                            ? 'bg-amber-500/90 dark:bg-amber-500/80 border-amber-400/30 text-white shadow-amber-500/20'
-                            : 'bg-emerald-500/90 dark:bg-emerald-500/80 border-emerald-400/30 text-white shadow-emerald-500/20'
+                    {activeTab === 'network' && (
+                      <motion.div
+                        role="tabpanel"
+                        id="tabpanel-network"
+                        aria-labelledby="tab-network"
+                        {...panelMotion}
+                        className="space-y-3"
+                      >
+                        <SettingRow label="Rythme DNS" hint="Fréquence des contrôles réseau">
+                          <SegmentControl
+                            compact
+                            options={DNS_OPTIONS}
+                            value={settings.dnsInterval}
+                            onChange={(v) => handleSettingChange('dnsInterval', v)}
+                            ariaLabel="Rythme des contrôles DNS"
+                          />
+                        </SettingRow>
+                        <div>
+                          <p className="text-sm font-medium text-[var(--foreground)] mb-2">
+                            Serveurs observés
+                          </p>
+                          <div className="grid grid-cols-2 gap-2">
+                            {POPULAR_DNS_SERVERS.map((dns) => (
+                              <DnsCheckbox
+                                key={dns.name}
+                                label={dns.name}
+                                description={dns.ip}
+                                checked={settings.dnsChecklist.includes(dns.name)}
+                                onChange={(checked) => handleDnsToggle(dns.name, checked)}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-inset)] p-3">
+                          <div className="flex items-start justify-between gap-3 mb-3">
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-[var(--foreground)] leading-snug">
+                                Serveur personnel
+                              </p>
+                              <p className="text-[11px] text-[var(--text-muted)] mt-0.5 leading-snug">
+                                Un DNS de confiance, chez vous. L&apos;adresse suffit, Koi s&apos;en souvient
+                              </p>
+                            </div>
+                            {settings.customDns && (
+                              <button
+                                type="button"
+                                onClick={clearCustomDns}
+                                className="shrink-0 text-[11px] font-semibold text-[var(--text-muted)] hover:text-[var(--foreground)] transition-colors cursor-pointer px-2 py-1 -mr-1 -mt-0.5"
+                              >
+                                Effacer
+                              </button>
+                            )}
+                          </div>
+                          <div className="space-y-2.5">
+                            <div>
+                              <label
+                                htmlFor="custom-dns-ip"
+                                className="block text-[11px] font-medium text-[var(--text-muted)] mb-1.5"
+                              >
+                                Adresse
+                              </label>
+                              <div className="flex gap-2 items-start">
+                                <div className="flex-1 min-w-0">
+                                  <input
+                                    id="custom-dns-ip"
+                                    type="text"
+                                    inputMode="decimal"
+                                    autoComplete="off"
+                                    spellCheck={false}
+                                    placeholder="192.168.1.1 · chez vous, en exemple"
+                                    value={customIpDraft}
+                                    onChange={(e) => setCustomIpDraft(e.target.value)}
+                                    onKeyDown={handleCustomDnsKeyDown}
+                                    aria-invalid={customIpError ? true : undefined}
+                                    aria-describedby={customIpError ? 'custom-dns-ip-error' : undefined}
+                                    className={customDnsIpInputClass}
+                                  />
+                                  {customIpError && (
+                                    <p
+                                      id="custom-dns-ip-error"
+                                      className="text-[11px] text-amber-600 dark:text-amber-400 mt-1"
+                                    >
+                                      {customIpError}
+                                    </p>
+                                  )}
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={commitCustomDns}
+                                  disabled={!canValidateCustomDns}
+                                  aria-label="Valider le serveur DNS personnel"
+                                  className="shrink-0 h-10 px-4 rounded-xl text-xs font-semibold transition-opacity cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed bg-[var(--accent)] text-white hover:opacity-90"
+                                >
+                                  Valider
+                                </button>
+                              </div>
+                            </div>
+                            <div>
+                              <label
+                                htmlFor="custom-dns-label"
+                                className="block text-[11px] font-medium text-[var(--text-muted)] mb-1.5"
+                              >
+                                Surnom
+                                <span className="font-normal opacity-70"> · optionnel</span>
+                              </label>
+                              <input
+                                id="custom-dns-label"
+                                type="text"
+                                maxLength={24}
+                                autoComplete="off"
+                                placeholder="Pi-hole · Ma box · un mot pour l'accueillir"
+                                value={customLabelDraft}
+                                onChange={(e) => setCustomLabelDraft(e.target.value)}
+                                onKeyDown={handleCustomDnsKeyDown}
+                                className={customDnsInputClass}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {activeTab === 'alerts' && (
+                      <motion.div
+                        role="tabpanel"
+                        id="tabpanel-alerts"
+                        aria-labelledby="tab-alerts"
+                        {...panelMotion}
+                      >
+                        <NeonSwitch
+                          checked={alertsEnabled}
+                          onChange={(enabled) => {
+                            updateSettings({
+                              alertThresholds: {
+                                ...settings.alertThresholds,
+                                enabled,
+                              },
+                            });
+                            showToast('Préférence mémorisée');
+                          }}
+                          label="Veille Koi"
+                          hint="Signaux calmes en bas de l'écran. Jamais de fenêtre intrusive"
+                        />
+                        {alertsEnabled && (
+                          <>
+                            <div className="py-3 border-b border-[var(--border)]">
+                              <p className="text-sm font-medium text-[var(--foreground)] mb-2">
+                                Sensibilité
+                              </p>
+                              <SegmentControl
+                                wrap
+                                compact
+                                options={ALERT_SENSITIVITY_SEGMENT}
+                                value={desktopSensitivity}
+                                onChange={handleDesktopSensitivity}
+                                ariaLabel="Sensibilité de la veille"
+                              />
+                              <p className="text-[11px] text-[var(--text-muted)] mt-2 leading-snug">
+                                Koi s'accorde à votre rythme, au bureau comme en jeu
+                              </p>
+                            </div>
+                            <NeonSwitch
+                              checked={gamingNetworkAlerts}
+                              onChange={handleGamingNetworkAlerts}
+                              label="Latence en jeu"
+                              hint="Un signe si le ping s'éloigne de l'habitude en session de jeu"
+                            />
+                          </>
+                        )}
+                      </motion.div>
+                    )}
+
+                    {activeTab === 'about' && (
+                      <motion.div
+                        role="tabpanel"
+                        id="tabpanel-about"
+                        aria-labelledby="tab-about"
+                        {...panelMotion}
+                        className="flex flex-col items-center justify-center h-full text-center gap-2 py-1 overflow-visible"
+                      >
+                        <SlashTitle
+                          key={`about-slash-${aboutSlashKey}`}
+                          size="md"
+                          reducedMotion={prefersReducedMotion ?? false}
+                          className="mx-auto max-w-[11rem] !pt-0 !pb-0"
+                          onSecretTap={onEasterSecretTap}
+                        />
+                        <div className="mt-5 flex flex-col items-center gap-2 w-full">
+                          <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-[var(--accent-text)]">
+                            Merci de garder Koi avec vous
+                          </p>
+                          <p className="text-xs text-[var(--text-muted)] leading-relaxed max-w-[18rem]">
+                            Votre machine lue avec tendresse. Charge, connexion, pilotes et veille
+                            discrète, au bureau comme en jeu. Pensé pour Windows, léger, fiable,
+                            tout simplement.
+                          </p>
+                          <DonateButton
+                            reducedMotion={prefersReducedMotion ?? false}
+                            onClick={() =>
+                              showToast('Lien de don bientôt disponible — merci pour le geste.')
+                            }
+                          />
+                          <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--text-subtle)]">
+                            Tauri · React · Rust
+                          </p>
+                          <p className="text-[10px] font-bold tracking-[0.24em] mono-text text-[var(--text-subtle)]">
+                            v1.0.0
+                          </p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </div>
+
+                  <div className="shrink-0 px-5 py-3 border-t border-[var(--border)] space-y-2">
+                    <AnimatePresence initial={false}>
+                      {toast && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden"
+                        >
+                          <div
+                            role="status"
+                            aria-live="polite"
+                            className={`px-3 py-2 rounded-xl shadow-md border text-xs font-semibold flex items-center justify-center gap-2 ${toastToneClass(toast.type)}`}
+                          >
+                            <span>{toast.message}</span>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    <div className="flex justify-end">
+                      <button
+                        onClick={handleReset}
+                        className={`flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg transition-all cursor-pointer ${
+                          confirmReset
+                            ? 'bg-red-500/20 text-red-500 border border-red-500/30'
+                            : 'text-[var(--accent-text)] hover:bg-[var(--accent)]/10'
                         }`}
                       >
-                        {toast.type === 'warning' ? (
-                          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                          </svg>
-                        ) : (
-                          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        )}
-                        <span>{toast.message}</span>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                <div className="flex justify-end">
-                  <button
-                    onClick={handleReset}
-                    className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 cursor-pointer ${
-                      confirmReset
-                        ? 'bg-red-500/20 text-red-500 border border-red-500/30 hover:bg-red-500/30'
-                        : 'text-[var(--neon-pink-text)] hover:bg-[var(--neon-pink)]/10'
-                    }`}
-                  >
-                    <RotateCcw size={14} className={confirmReset ? 'animate-spin' : ''} />
-                    {confirmReset ? 'Confirmer la réinitialisation ?' : 'Réinitialiser'}
-                  </button>
+                        <RotateCcw size={13} className={confirmReset ? 'animate-spin' : ''} />
+                        {confirmReset ? 'Vraiment effacer ?' : 'Tout effacer'}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

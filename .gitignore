@@ -4,13 +4,22 @@ node_modules/
 # Build outputs
 dist/
 src-tauri/target/
+src-tauri/gen/
 
-# IDE & AI tooling (local only)
+# Installateurs et binaires a la racine (build exe seul via koi.bat build)
+/*.exe
+/*.msi
+*-setup.exe
+
+# IDE & AI tooling (local only — not published)
 .claude/
 .agents/
+.cursor/
 skills/
 skills-lock.json
 docs/superpowers/
+CLAUDE.md
+prompt-slides.txt
 
 # OS artifacts
 nul
@@ -23,5 +32,9 @@ Desktop.ini
 .env.*
 *.log
 
-# Tauri generated
-src-tauri/gen/
+# Tauri icon CLI extras (Windows-only — keep icon.ico + core PNGs only)
+src-tauri/icons/android/
+src-tauri/icons/ios/
+src-tauri/icons/Square*.png
+src-tauri/icons/StoreLogo.png
+src-tauri/icons/64x64.png

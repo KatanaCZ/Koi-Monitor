@@ -1,20 +1,20 @@
-import React, { useMemo, memo } from "react";
-import { motion } from "framer-motion";
+import { useMemo, memo } from "react";
 import { MemoryStick } from "lucide-react";
 import { useAppStore } from "../../store";
 import { ringToArray } from "../../store/historyRing";
-import { NeonBentoCard, ChartSrTable } from "../common";
+import { NeonBentoCard, ChartSrTable, WidgetMetricHeader, MetricPercentBadge } from "../common";
 import { SingleAreaChart } from "../charts";
-import { getNeonTextShadow } from "../../utils/neonEffects";
+import { formatRamModulesSubtitle } from "../../utils/ramFormat";
 
 export const RamWidget = memo(function RamWidget() {
   const ramRing = useAppStore((s) => s.ramHistoryRing);
   const ramHistory = useMemo(() => ringToArray(ramRing), [ramRing.seq]);
   const usage = useAppStore((s) => s.systemInfo?.memory.usage_percent ?? 0);
-  const total = useAppStore((s) => s.systemInfo?.memory.total ?? 0);
   const used = useAppStore((s) => s.systemInfo?.memory.used ?? 0);
   const available = useAppStore((s) => s.systemInfo?.memory.available ?? 0);
+  const ramModules = useAppStore((s) => s.systemInfo?.memory.modules ?? []);
   const theme = useAppStore((s) => s.theme);
+  const ramSubtitle = formatRamModulesSubtitle(ramModules);
 
   const formatBytes = (bytes: number) => {
     const gb = bytes / (1024 * 1024 * 1024);
@@ -52,44 +52,21 @@ export const RamWidget = memo(function RamWidget() {
 
   return (
     <NeonBentoCard className="h-[380px]" themeColor={themeColor} delay={0.2}>
-      {/* Header */}
-      <div className="flex justify-between items-center shrink-0">
-        <div className="flex items-center gap-2">
-          <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg"
-            style={{
-              background: `linear-gradient(135deg, ${themeColor}, color-mix(in srgb, ${themeColor} 50%, transparent))`,
-            }}
-          >
-            <MemoryStick size={20} />
-          </div>
-          <div>
-            <h3 className="text-base font-semibold tracking-tight text-[var(--foreground)] mb-1">
-              RAM
-            </h3>
-            <p className="text-xs text-[var(--text-muted)] mono-text">
-              {formatBytes(used)} / {formatBytes(total)}
-            </p>
-          </div>
-        </div>
-        <motion.div
-          className="px-4 py-2 rounded-full border"
-          style={{
-            backgroundColor: `color-mix(in srgb, ${themeColor} 15%, transparent)`,
-            borderColor: `color-mix(in srgb, ${themeColor} 30%, transparent)`,
-          }}
-        >
-          <span
-            className="text-lg font-bold mono-text tracking-tight"
-            style={{
-              color: "var(--neon-cyan-text)",
-              textShadow: getNeonTextShadow(themeColor, isDark),
-            }}
-          >
-            {usage.toFixed(1)}%
-          </span>
-        </motion.div>
-      </div>
+      <WidgetMetricHeader
+        icon={MemoryStick}
+        label="RAM"
+        subtitle={ramSubtitle || undefined}
+        subtitleTitle={ramSubtitle || undefined}
+        themeColor={themeColor}
+        badge={
+          <MetricPercentBadge
+            value={`${usage.toFixed(1)}%`}
+            themeColor={themeColor}
+            textColor="var(--neon-cyan-text)"
+            isDark={isDark}
+          />
+        }
+      />
 
       {/* Chart */}
       <div className="h-32 shrink-0" aria-hidden="true">

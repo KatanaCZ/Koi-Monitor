@@ -21,7 +21,64 @@ const ALLOWED_DNS_IPS: &[&str] = &[
 ];
 
 fn is_allowed_dns_ip(ip: &str) -> bool {
-    ALLOWED_DNS_IPS.contains(&ip)
+    ALLOWED_DNS_IPS.contains(&ip) || is_allowed_custom_dns_ip(ip)
+}
+
+fn is_allowed_custom_dns_ip(ip: &str) -> bool {
+    let parts: Vec<&str> = ip.split('.').collect();
+    if parts.len() != 4 {
+        return false;
+    }
+
+    let mut octets = [0u8; 4];
+    for (i, part) in parts.iter().enumerate() {
+        if part.is_empty() || part.len() > 3 {
+            return false;
+        }
+        if !part.chars().all(|c| c.is_ascii_digit()) {
+            return false;
+        }
+        let n: u16 = match part.parse() {
+            Ok(n) if n <= 255 => n,
+            _ => return false,
+        };
+        octets[i] = n as u8;
+    }
+
+    let [a, b, _, _] = octets;
+    if a == 0 || a == 127 {
+        return false;
+    }
+    if a >= 224 {
+        return false;
+    }
+    if a == 169 && b == 254 {
+        return false;
+    }
+
+    true
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn custom_dns_allows_private_and_public_ipv4() {
+        assert!(is_allowed_custom_dns_ip("192.168.1.1"));
+        assert!(is_allowed_custom_dns_ip("10.0.0.1"));
+        assert!(is_allowed_custom_dns_ip("172.16.0.1"));
+        assert!(is_allowed_custom_dns_ip("81.253.149.22"));
+    }
+
+    #[test]
+    fn custom_dns_rejects_loopback_link_local_and_multicast() {
+        assert!(!is_allowed_custom_dns_ip("127.0.0.1"));
+        assert!(!is_allowed_custom_dns_ip("169.254.1.1"));
+        assert!(!is_allowed_custom_dns_ip("224.0.0.1"));
+        assert!(!is_allowed_custom_dns_ip("0.0.0.0"));
+        assert!(!is_allowed_custom_dns_ip("not-an-ip"));
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

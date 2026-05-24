@@ -26,9 +26,13 @@ export const dnsService = {
 };
 
 export const driverService = {
-  async getDrivers(simplified: boolean, force = false): Promise<DriverInfo[]> {
+  async getDrivers(
+    simplified: boolean,
+    force = false,
+    enrich = false,
+  ): Promise<DriverInfo[]> {
     try {
-      return await invoke<DriverInfo[]>('get_drivers', { simplified, force });
+      return await invoke<DriverInfo[]>('get_drivers', { simplified, force, enrich });
     } catch (error) {
       console.error('Failed to get drivers:', error);
       throw error;
@@ -53,5 +57,11 @@ export const gamingLatencyService = {
       console.error('Failed to get gaming latency:', error);
       throw error;
     }
+  },
+};
+
+export const appService = {
+  async getIconPng(): Promise<number[]> {
+    return invoke<number[]>('get_app_icon_png');
   },
 };

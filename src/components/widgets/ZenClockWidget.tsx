@@ -1,22 +1,26 @@
-import React, { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  Calendar,
-  ShieldCheck,
-  Heart,
-  Activity,
-  Flame,
-  ArrowLeft,
-} from "lucide-react";
+import { useEffect, useState, memo } from "react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { Bell, Eye, EyeOff } from "lucide-react";
 import { useAppStore } from "../../store";
-import { TelemetryGrid } from "../common/TelemetryGrid";
+import { selectUnreadAlertCount } from "../../utils/notificationLog";
+import { useZenLoadState } from "../../hooks/useZenLoadState";
+import { ZenMetricsDock } from "./ZenMetricsDock";
+import {
+  getZenLoadStatePresentation,
+  getZenStateChipStyle,
+} from "../../utils/zenLoadState";
 
-export const ZenClockWidget: React.FC = () => {
-  const cpuUsage = useAppStore((s) => s.systemInfo?.cpu.usage ?? 0);
-  const gpuUsage = useAppStore((s) => s.systemInfo?.gpu?.[0]?.usage ?? 0);
-  const security = useAppStore((s) => s.systemInfo?.security);
+export const ZenClockWidget = memo(function ZenClockWidget() {
   const sakuraColor = useAppStore((s) => s.settings.sakuraColor);
-  const setZenMode = useAppStore((s) => s.setZenMode);
+  const zenMetricsVisible = useAppStore((s) => s.settings.zenMetricsVisible);
+  const updateSettings = useAppStore((s) => s.updateSettings);
+  const setNotificationPanelOpen = useAppStore((s) => s.setNotificationPanelOpen);
+  const unreadAlertCount = useAppStore((s) =>
+    selectUnreadAlertCount(s.notificationLog),
+  );
+  const { state: loadState } = useZenLoadState();
+  const prefersReducedMotion = useReducedMotion();
+
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -27,206 +31,159 @@ export const ZenClockWidget: React.FC = () => {
   const getSakuraColorClass = (color: string) => {
     switch (color) {
       case "purple":
-        return "text-[var(--neon-purple-text)] drop-shadow-[0_0_12px_var(--neon-purple)]";
+        return "text-[var(--neon-purple-text)]";
       case "blue":
-        return "text-[var(--neon-cyan-text)] drop-shadow-[0_0_12px_var(--neon-cyan)]";
+        return "text-[var(--neon-cyan-text)]";
       case "green":
-        return "text-[var(--neon-green-text)] drop-shadow-[0_0_12px_var(--neon-green)]";
+        return "text-[var(--neon-green-text)]";
       case "pink":
       default:
-        return "text-[var(--neon-pink-text)] drop-shadow-[0_0_12px_var(--neon-pink)]";
+        return "text-[var(--neon-pink-text)]";
     }
   };
 
   const colorClass = getSakuraColorClass(sakuraColor || "pink");
+  const loadPresentation = getZenLoadStatePresentation(loadState);
+  const stateChipStyle = getZenStateChipStyle(loadState);
 
-  const activeLoad = Math.max(cpuUsage, gpuUsage);
-
-  let loadState: "calm" | "active" | "heavy" = "calm";
-  if (activeLoad > 75) {
-    loadState = "heavy";
-  } else if (activeLoad > 15) {
-    loadState = "active";
-  }
-
-  // Configurations based on load state
-  const getLoadConfig = () => {
-    switch (loadState) {
-      case "heavy":
-        return {
-          text: "Le système déploie sa puissance. Concentration et performance maximales.",
-          icon: (
-            <Flame
-              size={24}
-              className="fill-current text-amber-500 drop-shadow-[0_0_12px_#f59e0b]"
-            />
-          ),
-          breathDuration: 1.2,
-          pulseColor: "text-amber-500 border-amber-500/30",
-        };
-      case "active":
-        return {
-          text: "Le système s'active avec harmonie. Activité modérée en cours.",
-          icon: (
-            <Activity
-              size={24}
-              className="text-[var(--neon-cyan-text)] drop-shadow-[0_0_12px_var(--neon-cyan)]"
-            />
-          ),
-          breathDuration: 2.2,
-          pulseColor:
-            "text-[var(--neon-cyan-text)] border-[var(--neon-cyan)]/30",
-        };
-      case "calm":
-      default:
-        return {
-          text: "Le système respire calmement. Vos ressources sont au repos.",
-          icon: <Heart size={24} className="fill-current" />,
-          breathDuration: 3.8,
-          pulseColor: colorClass,
-        };
-    }
-  };
-
-  const loadConfig = getLoadConfig();
-
-  // Format date in French
   const formattedDate = time.toLocaleDateString("fr-FR", {
     weekday: "long",
     day: "numeric",
     month: "long",
-    year: "numeric",
   });
 
-  // Capitalize first letter
   const capitalizedDate =
     formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
 
-  const formattedTime = time.toLocaleTimeString("fr-FR", {
+  const hours = time.toLocaleTimeString("fr-FR", {
     hour: "2-digit",
+    hour12: false,
+  });
+  const minutes = time.toLocaleTimeString("fr-FR", {
     minute: "2-digit",
+    hour12: false,
+  });
+  const seconds = time.toLocaleTimeString("fr-FR", {
     second: "2-digit",
     hour12: false,
   });
 
+  const fade = prefersReducedMotion ? 0 : 0.55;
+
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-      className="flex-1 flex flex-col items-center justify-center min-h-[50vh] p-4 sm:p-6 lg:p-8 w-full"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: prefersReducedMotion ? 0 : 0.6, ease: [0.16, 1, 0.3, 1] }}
+      className="zen-wallpaper flex-1 flex flex-col w-full min-h-0 h-full"
     >
-      <div className="bento-card w-full max-w-[min(100%,64rem)] p-8 sm:p-10 lg:p-12 flex flex-col items-center justify-center text-center space-y-8 relative overflow-hidden">
-        {/* Soft breathing background pulse */}
-        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-[var(--border)] to-transparent opacity-10 pointer-events-none" />
-
-        {/* Breathing heart/lotus icon reacting to system load */}
-        <motion.div
-          key={loadState}
-          animate={{ scale: [1, 1.08, 1] }}
-          transition={{
-            duration: loadConfig.breathDuration,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-          className={`w-14 h-14 rounded-2xl bg-[var(--surface-inset)] flex items-center justify-center border border-[var(--border-strong)] ${loadConfig.pulseColor}`}
+      {/* Bloc principal — centré au milieu de l'écran */}
+      <div className="zen-wallpaper-core flex-1 flex flex-col items-center justify-center w-full max-w-5xl mx-auto px-4 sm:px-8 gap-8 sm:gap-12 lg:gap-14 min-h-0">
+        <motion.header
+          aria-label="Horloge mode Zen"
+          initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: fade, ease: [0.16, 1, 0.3, 1] }}
+          className="zen-wallpaper-clock w-full text-center"
         >
-          {loadConfig.icon}
-        </motion.div>
-
-        {/* Clock */}
-        <div className="space-y-2">
-          <motion.h1
-            layout
-            className={`text-6xl sm:text-7xl font-extralight tracking-widest mono-text transition-all duration-300 ${colorClass}`}
+          <h1
+            className={`zen-hero-time zen-hero-glow font-extralight mono-text leading-none tracking-tight flex flex-wrap items-start justify-center gap-x-2 sm:gap-x-3 ${colorClass}`}
+            aria-live="off"
           >
-            {formattedTime}
-          </motion.h1>
-          <p className="text-[var(--text-muted)] font-medium tracking-wide flex items-center justify-center gap-2 text-sm sm:text-base">
-            <Calendar size={14} className="text-[var(--text-subtle)]" />
+            <span className="text-[clamp(4.5rem,18vw,11rem)] tabular-nums">
+              {hours}:{minutes}
+            </span>
+            <span className="text-[clamp(1.25rem,4vw,2.75rem)] font-light opacity-50 tabular-nums pt-[0.35em] sm:pt-[0.4em]">
+              {seconds}
+            </span>
+          </h1>
+
+          <p className="zen-hero-date mt-5 sm:mt-7 text-xl sm:text-2xl lg:text-3xl font-medium tracking-wide text-[var(--foreground)]">
             {capitalizedDate}
           </p>
-        </div>
 
-        {/* Calming or active system health quote */}
-        <div className="pt-4 border-t border-[var(--border)] w-full max-w-md">
           <AnimatePresence mode="wait">
             <motion.p
               key={loadState}
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -5 }}
-              transition={{ duration: 0.3 }}
-              className="text-xs text-[var(--text-muted)] italic"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: prefersReducedMotion ? 0 : 0.25 }}
+              role="status"
+              aria-live="polite"
+              aria-label={loadPresentation.labelAria}
+              className="mt-3 sm:mt-4 text-sm sm:text-base font-bold uppercase tracking-[0.28em]"
+              style={{ color: stateChipStyle.color }}
             >
-              "{loadConfig.text}"
+              {loadPresentation.labelFr}
             </motion.p>
           </AnimatePresence>
-        </div>
+        </motion.header>
 
-        {/* Télémétrie intégrée */}
-        <div className="w-full pt-6 border-t border-[var(--border)]">
-          <TelemetryGrid variant="embedded" />
-        </div>
-
-        {/* Protection antivirus */}
-        {security && (
-          <div className="flex justify-center w-full">
-            <div
-              className={`flex items-center gap-2 bg-[var(--surface-inset)] px-4 py-2 rounded-full border max-w-full ${
-                security.is_protected
-                  ? "border-emerald-500/30"
-                  : security.product_name === "Analyse en cours..."
-                    ? "border-[var(--border)]"
-                    : "border-amber-500/30"
-              }`}
-              title={
-                security.is_protected
-                  ? `Antivirus actif détecté : ${security.product_name}`
-                  : `Protection inactive ou introuvable : ${security.product_name}`
-              }
+        <AnimatePresence initial={false}>
+          {zenMetricsVisible ? (
+            <motion.div
+              key="zen-metrics"
+              initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: prefersReducedMotion ? 0 : -8 }}
+              transition={{ duration: fade, delay: prefersReducedMotion ? 0 : 0.06 }}
+              className="w-full flex justify-center"
             >
-              <ShieldCheck
-                size={12}
-                className={
-                  security.is_protected
-                    ? "text-emerald-600 dark:text-emerald-500 shrink-0"
-                    : security.product_name === "Analyse en cours..."
-                      ? "text-[var(--text-subtle)] shrink-0"
-                      : "text-amber-600 dark:text-amber-500 shrink-0"
-                }
-                aria-hidden="true"
-              />
-              <span
-                className={`text-xs font-semibold ${
-                  security.is_protected
-                    ? "text-emerald-700 dark:text-emerald-400"
-                    : security.product_name === "Analyse en cours..."
-                      ? "text-[var(--text-muted)]"
-                      : "text-amber-700 dark:text-amber-400"
-                }`}
-              >
-                {security.is_protected
-                  ? `Protégé · ${security.product_name}`
-                  : security.product_name === "Analyse en cours..."
-                    ? security.product_name
-                    : `Non protégé · ${security.product_name}`}
-              </span>
-            </div>
-          </div>
+              <ZenMetricsDock />
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+
+        <AnimatePresence mode="wait">
+          <motion.blockquote
+            key={loadState}
+            initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: prefersReducedMotion ? 0 : -6 }}
+            transition={{ duration: fade, delay: prefersReducedMotion ? 0 : 0.1 }}
+            className="zen-wallpaper-quote w-full max-w-3xl text-center px-2 mx-auto"
+            data-zen-state={loadState}
+          >
+            <p className="zen-hero-quote text-xl sm:text-2xl lg:text-3xl xl:text-4xl leading-relaxed italic text-[var(--foreground)] opacity-[0.82]">
+              {loadPresentation.quote}
+            </p>
+          </motion.blockquote>
+        </AnimatePresence>
+      </div>
+
+      {/* Footer — ancré en bas, hors du bloc centré */}
+      <footer className="zen-wallpaper-footer shrink-0 w-full max-w-lg mx-auto text-center space-y-3 pb-5 sm:pb-6 px-4">
+        {unreadAlertCount > 0 && (
+          <button
+            type="button"
+            onClick={() => setNotificationPanelOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-[var(--neon-green-text)] opacity-80 hover:opacity-100 transition-opacity min-h-[44px]"
+            aria-label={`${unreadAlertCount} signaux manqués, ouvrir le journal de veille`}
+          >
+            <Bell size={14} aria-hidden="true" />
+            {unreadAlertCount} signaux manqués
+          </button>
         )}
 
-        {/* Back to Dashboard Button */}
-        <button
-          onClick={() => setZenMode(false)}
-          aria-label="Retour au tableau de bord"
-          className="mt-6 flex items-center gap-2 px-6 py-3 rounded-xl border border-[var(--border-strong)] bg-[var(--surface-raised)] text-[var(--foreground)] hover:text-[var(--neon-pink-text)] hover:border-[var(--neon-pink)] hover:bg-[var(--neon-pink)]/5 transition-all duration-300 cursor-pointer shadow-sm hover:shadow-[var(--neon-pink)]/15 text-xs font-semibold min-h-[44px]"
-        >
-          <ArrowLeft size={14} />
-          <span>Retour au Tableau de Bord</span>
-        </button>
-      </div>
+        <div className="flex flex-wrap items-center justify-center gap-4 text-[var(--text-subtle)]">
+          <button
+            type="button"
+            onClick={() => updateSettings({ zenMetricsVisible: !zenMetricsVisible })}
+            className="inline-flex items-center justify-center gap-1.5 min-h-[44px] min-w-[44px] px-2 opacity-60 hover:opacity-100 transition-opacity text-xs sm:text-sm"
+            aria-pressed={zenMetricsVisible}
+            aria-label={
+              zenMetricsVisible
+                ? "Masquer les métriques en mode Zen"
+                : "Afficher les métriques en mode Zen"
+            }
+          >
+            {zenMetricsVisible ? <Eye size={15} aria-hidden="true" /> : <EyeOff size={15} aria-hidden="true" />}
+          </button>
+          <span className="text-xs sm:text-sm tracking-wide opacity-60">Échap · Tableau de bord</span>
+        </div>
+      </footer>
     </motion.div>
   );
-};
+});

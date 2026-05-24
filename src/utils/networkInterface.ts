@@ -113,6 +113,24 @@ export const formatConnectionSubtitle = (
   return text;
 };
 
+/** Sous-titre widget Réseau — type + carte active, nom complet. */
+export const formatNetworkWidgetSubtitle = (
+  connection: ActiveConnection | null,
+  adapterName: string | null,
+): string => {
+  if (!connection) return "Aucune interface détectée";
+
+  let text = adapterName
+    ? `${connection.shortLabel} · ${adapterName}`
+    : formatConnectionSubtitle(connection);
+
+  if (adapterName && connection.extraCount > 0) {
+    text += ` · +${connection.extraCount} autre${connection.extraCount > 1 ? "s" : ""}`;
+  }
+
+  return text;
+};
+
 export interface ActiveConnection {
   kind: ConnectionKind;
   name: string;

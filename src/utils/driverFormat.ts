@@ -1,7 +1,7 @@
 import type { DriverInfo } from '../types';
 
 const CATEGORY_LABELS: Record<string, string> = {
-  Graphics: 'Graphique (GPU)',
+  Graphics: 'Carte graphique',
   Network: 'Réseau',
   Bluetooth: 'Bluetooth',
   Audio: 'Audio',
@@ -94,23 +94,20 @@ export function getVendorUpdateLinkLabel(driver: DriverInfo): string {
   if (driver.update_url.includes('catalog.update.microsoft.com')) {
     return 'Catalogue Microsoft Update';
   }
-  if (driver.category === 'Graphics') {
-    return 'Site constructeur (GPU)';
-  }
-  return 'Site constructeur';
+  return 'Page constructeur';
 }
 
 export function getDriverStatusLabel(status: string, driver?: DriverInfo): string {
   if (driver && hasDriverUpdate(driver)) {
-    return 'MàJ dispo';
+    return 'Nouveauté';
   }
   switch (status) {
     case 'Installed':
       return 'Installé';
     case 'Update Available':
-      return 'MàJ dispo';
+      return 'Nouveauté';
     case 'Verify Online':
-      return 'Vérifier';
+      return 'À confirmer';
     default:
       return status;
   }

@@ -1,12 +1,15 @@
-import React, { useMemo, memo } from "react";
-import { motion } from "framer-motion";
+import { useMemo, memo } from "react";
 import { Download, Upload } from "lucide-react";
 import { useAppStore } from "../../store";
 import { ringToArray } from "../../store/historyRing";
 import { NeonBentoCard, ChartSrTable } from "../common";
 import { DualAreaChart } from "../charts";
-import { getNeonTextShadow } from "../../utils/neonEffects";
-import { getActiveConnection, formatConnectionSubtitle, getActiveNetworkAdapterName } from "../../utils/networkInterface";
+import {
+  getActiveConnection,
+  formatNetworkWidgetSubtitle,
+  getActiveNetworkAdapterName,
+} from "../../utils/networkInterface";
+import { DNS_WIDGET_BASE_HEIGHT } from "../../utils/dnsWidgetLayout";
 
 const parseSpeed = (speed: number) => {
   if (speed < 1) {
@@ -15,7 +18,11 @@ const parseSpeed = (speed: number) => {
   return { value: speed.toFixed(2), unit: "Mo/s" };
 };
 
-export const NetworkWidget = memo(function NetworkWidget() {
+export const NetworkWidget = memo(function NetworkWidget({
+  layoutHeight = null,
+}: {
+  layoutHeight?: number | null;
+}) {
   const downloadRing = useAppStore((s) => s.networkDownloadRing);
   const uploadRing = useAppStore((s) => s.networkUploadRing);
   const networkDownloadHistory = useMemo(
@@ -63,6 +70,11 @@ export const NetworkWidget = memo(function NetworkWidget() {
     [drivers, activeConnection],
   );
 
+  const networkSubtitle = formatNetworkWidgetSubtitle(
+    activeConnection,
+    activeAdapterName,
+  );
+
   const HeaderIcon = activeConnection?.Icon;
 
   const formatTotal = (bytes: number) => {
@@ -107,84 +119,45 @@ export const NetworkWidget = memo(function NetworkWidget() {
   const themeColorDown = "var(--neon-turquoise)";
   const themeColorUp = "var(--neon-green)";
 
+  const resolvedHeight = layoutHeight ?? DNS_WIDGET_BASE_HEIGHT;
+  const cardStyle = {
+    height: resolvedHeight,
+    minHeight: resolvedHeight,
+    maxHeight: `min(${resolvedHeight}px, 90dvh)`,
+  };
+
   return (
     <NeonBentoCard
-      className="h-[380px]"
+      className="h-full w-full min-h-0"
+      style={cardStyle}
       themeColor={themeColorDown}
       delay={0.4}
     >
       {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2 shrink-0 min-w-0 w-full">
-        <div className="flex items-start gap-2 min-w-0 flex-1">
-          <div
-            className="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center text-white shadow-lg"
-            style={{
-              background: `linear-gradient(135deg, ${themeColorDown}, color-mix(in srgb, ${themeColorDown} 50%, transparent))`,
-            }}
-          >
-            {HeaderIcon ? <HeaderIcon size={20} aria-hidden="true" /> : null}
-          </div>
-          <div className="min-w-0">
-            <h3 className="text-base font-semibold tracking-tight text-[var(--foreground)] mb-1">
-              Réseau
-            </h3>
-            <p
-              className="text-xs text-[var(--text-muted)] truncate"
-              title={activeConnection ? formatConnectionSubtitle(activeConnection) : undefined}
-            >
-              {activeConnection
-                ? formatConnectionSubtitle(activeConnection)
-                : "Aucune interface détectée"}
-            </p>
-            {activeAdapterName ? (
-              <p
-                className="text-xs text-[var(--neon-turquoise-text)] mt-0.5 truncate"
-                title={activeAdapterName}
-              >
-                {activeAdapterName}
-              </p>
-            ) : null}
-          </div>
-        </div>
-        <motion.div
-          className="shrink-0 ml-auto px-3 py-1.5 rounded-full border flex items-center gap-2 whitespace-nowrap"
+      <div className="flex items-start gap-2 shrink-0 min-w-0 w-full">
+        <div
+          className="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center text-white shadow-lg"
           style={{
-            backgroundColor: `color-mix(in srgb, ${themeColorDown} 15%, transparent)`,
-            borderColor: `color-mix(in srgb, ${themeColorDown} 30%, transparent)`,
+            background: `linear-gradient(135deg, ${themeColorDown}, color-mix(in srgb, ${themeColorDown} 50%, transparent))`,
           }}
         >
-          <span
-            className="flex items-baseline gap-0.5 mono-text text-sm font-bold tracking-tight tabular-nums"
-            style={{
-              color: "var(--neon-turquoise-text)",
-              textShadow: getNeonTextShadow(themeColorDown, isDark),
-            }}
+          {HeaderIcon ? <HeaderIcon size={20} aria-hidden="true" /> : null}
+        </div>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-base font-semibold tracking-tight text-[var(--foreground)] mb-1">
+            Réseau
+          </h3>
+          <p
+            className="text-xs text-[var(--text-muted)] leading-snug line-clamp-2"
+            title={networkSubtitle}
           >
-            <Download size={11} className="self-center shrink-0" aria-hidden="true" />
-            <span>{downloadSpeed.value}</span>
-            <span className="text-[10px] font-semibold opacity-80">
-              {downloadSpeed.unit}
-            </span>
-          </span>
-          <span className="w-px h-3.5 bg-[var(--border-strong)] shrink-0" aria-hidden="true" />
-          <span
-            className="flex items-baseline gap-0.5 mono-text text-sm font-bold tracking-tight tabular-nums"
-            style={{
-              color: "var(--neon-green-text)",
-              textShadow: getNeonTextShadow(themeColorUp, isDark),
-            }}
-          >
-            <Upload size={11} className="self-center shrink-0" aria-hidden="true" />
-            <span>{uploadSpeed.value}</span>
-            <span className="text-[10px] font-semibold opacity-80">
-              {uploadSpeed.unit}
-            </span>
-          </span>
-        </motion.div>
+            {networkSubtitle}
+          </p>
+        </div>
       </div>
 
-      {/* Chart */}
-      <div className="h-32 shrink-0" aria-hidden="true">
+      {/* Chart — flex-1 pour remplir si la carte s'étire avec le DNS voisin */}
+      <div className="flex-1 min-h-32 shrink-0" aria-hidden="true">
         <DualAreaChart
           data={chartData}
           themeColorDown={themeColorDown}

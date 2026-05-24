@@ -26,7 +26,69 @@ struct GpuEngine {
 #[serde(rename = "Win32_PerfFormattedData_GPUPerformanceCounters_GPUAdapterMemory")]
 #[serde(rename_all = "PascalCase")]
 struct GpuMemory {
+    name: String,
     dedicated_usage: u64,
+}
+
+#[derive(Debug, Clone)]
+struct SelectedGpuAdapter {
+    name: String,
+    vram_total: u64,
+    /// Matches WMI `GPUEngine` / `GPUAdapterMemory` instance names (`luid_0xHIGH_0xLOW`).
+    luid_fragment: String,
+}
+
+fn format_luid_wmi_fragment(high: u32, low: u32) -> String {
+    format!("luid_0x{:08x}_0x{:08x}", high, low)
+}
+
+fn engine_contributes_to_gpu_load(name: &str) -> bool {
+    let n = name.to_ascii_lowercase();
+    n.contains("engtype_3d")
+        || n.contains("engtype_compute")
+        || n.contains("engtype_copy")
+}
+
+/// Adapter-level GPU busy % — max engine load on the selected adapter (not a sum of processes).
+fn aggregate_adapter_gpu_utilization(engines: &[(String, u32)], luid_fragment: &str) -> f32 {
+    let luid = luid_fragment.to_ascii_lowercase();
+    let filter_by_luid = !luid.is_empty();
+    let mut max_util = 0u32;
+
+    for (name, util) in engines {
+        if !engine_contributes_to_gpu_load(name) {
+            continue;
+        }
+        if filter_by_luid && !name.to_ascii_lowercase().contains(&luid) {
+            continue;
+        }
+        max_util = max_util.max(*util);
+    }
+
+    if max_util == 0 && filter_by_luid {
+        for (name, util) in engines {
+            if name.to_ascii_lowercase().contains("engtype_3d") {
+                max_util = max_util.max(*util);
+            }
+        }
+    }
+
+    max_util.min(100) as f32
+}
+
+fn vram_used_for_adapter(memories: &[(String, u64)], luid_fragment: &str) -> u64 {
+    let luid = luid_fragment.to_ascii_lowercase();
+    if !luid.is_empty() {
+        let matched: u64 = memories
+            .iter()
+            .filter(|(name, _)| name.to_ascii_lowercase().contains(&luid))
+            .map(|(_, usage)| *usage)
+            .sum();
+        if matched > 0 {
+            return matched;
+        }
+    }
+    memories.iter().map(|(_, usage)| *usage).sum()
 }
 
 mod dns;
@@ -37,11 +99,14 @@ mod driver_store;
 mod driver_updates;
 mod drivers;
 mod gaming_latency;
+mod memory;
 mod security;
+mod subprocess;
 
 pub use dns::*;
 pub use drivers::*;
 pub use gaming_latency::*;
+pub use memory::*;
 pub use security::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -69,6 +134,7 @@ pub struct MemoryInfo {
     pub used: u64,
     pub available: u64,
     pub usage_percent: f32,
+    pub modules: Vec<RamModuleInfo>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -144,55 +210,118 @@ fn classify_interface(name: &str) -> &'static str {
 }
 
 #[cfg(target_os = "windows")]
-fn read_dxgi_gpu_static() -> (String, u64) {
-    let mut gpu_name = "Unknown GPU".to_string();
-    let mut vram_total = 0u64;
+fn is_software_gpu_name(name: &str) -> bool {
+    let n = name.to_lowercase();
+    n.contains("microsoft basic")
+        || n.contains("remote")
+        || n.contains("virtual")
+        || n.contains("parsec")
+}
+
+#[cfg(target_os = "windows")]
+fn is_discrete_gpu_name(name: &str) -> bool {
+    let n = name.to_lowercase();
+    n.contains("nvidia")
+        || n.contains("amd")
+        || n.contains("radeon")
+        || n.contains("arc ")
+        || n.ends_with(" arc")
+}
+
+#[cfg(target_os = "windows")]
+fn read_selected_gpu_adapter() -> SelectedGpuAdapter {
+    let mut best_discrete: Option<SelectedGpuAdapter> = None;
+    let mut best_any: Option<SelectedGpuAdapter> = None;
 
     unsafe {
         if let Ok(factory) = CreateDXGIFactory1::<IDXGIFactory4>() {
-            if let Ok(adapter) = factory.EnumAdapters1(0) {
-                if let Ok(adapter3) = adapter.cast::<IDXGIAdapter3>() {
-                    if let Ok(desc) = adapter3.GetDesc1() {
-                        gpu_name = String::from_utf16_lossy(&desc.Description)
-                            .trim_end_matches('\0')
-                            .to_string();
-                        vram_total = desc.DedicatedVideoMemory as u64;
+            for index in 0u32.. {
+                let adapter = match factory.EnumAdapters1(index) {
+                    Ok(adapter) => adapter,
+                    Err(_) => break,
+                };
+                let adapter3 = match adapter.cast::<IDXGIAdapter3>() {
+                    Ok(adapter3) => adapter3,
+                    Err(_) => continue,
+                };
+                let desc = match adapter3.GetDesc1() {
+                    Ok(desc) => desc,
+                    Err(_) => continue,
+                };
+                let name = String::from_utf16_lossy(&desc.Description)
+                    .trim_end_matches('\0')
+                    .to_string();
+                let vram = desc.DedicatedVideoMemory as u64;
+                if vram == 0 || is_software_gpu_name(&name) {
+                    continue;
+                }
+                let luid = desc.AdapterLuid;
+                let candidate = SelectedGpuAdapter {
+                    name: name.clone(),
+                    vram_total: vram,
+                    luid_fragment: format_luid_wmi_fragment(
+                        luid.HighPart as u32,
+                        luid.LowPart as u32,
+                    ),
+                };
+                if is_discrete_gpu_name(&name) {
+                    if best_discrete
+                        .as_ref()
+                        .map(|best| vram > best.vram_total)
+                        .unwrap_or(true)
+                    {
+                        best_discrete = Some(candidate);
                     }
+                } else if best_any
+                    .as_ref()
+                    .map(|best| vram > best.vram_total)
+                    .unwrap_or(true)
+                {
+                    best_any = Some(candidate);
                 }
             }
         }
     }
 
-    (gpu_name, vram_total)
+    best_discrete
+        .or(best_any)
+        .unwrap_or(SelectedGpuAdapter {
+            name: "Unknown GPU".to_string(),
+            vram_total: 0,
+            luid_fragment: String::new(),
+        })
 }
 
 #[cfg(not(target_os = "windows"))]
-fn read_dxgi_gpu_static() -> (String, u64) {
-    ("GPU Info Unavailable".to_string(), 0)
+fn read_selected_gpu_adapter() -> SelectedGpuAdapter {
+    SelectedGpuAdapter {
+        name: "GPU Info Unavailable".to_string(),
+        vram_total: 0,
+        luid_fragment: String::new(),
+    }
 }
 
 #[cfg(target_os = "windows")]
-fn read_gpu_wmi_metrics(wmi: &WMIConnection) -> (f32, u64) {
-    let mut gpu_usage = 0.0f32;
-    let mut vram_used = 0u64;
-
+fn read_gpu_wmi_metrics(wmi: &WMIConnection, adapter: &SelectedGpuAdapter) -> (f32, u64) {
+    let mut engines: Vec<(String, u32)> = Vec::new();
     if let Ok(results) = wmi.query::<GpuEngine>() {
-        let mut total_util = 0u32;
-        for res in results {
-            if res.name.contains("engtype_3D") {
-                total_util += res.utilization_percentage;
-            }
-        }
-        gpu_usage = (total_util as f32).min(100.0);
+        engines = results
+            .into_iter()
+            .map(|res| (res.name, res.utilization_percentage))
+            .collect();
     }
 
+    let gpu_usage = aggregate_adapter_gpu_utilization(&engines, &adapter.luid_fragment);
+
+    let mut memories: Vec<(String, u64)> = Vec::new();
     if let Ok(results) = wmi.query::<GpuMemory>() {
-        let mut total_mem = 0u64;
-        for res in results {
-            total_mem += res.dedicated_usage;
-        }
-        vram_used = total_mem;
+        memories = results
+            .into_iter()
+            .map(|res| (res.name, res.dedicated_usage))
+            .collect();
     }
+
+    let vram_used = vram_used_for_adapter(&memories, &adapter.luid_fragment);
 
     (gpu_usage, vram_used)
 }
@@ -229,6 +358,7 @@ impl Default for SharedMonitorState {
                 used: 0,
                 available: 0,
                 usage_percent: 0.0,
+                modules: Vec::new(),
             },
             download_speed: 0.0,
             upload_speed: 0.0,
@@ -323,21 +453,63 @@ async fn ping_all_dns(servers: Option<Vec<DnsServer>>) -> Result<Vec<DnsResult>,
 async fn get_drivers(
     simplified: bool,
     force: Option<bool>,
+    enrich: Option<bool>,
     cache: tauri::State<'_, DriverCacheState>,
 ) -> Result<Vec<DriverInfo>, String> {
-    if force != Some(true) {
-        if let Ok(guard) = cache.inner.lock() {
-            if let Some(entry) = guard.get(&simplified) {
+    let force = force == Some(true);
+    let enrich = enrich == Some(true);
+
+    if !force {
+        let cached = cache.inner.lock().ok().and_then(|guard| {
+            guard.get(&simplified).and_then(|entry| {
                 if entry.fetched_at.elapsed() < DRIVER_CACHE_TTL {
-                    return Ok(entry.drivers.clone());
+                    Some(entry.drivers.clone())
+                } else {
+                    None
                 }
+            })
+        });
+
+        if let Some(cached_drivers) = cached {
+            if !enrich {
+                return Ok(cached_drivers);
             }
+
+            let mut drivers = cached_drivers;
+            drivers = tauri::async_runtime::spawn_blocking(move || {
+                driver_updates::enrich_drivers_with_updates(&mut drivers);
+                drivers
+            })
+            .await
+            .map_err(|e| format!("Driver enrich task failed: {}", e))?;
+
+            if let Ok(mut guard) = cache.inner.lock() {
+                guard.insert(
+                    simplified,
+                    CachedDrivers {
+                        drivers: drivers.clone(),
+                        fetched_at: std::time::Instant::now(),
+                    },
+                );
+            }
+
+            return Ok(drivers);
         }
     }
 
-    let drivers = tauri::async_runtime::spawn_blocking(move || drivers::get_driver_list(simplified))
+    let mut drivers =
+        tauri::async_runtime::spawn_blocking(move || drivers::get_driver_list(simplified))
+            .await
+            .map_err(|e| format!("Driver scan task failed: {}", e))??;
+
+    if enrich {
+        drivers = tauri::async_runtime::spawn_blocking(move || {
+            driver_updates::enrich_drivers_with_updates(&mut drivers);
+            drivers
+        })
         .await
-        .map_err(|e| format!("Driver scan task failed: {}", e))??;
+        .map_err(|e| format!("Driver enrich task failed: {}", e))?;
+    }
 
     if let Ok(mut guard) = cache.inner.lock() {
         guard.insert(
@@ -359,6 +531,11 @@ async fn open_windows_update() -> Result<(), String> {
         .map_err(|error| format!("Windows Update task failed: {}", error))?
 }
 
+#[tauri::command]
+fn get_app_icon_png() -> Vec<u8> {
+    include_bytes!("../icons/32x32.png").to_vec()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     env_logger::init();
@@ -369,6 +546,11 @@ pub fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(
+            tauri_plugin_autostart::Builder::new()
+                .app_name("Koi Monitor")
+                .build(),
+        )
         .manage(shared_state)
         .manage(DriverCacheState {
             inner: Mutex::new(HashMap::new()),
@@ -379,10 +561,19 @@ pub fn run() {
             ping_all_dns,
             get_gaming_latency,
             get_drivers,
-            open_windows_update
+            open_windows_update,
+            get_app_icon_png
         ])
         .setup(move |app| {
             log::info!("Application setup complete");
+
+            if let Some(window) = app.get_webview_window("main") {
+                if let Ok(icon) = tauri::image::Image::from_bytes(include_bytes!("../icons/icon.png")) {
+                    if let Err(error) = window.set_icon(icon) {
+                        log::warn!("Failed to set window icon: {error}");
+                    }
+                }
+            }
 
             let app_handle = app.handle().clone();
             let state = bg_state;
@@ -395,10 +586,15 @@ pub fn run() {
 
                 loop {
                     let snapshot = gaming_tracker.sample();
-                    if let Ok(mut cached) = gaming_latency_state.lock() {
-                        *cached = snapshot.clone();
+                    match gaming_latency_state.lock() {
+                        Ok(mut cached) => *cached = snapshot.clone(),
+                        Err(error) => log::error!("Gaming latency mutex poisoned: {error}"),
                     }
-                    let _ = gaming_app_handle.emit(GAMING_LATENCY_EVENT, &snapshot);
+                    if let Err(error) =
+                        gaming_app_handle.emit(GAMING_LATENCY_EVENT, &snapshot)
+                    {
+                        log::warn!("Failed to emit gaming latency: {error}");
+                    }
                     std::thread::sleep(std::time::Duration::from_secs(2));
                 }
             });
@@ -413,7 +609,15 @@ pub fn run() {
                     WMIConnection::with_namespace_path("ROOT\\SecurityCenter2", *com).ok()
                 });
 
-                let (cached_gpu_name, cached_vram_total) = read_dxgi_gpu_static();
+                let selected_gpu = read_selected_gpu_adapter();
+
+                #[cfg(target_os = "windows")]
+                let ram_modules = wmi_con
+                    .as_ref()
+                    .map(query_ram_modules)
+                    .unwrap_or_default();
+                #[cfg(not(target_os = "windows"))]
+                let ram_modules = query_ram_modules();
 
                 let mut sys = System::new_with_specifics(
                     RefreshKind::nothing()
@@ -480,6 +684,7 @@ pub fn run() {
                         } else {
                             0.0
                         },
+                        modules: ram_modules.clone(),
                     };
 
                     let mut total_received: u64 = 0;
@@ -528,7 +733,7 @@ pub fn run() {
                     #[cfg(target_os = "windows")]
                     if last_gpu_wmi.elapsed() >= gpu_wmi_interval {
                         if let Some(wmi) = &wmi_con {
-                            let (usage, mem) = read_gpu_wmi_metrics(wmi);
+                            let (usage, mem) = read_gpu_wmi_metrics(wmi, &selected_gpu);
                             gpu_usage = usage;
                             vram_used = mem;
                         }
@@ -536,17 +741,17 @@ pub fn run() {
                     }
 
                     let mut current_gpus = Vec::new();
-                    if cached_vram_total > 0 {
+                    if selected_gpu.vram_total > 0 {
                         current_gpus.push(GpuInfo {
-                            name: cached_gpu_name.clone(),
+                            name: selected_gpu.name.clone(),
                             usage: gpu_usage,
                             memory_used: vram_used,
-                            memory_total: cached_vram_total,
+                            memory_total: selected_gpu.vram_total,
                             temperature: None,
                         });
                     } else {
                         current_gpus.push(GpuInfo {
-                            name: "GPU Info Unavailable".to_string(),
+                            name: selected_gpu.name.clone(),
                             usage: 0.0,
                             memory_used: 0,
                             memory_total: 0,
@@ -585,11 +790,14 @@ pub fn run() {
 
                         Some(system_info_from_state(&s))
                     } else {
+                        log::error!("Telemetry mutex poisoned — skipping tick");
                         None
                     };
 
                     if let Some(payload) = telemetry_payload {
-                        let _ = app_handle.emit(TELEMETRY_EVENT, &payload);
+                        if let Err(error) = app_handle.emit(TELEMETRY_EVENT, &payload) {
+                            log::warn!("Failed to emit telemetry: {error}");
+                        }
                     }
 
                     std::thread::sleep(std::time::Duration::from_secs(1));
@@ -600,4 +808,61 @@ pub fn run() {
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod gpu_metrics_tests {
+    use super::{
+        aggregate_adapter_gpu_utilization, format_luid_wmi_fragment, vram_used_for_adapter,
+    };
+
+    #[test]
+    fn luid_fragment_matches_wmi_engine_names() {
+        let frag = format_luid_wmi_fragment(0, 0x1234);
+        assert_eq!(frag, "luid_0x00000000_0x00001234");
+        let name = "pid_1234_luid_0x00000000_0x00001234_phys_0_engtype_3D";
+        assert!(name.to_ascii_lowercase().contains(&frag));
+    }
+
+    #[test]
+    fn utilization_uses_max_not_sum_on_adapter() {
+        let luid = format_luid_wmi_fragment(0, 0xabcd);
+        let engines = vec![
+            (
+                format!("pid_1_{luid}_phys_0_engtype_3D"),
+                40,
+            ),
+            (
+                format!("pid_2_{luid}_phys_0_engtype_3D"),
+                25,
+            ),
+            (
+                format!("pid_3_{luid}_phys_0_engtype_Compute"),
+                55,
+            ),
+        ];
+        assert_eq!(aggregate_adapter_gpu_utilization(&engines, &luid), 55.0);
+    }
+
+    #[test]
+    fn utilization_filters_other_adapters() {
+        let luid = format_luid_wmi_fragment(0, 0x0001);
+        let other = format_luid_wmi_fragment(0, 0x0002);
+        let engines = vec![
+            (format!("pid_1_{other}_phys_1_engtype_3D"), 90),
+            (format!("pid_2_{luid}_phys_0_engtype_3D"), 12),
+        ];
+        assert_eq!(aggregate_adapter_gpu_utilization(&engines, &luid), 12.0);
+    }
+
+    #[test]
+    fn vram_prefers_selected_adapter() {
+        let luid = format_luid_wmi_fragment(0, 0x00aa);
+        let other = format_luid_wmi_fragment(0, 0x00bb);
+        let memories = vec![
+            (format!("adapter_{other}"), 8_000_000_000),
+            (format!("adapter_{luid}"), 2_000_000_000),
+        ];
+        assert_eq!(vram_used_for_adapter(&memories, &luid), 2_000_000_000);
+    }
 }

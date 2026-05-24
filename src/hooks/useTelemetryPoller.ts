@@ -2,8 +2,9 @@ import { useEffect, useRef, useCallback } from 'react';
 import { listen } from '@tauri-apps/api/event';
 import { useAppStore } from '../store';
 import { systemService, gamingLatencyService, GAMING_LATENCY_EVENT } from '../services/api';
-import { pingDnsChecklist } from '../utils/dnsPing';
-import type { SystemInfo, GamingLatencySnapshot } from '../types';
+import { runDnsPingSession } from '../utils/dnsPing';
+import { isDevTelemetryBlocked } from '../utils/alertDevSimulation';
+import type { SystemInfo, GamingLatencySnapshot, CustomDnsServer } from '../types';
 
 const TELEMETRY_EVENT = 'telemetry-update';
 const GAMING_FALLBACK_MS = 2000;
@@ -17,6 +18,7 @@ export function useTelemetryPoller() {
   const dnsInterval = useAppStore((s) => s.settings.dnsInterval);
   const refreshInterval = useAppStore((s) => s.settings.refreshInterval);
   const dnsChecklist = useAppStore((s) => s.settings.dnsChecklist);
+  const customDns = useAppStore((s) => s.settings.customDns);
   const applyTelemetrySnapshot = useAppStore((s) => s.applyTelemetrySnapshot);
   const setDnsResults = useAppStore((s) => s.setDnsResults);
   const setGamingLatency = useAppStore((s) => s.setGamingLatency);
@@ -29,20 +31,30 @@ export function useTelemetryPoller() {
   zenModeRef.current = zenMode;
 
   const runDnsPing = useCallback(
-    async (checklist: string[], gen: number) => {
+    async (checklist: string[], custom: CustomDnsServer | null, gen: number) => {
       if (zenModeRef.current) return;
-      try {
-        const results = await pingDnsChecklist(checklist);
-        if (gen === pollGen.current) {
-          setDnsResults(results);
-        }
-      } catch (error) {
-        console.error('Failed to fetch DNS info:', error);
-        if (gen === pollGen.current) {
-          setDnsFetchAttempted(true);
-          pushStatusToast('Test DNS indisponible — réessayez dans quelques secondes', 'warning');
-        }
-      }
+      if (import.meta.env.DEV && isDevTelemetryBlocked()) return;
+      await runDnsPingSession(
+        checklist,
+        custom,
+        {
+          onSuccess: (results) => {
+            if (gen === pollGen.current) {
+              setDnsResults(results);
+            }
+          },
+          onError: () => {
+            if (gen === pollGen.current) {
+              setDnsFetchAttempted(true);
+            }
+          },
+          toast: (message) => {
+            if (gen === pollGen.current) {
+              pushStatusToast(message, 'warning');
+            }
+          },
+        },
+      );
     },
     [setDnsResults, setDnsFetchAttempted, pushStatusToast],
   );
@@ -57,6 +69,7 @@ export function useTelemetryPoller() {
 
     const applyInfo = (info: SystemInfo) => {
       if (cancelled || gen !== pollGen.current) return;
+      if (import.meta.env.DEV && isDevTelemetryBlocked()) return;
       const now = Date.now();
       if (now - lastTelemetryApplyRef.current < refreshInterval) return;
       lastTelemetryApplyRef.current = now;
@@ -69,14 +82,17 @@ export function useTelemetryPoller() {
         applyInfo(info);
       } catch (error) {
         console.error('Failed to fetch system info:', error);
+        if (import.meta.env.DEV && (!isTauriRuntime() || isDevTelemetryBlocked())) {
+          return;
+        }
         pushStatusToast('Télémétrie système indisponible', 'error');
       }
     };
 
     const applyGaming = (snapshot: GamingLatencySnapshot) => {
-      if (!cancelled && gen === pollGen.current) {
-        setGamingLatency(snapshot);
-      }
+      if (cancelled || gen !== pollGen.current) return;
+      if (import.meta.env.DEV && isDevTelemetryBlocked()) return;
+      setGamingLatency(snapshot);
     };
 
     const fetchGamingFallback = async () => {
@@ -85,6 +101,9 @@ export function useTelemetryPoller() {
         applyGaming(snapshot);
       } catch (error) {
         console.error('Failed to fetch gaming latency:', error);
+        if (import.meta.env.DEV && (!isTauriRuntime() || isDevTelemetryBlocked())) {
+          return;
+        }
         pushStatusToast('Latence jeu indisponible', 'warning');
       }
     };
@@ -114,6 +133,7 @@ export function useTelemetryPoller() {
 
     const startEventStream = async () => {
       if (!isTauriRuntime()) {
+        if (import.meta.env.DEV) return;
         await fetchFallback();
         pollTimer = setInterval(fetchFallback, refreshInterval);
         return;
@@ -134,12 +154,12 @@ export function useTelemetryPoller() {
     void startEventStream();
 
     if (!zenMode) {
-      runDnsPing(dnsChecklist, gen);
+      runDnsPing(dnsChecklist, customDns, gen);
     }
 
     const dnsTimer = zenMode
       ? undefined
-      : setInterval(() => runDnsPing(dnsChecklist, gen), dnsInterval);
+      : setInterval(() => runDnsPing(dnsChecklist, customDns, gen), dnsInterval);
 
     return () => {
       cancelled = true;
@@ -155,6 +175,7 @@ export function useTelemetryPoller() {
     dnsInterval,
     refreshInterval,
     dnsChecklist,
+    customDns,
     applyTelemetrySnapshot,
     runDnsPing,
     setGamingLatency,

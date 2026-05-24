@@ -1,0 +1,44 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Build release exe
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/koi.ps1 -Action Build -SkipClean -NonInteractive
+        env:
+          CI: true
+
+      - name: Resolve exe path
+        id: exe
+        shell: pwsh
+        run: |
+          $p = Join-Path $env:LOCALAPPDATA 'koi-monitor\koi-monitor.exe'
+          if (-not (Test-Path $p)) { throw "Exe not found: $p" }
+          "path=$p" >> $env:GITHUB_OUTPUT
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.exe.outputs.path }}
+          generate_release_notes: true

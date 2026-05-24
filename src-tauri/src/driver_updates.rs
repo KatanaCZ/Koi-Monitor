@@ -2,25 +2,21 @@ use crate::driver_store::{fetch_driver_store_packages, find_latest_store_version
 use crate::driver_version::{extract_version_from_text, is_update_available};
 use crate::drivers::DriverInfo;
 use serde::Deserialize;
+use crate::subprocess::run_powershell_with_timeout;
+#[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
+#[cfg(target_os = "windows")]
 use std::process::Command;
 
 #[derive(Debug, Clone, Deserialize)]
 struct PendingDriverUpdate {
-    title: String,
     version: String,
     hardware_ids: Vec<String>,
-    manufacturer: String,
-    model: String,
 }
 
 const WU_DRIVER_SEARCH_PS: &str = r#"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $ErrorActionPreference = 'Continue'
-try {
-    (New-Object -ComObject Microsoft.Update.AutoUpdate).DetectNow() | Out-Null
-} catch {}
-Start-Sleep -Seconds 8
 try {
     $Session = New-Object -ComObject Microsoft.Update.Session
     $Searcher = $Session.CreateUpdateSearcher()
@@ -142,20 +138,12 @@ pub fn open_windows_update_settings() -> Result<(), String> {
 }
 
 fn fetch_pending_driver_updates() -> Vec<PendingDriverUpdate> {
-    let output = Command::new("powershell")
-        .args([
-            "-NoProfile",
-            "-ExecutionPolicy",
-            "Bypass",
-            "-Command",
-            WU_DRIVER_SEARCH_PS,
-        ])
-        .creation_flags(0x08000000)
-        .output();
-
-    let Ok(result) = output else {
-        log::warn!("Windows Update driver search failed to start");
-        return Vec::new();
+    let result = match run_powershell_with_timeout(WU_DRIVER_SEARCH_PS, 60) {
+        Ok(result) => result,
+        Err(error) => {
+            log::warn!("Windows Update driver search failed: {error}");
+            return Vec::new();
+        }
     };
 
     if !result.status.success() {
@@ -202,15 +190,8 @@ fn fetch_pending_driver_updates() -> Vec<PendingDriverUpdate> {
             let hardware_ids = parse_hardware_ids(&item["HardwareIDs"]);
 
             Some(PendingDriverUpdate {
-                title,
                 version,
                 hardware_ids,
-                manufacturer: item["Manufacturer"]
-                    .as_str()
-                    .unwrap_or("")
-                    .trim()
-                    .to_string(),
-                model: item["Model"].as_str().unwrap_or("").trim().to_string(),
             })
         })
         .collect()
@@ -268,45 +249,16 @@ fn find_latest_update_for_driver(
 }
 
 fn driver_matches_update(driver: &DriverInfo, update: &PendingDriverUpdate) -> bool {
+    if update.hardware_ids.is_empty() {
+        return false;
+    }
+
     if hardware_ids_match(&driver.hardware_ids, &update.hardware_ids) {
         return true;
     }
 
-    if !driver.hardware_id.is_empty()
-        && !update.hardware_ids.is_empty()
+    !driver.hardware_id.is_empty()
         && hardware_ids_match(std::slice::from_ref(&driver.hardware_id), &update.hardware_ids)
-    {
-        return true;
-    }
-
-    let driver_name = normalize_match_key(&driver.name);
-    let update_model = normalize_match_key(&update.model);
-    let update_title = normalize_match_key(&update.title);
-
-    if !driver_name.is_empty() {
-        if !update_model.is_empty()
-            && (update_model.contains(&driver_name) || driver_name.contains(&update_model))
-        {
-            return true;
-        }
-
-        if update_title.contains(&driver_name) {
-            return true;
-        }
-    }
-
-    let provider = normalize_match_key(&driver.provider);
-    let manufacturer = normalize_match_key(&update.manufacturer);
-    if provider.len() >= 4
-        && manufacturer.len() >= 4
-        && (provider.contains(&manufacturer) || manufacturer.contains(&provider))
-        && !update_model.is_empty()
-        && driver_name.contains(&update_model)
-    {
-        return true;
-    }
-
-    false
 }
 
 fn hardware_ids_match(driver_ids: &[String], update_ids: &[String]) -> bool {
@@ -355,13 +307,4 @@ fn extract_token(source: &str, marker: &str) -> Option<String> {
     } else {
         Some(token.to_string())
     }
-}
-
-fn normalize_match_key(value: &str) -> String {
-    value
-        .to_lowercase()
-        .replace(['(', ')', '[', ']', '.', ',', '-'], " ")
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ")
 }

@@ -30,10 +30,11 @@ export class ErrorBoundary extends React.Component<
     if (this.state.hasError) {
       return (
         <div
-          className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[var(--canvas)] px-6 text-center"
+          className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[var(--background)] px-6 text-center"
           role="alert"
+          aria-live="assertive"
         >
-          <p className="text-lg font-semibold text-[var(--text-primary)]">
+          <p className="text-lg font-semibold text-[var(--foreground)]">
             Une erreur a interrompu l&apos;interface
           </p>
           <p className="max-w-md text-sm text-[var(--text-muted)]">

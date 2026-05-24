@@ -1,15 +1,26 @@
 import { create } from 'zustand';
-import { SystemInfo, DnsResult, DriverInfo, ThemeMode, AppSettings, DEFAULT_DNS_CHECKLIST, GamingLatencySnapshot, DEFAULT_GAMING_LATENCY } from '../types';
+import { SystemInfo, DnsResult, DriverInfo, ThemeMode, AppSettings, DEFAULT_DNS_CHECKLIST, DEFAULT_ALERT_THRESHOLDS, GamingLatencySnapshot, DEFAULT_GAMING_LATENCY, ActivityProfile } from '../types';
 import { sanitizeAppSettings } from '../utils/settingsOptions';
+import {
+  createNotificationEntry,
+  prependNotificationLog,
+  shouldSkipNotificationLog,
+  type NotificationLogEntry,
+  type NotificationSource,
+} from '../utils/notificationLog';
 import {
   createHistoryRing,
   pushHistoryRing,
-  ringToArray,
   type HistoryRing,
   type HistoryPoint,
 } from './historyRing';
 
-export type { HistoryPoint };
+export type { HistoryPoint, NotificationLogEntry, NotificationSource };
+
+export interface PushStatusToastOptions {
+  source?: NotificationSource;
+  skipLog?: boolean;
+}
 
 const DEFAULT_SETTINGS: AppSettings = {
   refreshInterval: 2000,
@@ -17,8 +28,17 @@ const DEFAULT_SETTINGS: AppSettings = {
   sakuraIntensity: 'medium',
   sakuraColor: 'pink',
   enableGlassmorphicBlur: true,
+  backgroundAura: 'full',
+  neonGlow: 'balanced',
+  calmMotion: false,
   dnsChecklist: [...DEFAULT_DNS_CHECKLIST],
+  customDns: null,
   simplifiedMode: true,
+  minimizeToTray: false,
+  launchAtStartup: false,
+  ambientMusicMuted: false,
+  zenMetricsVisible: true,
+  alertThresholds: { ...DEFAULT_ALERT_THRESHOLDS },
 };
 
 const loadSettings = (): AppSettings => {
@@ -40,6 +60,12 @@ const loadSettings = (): AppSettings => {
 
 export type StatusToastType = 'success' | 'warning' | 'error';
 
+export interface StatusToastState {
+  message: string;
+  type: StatusToastType;
+  source: NotificationSource;
+}
+
 interface AppState {
   theme: ThemeMode;
   settings: AppSettings;
@@ -55,7 +81,13 @@ interface AppState {
   networkDownloadRing: HistoryRing;
   networkUploadRing: HistoryRing;
   zenMode: boolean;
-  statusToast: { message: string; type: StatusToastType } | null;
+  activityProfile: ActivityProfile;
+  statusToast: StatusToastState | null;
+  notificationLog: NotificationLogEntry[];
+  notificationPanelOpen: boolean;
+  easterMusicActive: boolean;
+  /** Incrémenté pour reset le tracker Zen (sim dev, entrée mode Zen). */
+  zenTrackerResetSeq: number;
   setTheme: (theme: ThemeMode) => void;
   updateSettings: (settings: Partial<AppSettings>) => void;
   setSystemInfo: (info: SystemInfo) => void;
@@ -66,24 +98,19 @@ interface AppState {
   setDrivers: (drivers: DriverInfo[]) => void;
   setLoading: (loading: boolean) => void;
   setZenMode: (zen: boolean) => void;
-  pushStatusToast: (message: string, type?: StatusToastType) => void;
+  setActivityProfile: (profile: ActivityProfile) => void;
+  pushStatusToast: (
+    message: string,
+    type?: StatusToastType,
+    options?: PushStatusToastOptions,
+  ) => void;
   clearStatusToast: () => void;
+  setNotificationPanelOpen: (open: boolean) => void;
+  setEasterMusicActive: (active: boolean) => void;
+  bumpZenTrackerReset: () => void;
+  markNotificationsRead: () => void;
+  clearNotificationLog: () => void;
 }
-
-export const selectCpuHistory = (s: AppState): HistoryPoint[] =>
-  ringToArray(s.cpuHistoryRing);
-
-export const selectRamHistory = (s: AppState): HistoryPoint[] =>
-  ringToArray(s.ramHistoryRing);
-
-export const selectGpuHistory = (s: AppState): HistoryPoint[] =>
-  ringToArray(s.gpuHistoryRing);
-
-export const selectNetworkDownloadHistory = (s: AppState): HistoryPoint[] =>
-  ringToArray(s.networkDownloadRing);
-
-export const selectNetworkUploadHistory = (s: AppState): HistoryPoint[] =>
-  ringToArray(s.networkUploadRing);
 
 export const useAppStore = create<AppState>((set) => ({
   theme: (localStorage.getItem('koi_theme') as ThemeMode) || 'dark',
@@ -100,7 +127,12 @@ export const useAppStore = create<AppState>((set) => ({
   networkDownloadRing: createHistoryRing(),
   networkUploadRing: createHistoryRing(),
   zenMode: false,
+  activityProfile: 'desktop',
   statusToast: null,
+  notificationLog: [],
+  notificationPanelOpen: false,
+  easterMusicActive: false,
+  zenTrackerResetSeq: 0,
 
   setTheme: (theme) => {
     localStorage.setItem('koi_theme', theme);
@@ -109,7 +141,22 @@ export const useAppStore = create<AppState>((set) => ({
 
   updateSettings: (newSettings) =>
     set((state) => {
-      const updated = sanitizeAppSettings({ ...state.settings, ...newSettings });
+      const updated = sanitizeAppSettings({
+        ...state.settings,
+        ...newSettings,
+        alertThresholds: {
+          ...state.settings.alertThresholds,
+          ...newSettings.alertThresholds,
+          desktop: {
+            ...state.settings.alertThresholds.desktop,
+            ...newSettings.alertThresholds?.desktop,
+          },
+          gaming: {
+            ...state.settings.alertThresholds.gaming,
+            ...newSettings.alertThresholds?.gaming,
+          },
+        },
+      });
       try {
         localStorage.setItem('koi_settings', JSON.stringify(updated));
       } catch (e) {
@@ -166,7 +213,47 @@ export const useAppStore = create<AppState>((set) => ({
 
   setZenMode: (zenMode) => set({ zenMode }),
 
-  pushStatusToast: (message, type = 'warning') => set({ statusToast: { message, type } }),
+  setActivityProfile: (activityProfile) => set({ activityProfile }),
+
+  pushStatusToast: (message, type = 'warning', options) =>
+    set((state) => {
+      const source = options?.source ?? 'system';
+      const now = Date.now();
+      const isDuplicate = shouldSkipNotificationLog(state.notificationLog, message, now);
+      let notificationLog = state.notificationLog;
+
+      if (!options?.skipLog && !isDuplicate) {
+        notificationLog = prependNotificationLog(
+          notificationLog,
+          createNotificationEntry(message, type, source, now),
+        );
+      }
+
+      if (isDuplicate) {
+        return { notificationLog };
+      }
+
+      return {
+        statusToast: { message, type, source },
+        notificationLog,
+      };
+    }),
 
   clearStatusToast: () => set({ statusToast: null }),
+
+  setNotificationPanelOpen: (notificationPanelOpen) => set({ notificationPanelOpen }),
+
+  setEasterMusicActive: (easterMusicActive) => set({ easterMusicActive }),
+
+  bumpZenTrackerReset: () =>
+    set((state) => ({ zenTrackerResetSeq: state.zenTrackerResetSeq + 1 })),
+
+  markNotificationsRead: () =>
+    set((state) => ({
+      notificationLog: state.notificationLog.map((entry) =>
+        entry.read ? entry : { ...entry, read: true },
+      ),
+    })),
+
+  clearNotificationLog: () => set({ notificationLog: [] }),
 }));

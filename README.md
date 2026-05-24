@@ -1,286 +1,228 @@
+<div align="center">
+
 # 🌸 Koi Monitor
 
-![Icon](data:image/svg+xml,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22paint0_linear_favicon%22%20x1%3D%2212%22%20y1%3D%222%22%20x2%3D%2212%22%20y2%3D%2222%22%20gradientUnits%3D%22userSpaceOnUse%22%3E%3Cstop%20stop-color%3D%22%239d4edd%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%2300d4ff%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Cpath%20d%3D%22M12%202C6.47715%202%202%206.47715%202%2012C2%2017.5228%206.47715%2022%2012%2022C17.5228%2022%2022%2017.5228%2022%2012C22%206.47715%2017.5228%202%2012%202ZM12%2020C7.58172%2020%204%2016.4183%204%2012C4%207.58172%207.58172%204%2012%204C16.4183%204%2020%207.58172%2020%2012C20%2016.4183%2016.4183%2020%2012%2020Z%22%20fill%3D%22url(%23paint0_linear_favicon)%22%2F%3E%3C%2Fsvg%3E)
+[![Audit & Build](https://github.com/KatanaCZ/koi-monitor/actions/workflows/audit.yml/badge.svg)](https://github.com/KatanaCZ/koi-monitor/actions/workflows/audit.yml)
+[![Release](https://img.shields.io/github/v/release/KatanaCZ/koi-monitor?label=Release&color=9d4edd)](https://github.com/KatanaCZ/koi-monitor/releases/latest)
 
-**Application de monitoring système pour Windows 10 et 11** avec une interface glassmorphisme thème **Koi Monitor Night**.
+### *Votre PC, enfin lisible. Beau. Léger. Fiable.*
 
-<!-- Screenshot: exécuter `npm run tauri dev` pour prévisualiser l'interface -->
+**Surveillez Windows sans ouvrir un outil gris des années 2000.**
 
-## 💻 Prérequis système
+<br />
 
-### Utilisateur final (exécutable portable `.exe`)
+![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?style=for-the-badge&logo=windows&logoColor=white)
+![Léger](https://img.shields.io/badge/Léger-~10–25%20Mo-00d4ff?style=for-the-badge)
+![Gratuit](https://img.shields.io/badge/Gratuit-MIT-00ff9d?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-1.0.0-9d4edd?style=for-the-badge)
 
-| Critère | Détail |
-|---------|--------|
-| **OS** | Windows **10** ou **11**, **64 bits** (build récent recommandé) |
-| **WebView2** | Runtime Microsoft Edge WebView2 (souvent déjà présent). Windows 11 : inclus. Windows 10 : via Windows Update / Edge |
-| **À installer** | **Rien** — copiez `koi-monitor.exe` où vous voulez et double-cliquez |
-| **Plateforme** | **Windows uniquement** (WMI, DXGI, PowerShell, scan pilotes) |
-| **Réseau** | Requis pour tests DNS, latence jeu et recherche de MàJ pilotes |
-| **Droits** | Compte utilisateur standard suffit en général ; environnements verrouillés (entreprise) peuvent limiter WMI ou PowerShell |
+<br />
 
-### Développeur (compilation depuis les sources)
+![Aperçu de Koi Monitor — dashboard](docs/screenshots/dashboard-dark.png)
 
-Node.js 20+, Rust (stable), npm, WebView2 — voir [Installation Rapide](#-installation-rapide-one-click) et `setup.bat`.
+*Verre dépoli · Thème sombre & clair · Ambiance sakura*
 
-### Empreinte (ordre de grandeur)
+<br />
 
-| | Koi Monitor (Tauri) | Référence |
-|--|---------------------|-----------|
-| **Disque** | ~10–25 Mo (exe + WebView2 partagé) | Bien en dessous d’Electron (~150 Mo+) |
-| **RAM au repos** | ~80–150 Mo | WebView2 + interface React |
-| **CPU** | Faible en veille dashboard | Pics possibles au **scan pilotes** (1–2 min en mode étendu) |
-| **Profil** | **Légère** pour une app desktop moderne | Pas **ultra-légère** (type utilitaire natif minimal) |
+[Pourquoi Koi](#-pourquoi-koi) ·
+[Interface](#-une-interface-qui-fait-envie) ·
+[Léger & discret](#-léger-et-discret) ·
+[Fiable](#-des-chiffres-honnêtes) ·
+[Fonctionnalités](#-ce-que-vous-pouvez-faire) ·
+[Installation](#-installation) ·
+[Vie privée](#-vie-privée--sécurité)
 
-> **Distribution recommandée :** livrer **`koi-monitor.exe`** (`src-tauri\target\release\`) — pas de setup MSI/NSIS, pas le dossier source avec `setup.bat` (réservé aux développeurs).
-
-## ✨ Fonctionnalités
-
-### Monitoring Système
-- **CPU** - Usage en temps réel, graphique historique, et monitoring ultra-dense des cœurs (mode *Spectrum Equalizer* interactif). 🩷 Thème Rose (`#ff2d95`).
-- **RAM** - Usage mémoire, mémoire utilisée/disponible, graphique historique. 🔵 Thème Cyan (`#00d4ff`).
-- **GPU** - Monitoring natif avancé (DirectX DXGI & WMI) : VRAM totale réelle, VRAM allouée, utilisation 3D en temps réel. 🟣 Thème Violet (`#9d4edd`).
-- **Réseau** - Débit temps réel (badge header ↓/↑), totaux cumulés, graphique AreaChart, **connexion active Wi‑Fi ou Ethernet** (icône + libellé). 🩵 Thème Turquoise (`#00fff7`).
-
-### DNS Monitor (comparateur serveurs)
-- Test de latence multi-serveurs DNS (Google, Cloudflare, Quad9, OpenDNS) — **TCP `:53`** (comparaison DNS, pas latence jeu)
-- **Test auto** (bouton direct) : revient aux 4 serveurs recommandés + lance le ping immédiatement
-- **Personnaliser** : ouvre les paramètres sur l'onglet **Réseau & DNS** pour choisir les serveurs
-- **Statut de connexion dynamique** : bandeau inférieur avec verdict coloré (*Latence Excellente / Bonne / Moyenne / Critique*)
-- Identification automatique du meilleur serveur DNS (couronne ⚜️)
-- 🟢 Thème Vert Néon (`#00ff9d`)
-
-### Latence Jeu — « Prêt pour le jeu »
-- **Cellule Jeu** dans le bandeau stats (icône manette) — latence internet ICMP + verdict en temps réel
-- **Badge cliquable** (`Prêt pour le jeu`, `Limite ranked`, `Wi‑Fi / box`, etc.) → ouvre le panneau détail
-- **Panneau détail** (masqué par défaut) : **Passerelle** (IP box auto-détectée) · **Internet** (`1.1.1.1`) · **Jitter** (15 échantillons, ~30 s)
-- Fermeture : bouton **Fermer**, re-clic sur le badge, ou touche **Échap**
-- Verdicts : `ready` / `marginal` / `poor` / `local_issue` / `measuring` — couleurs vert / ambre / orange / rouge
-- Mesure Rust toutes les **2 s** (thread dédié, indépendant du polling DNS)
-- Actif en **dashboard** et **mode Zen** (`TelemetryGrid` intégré)
-
-### Analyse des Pilotes
-- **Mode Simplifié (défaut)** : **3 pilotes essentiels** — 1 GPU discret, 1 réseau (Ethernet prioritaire), 1 Bluetooth ; cartes récap `EssentialVersionsSummary` + liste compacte.
-- **Mode Étendu** : GPU (+ iGPU), réseau (Ethernet + Wi‑Fi), BT, audio, stockage ; rescan **1–2 min** (toast warning à l’activation, modal seule).
-- **Comparateur de versions** : installée vs disponible (WU + magasin `pnputil`), segments diff surlignés (`DriverVersionCompare`).
-- **Mises à jour — Windows Update d’abord** : si WU propose une MàJ → **« Ouvrir Windows Update »** (action principale) ; lien constructeur/catalogue en secondaire. Si version trouvée **uniquement** dans le magasin pilotes → avertissement + lien OEM/catalogue + **« Vérifier Windows Update »**. Pas d’installation directe depuis l’app.
-- **Détection Matériel Réel** : scan WMI ciblé, filtrage physique, blacklist VM/VPN/périphériques d’interface.
-- **Safe UX** : statuts « Installé », « Vérifier », « MàJ dispo » — pas de fausses alertes d’obsolescence.
-- **Liens constructeurs** : NVIDIA, AMD, Intel, Realtek + catalogue Microsoft si HW ID (`safeUrl.ts`).
-
-### Zen Mode (Mode Méditation)
-- **Bouton switchable dédié** : Bouton fleur de cerisier 🌸 dans la barre de titre pour basculer instantanément.
-- **Horloge centrale** : Heure, date en français, citation dynamique selon la charge système.
-- **Télémétrie intégrée** : CPU, RAM, GPU, **Jeu** (latence multijoueur + verdict), **Actif** (uptime compact `Xh Xm`) — même rendu que le bandeau dashboard, intégré dans la carte horloge (StatsBar masqué en Zen).
-- **Protection antivirus réelle** : détection WMI (`Microsoft Defender`, Avast, etc.) — badge « Protégé · [programme] » ou « Non protégé · … ».
-- **Analyse de charge dynamique** : `Math.max(cpuUsage, gpuUsage)` — ignore la RAM cache passive.
-- **Trois états système** : Repos 💚 / Modéré 🩵 / Intense 💛 (pulsation + icône adaptée).
-- **Économie de ressources** : graphiques SVG et widgets dashboard entièrement démontés ; sakura en **faible ou moyen** (élevé plafonné à moyen, sans gros pétales avant-plan).
-
-## 🎨 Design
-
-### Charte Graphique par Composant
-- 🩷 **CPU** — Rose Cyberpunk `#ff2d95`
-- 🔵 **RAM** — Bleu Cyan `#00d4ff`
-- 🟣 **GPU** — Violet Néon `#9d4edd`
-- 🩵 **Réseau** — Turquoise `#00fff7`
-- 🟢 **DNS & Latence Jeu** — Vert Néon `#00ff9d`
-
-### Thème Koi Monitor (Bento Paradigm)
-- **Bento Paradigm**: Interface structurée en cartes arrondies modernes (`bento-cards`).
-- **Système de Grille 8px (8-Pt Grid System)** : Tous les paddings, margins, gaps, hauteurs et largeurs de l'application sont rigoureusement alignés sur des multiples de 8px (avec tolérance exceptionnelle de 4px pour les détails ultra-fins), garantissant un alignement visuel parfait.
-- **Loi de la Proximité (Contenu Proche / Distant)** : Regroupement visuel intelligent avec des écarts minimes (ex: `gap-2` / 8px) pour les éléments fortement liés (icône + texte, titre + sous-titre) et des espacements plus aérés (ex: `space-y-6` / 24px) pour les sections fonctionnelles distinctes.
-- **Hiérarchie des Bordures & Rayons (Border-Radius)** : Structure organique cohérente avec des rayons de courbure adaptés au niveau d'imbrication (Cartes Bento parentes à `rounded-[2rem]` / 32px, conteneurs internes enfants à `rounded-2xl` / 16px, boutons interactifs et petits contrôles à `rounded-xl` / 12px ou `rounded-lg` / 8px).
-- **Glassmorphisme Liquid Glass**: Panneaux transparents avec blur (toggle paramètres). **Sans grain** sur cartes glass (évite texture granuleuse). Mode Zen sombre : panneau plus opaque, blur adouci.
-- **Tailwind CSS v4**: Architecture stylistique robuste, responsive et gérant nativement le mode sombre/clair via attributs de données (`data-theme`).
-- **Typographie Premium**: `Geist Sans` pour l'interface globale, et `JetBrains Mono` pour les données et statistiques.
-- **Couleurs Koi & Néon**: Préservation des identités colorées vibrantes (Pink, Cyan, Purple) sur fonds minimalistes.
-- **Conformité WCAG AAA (Accessibilité)** : Optimisation ciblée des contrastes des textes de métriques pour garantir une lisibilité absolue (ratio de contraste supérieur ou égal à 7:1 en modes clair et sombre) tout en conservant le style brillant cyberpunk, structure sémantique ARIA complète et navigation intégrale au clavier.
-- **Ergonomie ISO 9241 (Dialogue & UX)** : Conforme aux principes d'ergonomie des logiciels de la norme ISO 9241 (Auto-descriptivité, Contrôlabilité, Tolérance aux erreurs). Fermeture instantanée des modales et sortie du mode Zen via la touche `Échap`, double confirmation sécurisée sur le bouton "Réinitialiser" avec retour haptique visuel, bouton de retour explicite stylisé de haut standing en mode Zen, et annonces vocales en temps réel (`role="status"`, `aria-live="polite"`) sur les notifications toast.
-- **Optimisation et Robustesse** : télémétrie push (événement Tauri 1 Hz), ring buffer historiques, Recharts lazy-load, sélecteurs Zustand granulaires, toasts erreurs visibles (DNS/pilotes), splash non bloquant, mémoïsation widgets, CI audit + budget bundle.
-- **Uptime système en temps réel** dans le bandeau supérieur (format compact `Xh Xm`, libellé **Actif**)
-- **StatsBar (Liquid Glass Hub)** : capsules avec anneaux SVG néon — CPU, RAM, GPU, **Jeu** (badge verdict cliquable), **Actif** ; panneau latence jeu repliable sous la grille (visible dashboard uniquement ; Zen utilise `TelemetryGrid` intégré)
-- **Animation Sakura** : pétales animés en arrière-plan — en mode Zen : **faible ou moyen** selon réglage (élevé → moyen), pas de couche avant-plan
-
-### Paramètres Persistants
-- **Mode Simplifié (défaut)** : 3 pilotes essentiels (GPU, réseau, Bluetooth).
-- **Intensité Sakura** : Ajuste le nombre de pétales (Désactivé, Faible, Moyen, Élevé).
-- **Intervalle de rafraîchissement** : Configure la fréquence de mise à jour des métriques (1s, 2s, 5s, 10s).
-- **Intervalle DNS** : Configure la fréquence de ping DNS (10s, 15s, 30s, 1min).
-- **Serveurs DNS** : checklist deux lignes (nom + IP), normalisation legacy via `normalizeDnsChecklist()`
-- **Effet Glassmorphism** : Active/désactive le flou vitré sur cartes, panneaux et modales (sombre & clair).
-
-### Interface
-- **Identité SlashTitle** : animation katana qui fend « Koi Monitor » (gradient → éclair cyan → texte scindé). Tailles `lg` (splash), `md` (À propos), `sm` (barre de titre). Rejouée au démarrage post-splash et à chaque visite de l’onglet À propos (`aboutSlashKey`).
-- **Splash Screen** : orchestration séquentielle (init → matériel → DNS → pilotes → prêt) avec durées min par étape pour un affichage fluide ; barre interpolée ; timeout sécurité **90 s** ; `SplashSlashTitle`, aurora, sakura.
-- Barre de titre personnalisée (sans décoration Windows) — titre animé ou statique selon phase de démarrage
-- Widgets interactifs avec micro-animations Framer Motion fluides (effets ressort / `spring`)
-- Toggle thème sombre/clair harmonisé
-- **Paramètres → À propos** : `SlashTitle` + description produit sobre + crédit technique (Tauri, React, Rust) + version en pied de carte
-- Structure de la grille auto-ajustable
-
-## 🚀 Installation Rapide (One-Click)
-
-> Réservée à la **compilation depuis les sources**. Les utilisateurs finaux reçoivent **`koi-monitor.exe`** — voir [Prérequis système](#-prérequis-système).
-
-### Étape 1: Extraire le ZIP
-1. Téléchargez `Koi-Monitor-v1.0.zip`
-2. Extrayez dans un dossier (ex: `C:\KoiMonitor`)
-3. Ouvrez le dossier
-
-### Étape 2: Lancer l'Installation
-1. **Clic droit** sur `setup.bat`
-2. **"Exécuter en tant qu'administrateur"**
-3. Patientez 10-30 minutes (première compilation Rust)
-
-Le script installera automatiquement:
-- ✅ Node.js 20.x (si manquant)
-- ✅ Rust (si manquant)
-- ✅ WebView2 (si nécessaire)
-- ✅ Toutes les dépendances npm
-- ✅ Build de l'exécutable `koi-monitor.exe`
-
-### Étape 3: Lancer l'Application
-- Double-cliquez sur `src-tauri\target\release\koi-monitor.exe`
-
-## 🤖 Développement avec Cursor
-
-Le projet inclut une configuration optimisée pour **Cursor / Composer 2.5** :
-
-- **`CLAUDE.md`** — contexte projet (lu automatiquement par Cursor)
-- **`.cursor/rules/`** — règles modulaires par domaine (design, frontend, Rust)
-- **`.cursorignore`** — exclut `node_modules/`, `dist/`, `target/` de l'indexation
-
-Pas besoin de skills externes : les conventions du projet sont déjà encodées dans ces fichiers.
-
-## 📣 Documentation & communication
-
-| Fichier | Usage |
-|---------|--------|
-| **`README.md`** | Documentation de référence (ce fichier) — technique + fonctionnel |
-| **`readmegit.md`** | Variante **GitHub grand public** : ton lambda, UI et légèreté en avant |
-| **`prompt-slides.txt`** | Prompt pour générer une présentation slide via IA (aligné sur `README.md`, sans installation) |
-
-> Pour publier sur GitHub : copier `readmegit.md` → `README.md` du repo public, ou garder les deux si le repo reste orienté dev.
-
-## 📁 Structure du Projet
-
-```
-koi-monitor/
-├── .github/workflows/        # CI audit (npm, cargo, budget bundle)
-├── src/                      # Frontend React + TypeScript
-│   ├── components/
-│   │   ├── charts/           # Recharts lazy (SingleAreaChart, DualAreaChart)
-│   │   ├── common/           # TelemetryGrid, GamingLatencyBreakdown, StatusToast, SlashTitle…
-│   │   ├── layout/
-│   │   └── widgets/
-│   ├── hooks/                # useTelemetryPoller, useFocusTrap, useViewportTier
-│   ├── utils/                # gamingLatency, glassBlur, networkInterface, neonEffects, safeUrl
-│   ├── services/             # api.ts — IPC + events Tauri
-│   ├── store/
-│   │   ├── index.ts          # Zustand (+ gamingLatency)
-│   │   └── historyRing.ts    # Ring buffer graphiques
-│   ├── styles/               # globals.css (tokens, glass blur)
-│   └── types/                # GamingLatencySnapshot, DNS, SystemInfo…
-├── src-tauri/
-│   ├── src/
-│   │   ├── lib.rs            # Threads télémétrie + gaming, emit events
-│   │   ├── gaming_latency.rs # ICMP passerelle/internet, jitter, verdicts
-│   │   ├── dns.rs            # Ping DNS TCP :53 (whitelist IP)
-│   │   ├── drivers.rs        # Scan pilotes WMI + collapse simplifié
-│   │   ├── driver_updates.rs # Enrichissement WU COM, resolve_update_candidate, open WU settings
-│   │   ├── driver_store.rs   # Fallback magasin pnputil
-│   │   ├── driver_version.rs # Comparaison multi-format versions
-│   │   └── security.rs       # Antivirus WMI
-│   ├── capabilities/
-│   └── tauri.conf.json       # CSP stricte, bundle.active false (exe seul)
-├── scripts/                  # diag-drivers.ps1 (diagnostic pilotes, dev)
-├── setup.bat
-├── build.bat
-├── dev.bat
-├── README.md
-├── readmegit.md              # README GitHub grand public (optionnel)
-├── prompt-slides.txt         # Prompt présentation slide (IA)
-└── CLAUDE.md
-```
-
-## 🔨 Build (développeur)
-
-```powershell
-.\build.bat
-# ou : npm run tauri build -- --no-bundle
-```
-
-**Sortie unique :** `src-tauri\target\release\koi-monitor.exe` — pas de dossier `bundle/`, pas de `.msi` ni setup NSIS.
-
-## ⚡ Architecture technique (résumé)
-
-| Flux | Description |
-|------|-------------|
-| **Télémétrie** | Rust émet `telemetry-update` chaque seconde → React écoute via `useTelemetryPoller` |
-| **Latence jeu** | Thread Rust 2 s → ICMP passerelle + `1.1.1.1` (+ TCP `:443` fallback) → jitter → `emit("gaming-latency-update")` + commande `get_gaming_latency` |
-| **DNS** | Polling intervalle configurable (10 s – 1 min), mutex anti-collision — **séparé** de la latence jeu |
-| **Historiques** | Ring buffer 288 points (CPU/RAM/GPU/réseau) — écriture O(1) |
-| **Graphiques** | Recharts chargé à la demande (hors bundle initial ~60 KB) |
-| **Erreurs** | Toast global en bas d'écran (`StatusToast`) |
-| **Sécurité** | CSP WebView, URLs pilotes filtrées (`safeUrl.ts`), IP DNS whitelistées |
-| **Pilotes MàJ** | WU COM + magasin `pnputil` → `update_source` ; UI WU-first (`open_windows_update`) |
-| **Glass blur** | Classe `html.no-blur` + tokens `--glass-blur`, `--glass-surface`, `--card-solid` |
-
-## 🔧 Dépannage
-
-### Si erreur Node.js
-```powershell
-winget install OpenJS.NodeJS.LTS
-```
-
-### Si erreur Rust
-```powershell
-rustup update
-rustc --version
-```
-
-### Si erreur WebView2
-```powershell
-winget install Microsoft.WebView2
-```
-
-### Si erreur npm
-```powershell
-npm cache clean --force
-rm -Recurse node_modules
-npm install
-```
-
-## 🎯 Checklist de Succès
-
-- [x] Monitoring CPU temps réel
-- [x] Monitoring RAM
-- [x] Monitoring GPU avancé (DXGI/WMI 100% Natif)
-- [x] Monitoring Network (Wi‑Fi / Ethernet, layout premium)
-- [x] Mode clair lisible (surfaces opaques)
-- [x] DNS comparateur multi-serveurs + boutons Test auto / Personnaliser
-- [x] Latence jeu « Prêt pour le jeu » (passerelle, internet, jitter, badge cliquable)
-- [x] Détection antivirus réelle (Defender, tiers)
-- [x] Statut de latence dynamique (Excellente → Critique)
-- [x] Analyse des pilotes avec filtres stricts, modes simplifié/étendu et flux MàJ WU-first
-- [x] UI glassmorphisme Koi Monitor Night
-- [x] Animations sakura
-- [x] Toggle thème dark/light
-- [x] Zen Mode (Mode Méditation) avec tracking dynamique et économie de ressources
-- [x] Build Windows — `koi-monitor.exe` portable (sans MSI/NSIS)
-- [x] Script one-click installation
-- [x] Télémétrie événements Tauri + fallback IPC
-- [x] Ring buffer historiques + Recharts lazy
-- [x] Toasts erreurs utilisateur + splash résilient
-- [x] CI audit (npm, cargo, budget bundle)
-
-## 📄 Licence
-
-MIT License - Katana 2026
+</div>
 
 ---
 
-🌸 **Koi Monitor** - Surveillance système avec style.
+## 🎐 Pourquoi Koi
 
-*Créé avec passion pour les amateurs de monitoring système et d'esthétique Japonaise (Koi & Sakura).*
+Les moniteurs système classiques ? Chiffres partout, fond gris, courbes illisibles. On dirait le panneau de config Windows, version fatigue.
+
+**Koi, c’est l’inverse.**
+
+Une app claire et colorée qui répond à trois questions simples :
+
+- Mon PC va bien ?
+- Ma connexion tient le coup pour jouer en ligne ?
+- Un pilote mérite un coup d’œil ?
+
+Pas de jargon. Pas de fausses alertes pour vous stresser. **Votre machine, en langage humain.**
+
+---
+
+## ✨ Une interface qui fait envie
+
+Ce n’est pas un thème posé sur un utilitaire. C’est une app qu’on a envie de **laisser ouverte**.
+
+| Vous voyez… | Pourquoi ça compte |
+|-------------|-------------------|
+| 🩷 **CPU** (rose) | Charge, graphique, vue par cœur |
+| 🔵 **RAM** (cyan) | Mémoire vraiment utilisée |
+| 🟣 **GPU** (violet) | Carte, VRAM, charge en jeu |
+| 🩵 **Réseau** (turquoise) | Débit live, Wi‑Fi ou câble |
+| 🟢 **DNS & Jeu** (vert) | Meilleur serveur + latence multijoueur |
+
+**Ce qui fait la différence au quotidien :**
+
+- **Cartes en verre** — lisibles, désactivables si vous préférez plus sobre
+- **Sakura** — pétales en fond, 4 teintes (rose, violet, bleu, menthe) qui colorent aussi l’interface
+- **Ouverture signature** — animation katana, splash ~8–10 s sur une machine rapide
+- **Icône app** — le mot **Koi** en néon (même style que la barre de titre), visible fenêtre, barre des tâches et zone de notification
+- **Musique zen** — démarre avec le tableau de bord, volume mémorisé ; une seconde piste se cache pour les curieux
+- **Thème clair ou sombre** — confortable de jour comme de nuit
+- **Paramètres** — **Essentiel · Atmosphère · Connexion · Veille · À propos** ; préréglages **Zen · Doux · Aura** en un clic ; serveur DNS perso (IP + surnom)
+
+> Beau à garder ouvert — pas seulement utile une fois par mois.
+
+---
+
+## ⚡ Léger et discret
+
+Un moniteur ne devrait pas être l’app la plus lourde de votre PC.
+
+| | Koi Monitor | Beaucoup d’apps « modernes » |
+|--|-------------|------------------------------|
+| **Disque** | ~10–25 Mo | Souvent 150 Mo+ |
+| **RAM au repos** | ~80–150 Mo | Souvent bien plus |
+| **En veille** | Très faible | Variable |
+
+Laissez-la tourner pendant le travail, le stream ou une session de jeu. Vous ne devriez pas sentir une deuxième app lourde à côté.
+
+### Mode Zen 🌸
+
+![Mode Zen](docs/screenshots/zen-mode.png)
+
+Un clic sur la fleur de cerisier. Le dashboard s’efface. Il reste :
+
+- une **grande horloge** et la date ;
+- un **étang** qui ondule selon l’état **Zen · Flow · Boost** ;
+- **CPU · GPU · Jeu** en grands chiffres, **RAM · Actif** en dessous (masquables) ;
+- la barre du haut qui réapparaît au survol — volume, réglages, cloche.
+
+Parfait sur un second écran, en focus, ou quand vous voulez juste du calme.
+
+---
+
+## 🛡️ Des chiffres honnêtes
+
+Joli, c’est bien. Faux, c’est non.
+
+- **Données Windows** — pas de chiffres inventés
+- **Latence jeu ≠ DNS** — le ping de votre box n’est pas un test Cloudflare ; on ne mélange pas les deux
+- **Pilotes sans drama** — « Installé », « À vérifier », « MàJ dispo » ; pas de « votre PC est obsolète »
+- **MàJ pilotes** — Windows Update d’abord ; liens NVIDIA / AMD / Intel en secours
+- **Alertes** — off par défaut ; si activées : toast discret, zéro popup Windows
+
+Un test qui échoue ? **Message clair en bas de l’écran**, pas une erreur cryptique. Et si un scan pilote traîne, l’app démarre quand même (jusqu’à ~90 s au pire).
+
+---
+
+## 🧩 Ce que vous pouvez faire
+
+### 📊 PC en direct
+
+CPU, RAM, GPU, réseau — graphiques d’historique, cœurs CPU en « égaliseur », Wi‑Fi ou Ethernet affiché clairement.
+
+### 🌐 Meilleur DNS
+
+Compare Google, Cloudflare, Quad9, OpenDNS. Cochez les serveurs, lancez le test. Ajoutez **votre** serveur (box, Pi-hole…) avec un surnom. Le plus rapide prend la couronne ⚜️.
+
+### 🎮 Prêt pour le jeu ?
+
+Badge simple : *Prêt pour le jeu*, *Limite ranked*, *Problème box / Wi‑Fi*… Un clic pour le détail : box, internet, jitter. Visible sur le dashboard et en mode Zen.
+
+### 🔧 Pilotes
+
+**Simplifié (défaut)** : 3 essentiels — GPU, réseau, Bluetooth.  
+**Étendu** : tout le matériel important (~1–2 min).  
+Versions comparées, bouton **Ouvrir Windows Update** quand une MàJ officielle existe. Pas de fausse promesse « installer en un clic ».
+
+### 🔔 Alertes (optionnel)
+
+Off par défaut. Au premier lancement, vous choisissez — **Échap** = pas maintenant.
+
+| Contexte | Koi vous prévient si… | Exemple |
+|----------|----------------------|---------|
+| **Bureau** | La machine force trop longtemps | *Bureau · La machine force · CPU 92 %* |
+| **Jeu** | Votre ping s’éloigne de son habitude | *Jeu · Ping qui monte · 60 ms · d’habitude ~10 ms* |
+
+Un message à la fois. Raté quelque chose ? La **cloche** garde le journal de la session. Réglages dans **Veille** : sensibilité **Discrète / Équilibrée / Attentive**, latence jeu on/off.
+
+---
+
+## 🚀 Installation
+
+### Télécharger (recommandé)
+
+1. Ouvrez la **[dernière Release](https://github.com/KatanaCZ/koi-monitor/releases/latest)**
+2. Téléchargez **`koi-monitor.exe`**
+3. Copiez-le où vous voulez et double-cliquez
+
+**C’est tout.** Pas de Node, pas de Rust, pas d’installateur.
+
+| | |
+|--|--|
+| **OS** | Windows 10 ou 11, 64 bits |
+| **WebView2** | Déjà là sur Windows 11 ; sur Windows 10, via Windows Update ou Edge si besoin |
+| **Internet** | Recommandé (DNS, latence, pilotes) |
+| **Compte** | Utilisateur standard suffit en général |
+| **Entreprise** | Certains PC verrouillés limitent les scans avancés |
+
+<details>
+<summary><strong>Développeurs — compiler depuis les sources</strong></summary>
+
+```powershell
+git clone https://github.com/KatanaCZ/koi-monitor.git
+cd koi-monitor
+.\koi.bat setup    # Admin — première installation
+.\koi.bat dev      # Tauri + Vite (port 1420)
+.\koi.bat devfast  # Frontend seul + exe debug
+.\koi.bat build    # Exe dans %LOCALAPPDATA%\koi-monitor\
+```
+
+Prérequis : Node.js 20+, Rust, WebView2. Doc technique : [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md).
+
+</details>
+
+---
+
+## 🔒 Vie privée & sécurité
+
+**100 % local.** Pas de compte. Pas de cloud. Vos métriques restent sur votre machine.
+
+| Quoi | Où | Quand |
+|------|-----|--------|
+| **L’exe** | Là où *vous* l’avez copié | Vous le gardez / supprimez |
+| **Profil app** (WebView2) | `%LOCALAPPDATA%\com.koi.monitor\` | Premier lancement |
+| **Réglages** (thème, DNS, alertes…) | Dans ce profil, quelques Ko | Quand vous changez une option |
+| **Graphiques, journal, cache** | RAM seulement | Effacés à la fermeture |
+
+**Éveil avec Windows** (off par défaut) : une entrée au démarrage — sans copier l’exe ailleurs.
+
+**Tout retirer :** fermez l’app → désactivez l’autostart si besoin → supprimez l’exe → optionnel : dossier `%LOCALAPPDATA%\com.koi.monitor\`.
+
+Tests réseau et scans pilotes passent par Windows (`ping`, WMI…). Koi n’installe rien à votre place. Code **open source** (MIT).
+
+---
+
+## 📄 Licence
+
+**MIT** — Katana © 2026  
+Libre d’utilisation, modification et partage. Voir [`LICENSE`](LICENSE).
+
+---
+
+<div align="center">
+
+### 🌸 Koi Monitor
+
+*Comprendre son PC ne devrait pas être une corvée.*  
+*Léger. Beau. Fiable.*
+
+<br />
+
+**[⬆ Retour en haut](#-koi-monitor)**
+
+</div>

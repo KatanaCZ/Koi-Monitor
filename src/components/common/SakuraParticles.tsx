@@ -40,14 +40,16 @@ export const SakuraParticles: React.FC = () => {
   );
   const sakuraIntensity = useAppStore((s) => s.settings.sakuraIntensity);
   const sakuraColorSetting = useAppStore((s) => s.settings.sakuraColor);
+  const calmMotion = useAppStore((s) => s.settings.calmMotion);
   const zenMode = useAppStore((s) => s.zenMode);
   const prefersReducedMotion = useReducedMotion();
 
+  /** En Zen : high plafonné à medium ; medium → low ; low/off inchangés. */
   const effectiveIntensity = zenMode
-    ? sakuraIntensity === 'off'
-      ? 'off'
-      : sakuraIntensity === 'high'
-        ? 'medium'
+    ? sakuraIntensity === "high"
+      ? "medium"
+      : sakuraIntensity === "medium"
+        ? "low"
         : sakuraIntensity
     : sakuraIntensity;
 
@@ -58,7 +60,7 @@ export const SakuraParticles: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (prefersReducedMotion || !isVisible) {
+    if (prefersReducedMotion || calmMotion || !isVisible) {
       setParticles([]);
       return;
     }
@@ -109,9 +111,9 @@ export const SakuraParticles: React.FC = () => {
     }
 
     setParticles(newParticles);
-  }, [effectiveIntensity, zenMode, prefersReducedMotion, isVisible]);
+  }, [effectiveIntensity, zenMode, calmMotion, prefersReducedMotion, isVisible]);
 
-  if (prefersReducedMotion || effectiveIntensity === "off" || !isVisible) {
+  if (prefersReducedMotion || calmMotion || effectiveIntensity === "off" || !isVisible) {
     return null;
   }
 
@@ -134,7 +136,7 @@ export const SakuraParticles: React.FC = () => {
   return (
     <>
       <motion.div
-        className="fixed bottom-0 left-0 w-full pointer-events-none z-0"
+        className="fixed bottom-0 left-0 w-full pointer-events-none z-[1]"
         initial={{ opacity: 0.3 }}
         animate={{ opacity: [0.3, 0.5, 0.3] }}
         transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
@@ -146,7 +148,7 @@ export const SakuraParticles: React.FC = () => {
       />
 
       <div
-        className="fixed inset-0 pointer-events-none z-0 overflow-hidden"
+        className="fixed inset-0 pointer-events-none z-[1] overflow-hidden"
         aria-hidden="true"
       >
         {particles.map((particle) => (

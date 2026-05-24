@@ -6,11 +6,20 @@ export interface CpuInfo {
   frequency: number;
 }
 
+export interface RamModuleInfo {
+  name: string;
+  manufacturer: string;
+  part_number: string;
+  capacity_bytes: number;
+  speed_mhz: number;
+}
+
 export interface MemoryInfo {
   total: number;
   used: number;
   available: number;
   usage_percent: number;
+  modules: RamModuleInfo[];
 }
 
 export interface GpuInfo {
@@ -114,6 +123,13 @@ export interface DnsServerItem {
   ip: string;
 }
 
+export interface CustomDnsServer {
+  ip: string;
+  label: string;
+}
+
+export const CUSTOM_DNS_DEFAULT_LABEL = 'Serveur personnel';
+
 export const POPULAR_DNS_SERVERS: DnsServerItem[] = [
   { name: 'Google DNS', ip: '8.8.8.8' },
   { name: 'Cloudflare DNS', ip: '1.1.1.1' },
@@ -169,12 +185,61 @@ export const getDnsTestModeLabel = (checklist: string[]): string => {
   return `${active.length} serveurs`;
 };
 
+export type ActivityProfile = 'desktop' | 'gaming';
+
+export type AlertDesktopSensitivity = 'low' | 'medium' | 'high';
+
+export interface AlertThresholdSettings {
+  enabled: boolean;
+  desktop: {
+    sensitivity: AlertDesktopSensitivity;
+    cpuPercent: number;
+    ramPercent: number;
+    gpuPercent: number;
+    cooldownSeconds: number;
+  };
+  gaming: {
+    networkAlerts: boolean;
+    internetLatencyMs: number;
+    cooldownSeconds: number;
+  };
+}
+
+export const DEFAULT_ALERT_THRESHOLDS: AlertThresholdSettings = {
+  enabled: false,
+  desktop: {
+    sensitivity: 'medium',
+    cpuPercent: 90,
+    ramPercent: 90,
+    gpuPercent: 95,
+    cooldownSeconds: 60,
+  },
+  gaming: {
+    networkAlerts: true,
+    internetLatencyMs: 80,
+    cooldownSeconds: 90,
+  },
+};
+
+export type BackgroundAura = 'off' | 'soft' | 'full';
+export type NeonGlow = 'soft' | 'balanced' | 'vivid';
+
 export interface AppSettings {
   refreshInterval: number;
   dnsInterval: number;
   sakuraIntensity: 'off' | 'low' | 'medium' | 'high';
   sakuraColor: 'pink' | 'purple' | 'blue' | 'green';
   enableGlassmorphicBlur: boolean;
+  backgroundAura: BackgroundAura;
+  neonGlow: NeonGlow;
+  calmMotion: boolean;
   dnsChecklist: string[]; // List of DNS server names
+  customDns: CustomDnsServer | null;
   simplifiedMode: boolean;
+  minimizeToTray: boolean;
+  launchAtStartup: boolean;
+  ambientMusicMuted: boolean;
+  /** Afficher la rangée compacte CPU/GPU/Jeu/RAM/Actif en mode Zen */
+  zenMetricsVisible: boolean;
+  alertThresholds: AlertThresholdSettings;
 }

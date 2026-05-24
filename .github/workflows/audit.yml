@@ -25,6 +25,9 @@ jobs:
       - name: Build frontend
         run: npm run build
 
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
       - name: Bundle budget (recharts chunk)
         shell: pwsh
         run: |
@@ -50,3 +53,12 @@ jobs:
       - name: cargo clippy
         working-directory: src-tauri
         run: cargo clippy --release -- -D warnings
+
+      - name: cargo test
+        working-directory: src-tauri
+        run: cargo test
+
+      - name: Build release exe
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/koi.ps1 -Action Build -SkipClean -NonInteractive
+        env:
+          CI: true
