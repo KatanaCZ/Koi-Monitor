@@ -92,7 +92,7 @@ Laissez-la tourner pendant le travail, le stream ou une session de jeu. Vous ne 
 
 ### Mode Zen 🌸
 
-![Mode Zen](docs/screenshots/zen-mode.png)
+![Mode Zen](docs/screenshots/MockupViews_1x_PNG_20260524_829.png)
 
 Un clic sur la fleur de cerisier. Le dashboard s’efface. Il reste :
 
