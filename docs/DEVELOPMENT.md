@@ -229,7 +229,24 @@ Le script installera automatiquement:
 |---------|--------|
 | **`README.md`** | Page d’accueil GitHub — grand public, installation, fonctionnalités |
 | **`docs/DEVELOPMENT.md`** | Documentation technique (ce fichier) — architecture, build, dépannage |
+| **`CONTRIBUTING.md`** | Branches, PR, conventions — **`master` protégée** (merge via PR + CI `audit`) |
 | **`AUDIT.md`** | Rapport audit concis (findings + mesures CI) |
+
+## 🔀 Git — branches & releases
+
+| Branche | Rôle |
+|---------|------|
+| **`master`** | Référence publique · **protégée** (PR obligatoire, check **Audit & Build** / job `audit`, pas de force-push) |
+| **`feat/*` · `fix/*` · `docs/*` · `chore/*`** | Travail courant → PR → merge si CI verte |
+
+```powershell
+git checkout master && git pull
+git checkout -b feat/ma-feature
+# commits…
+git push -u origin feat/ma-feature   # ouvrir PR sur GitHub
+```
+
+**Release :** tag `v*` uniquement sur `master` vert → workflow `release.yml` → asset `koi-monitor.exe`.
 
 ## 📁 Structure du Projet
 
