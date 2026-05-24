@@ -142,12 +142,13 @@ fn measure_latency(host: &str) -> Option<f64> {
     use std::os::windows::process::CommandExt;
     use std::process::Command;
 
+    let timeout_ms = PING_TIMEOUT_MS.to_string();
     let output = Command::new("ping")
         .args([
             "-n",
             "1",
             "-w",
-            &PING_TIMEOUT_MS.to_string(),
+            &timeout_ms,
             host,
         ])
         .creation_flags(0x08000000)
@@ -158,8 +159,7 @@ fn measure_latency(host: &str) -> Option<f64> {
         return None;
     }
 
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    parse_ping_ms(&stdout)
+    parse_ping_ms(String::from_utf8_lossy(&output.stdout).as_ref())
 }
 
 #[cfg(not(target_os = "windows"))]
@@ -167,13 +167,13 @@ fn measure_latency(host: &str) -> Option<f64> {
     use std::process::Command;
 
     let timeout_sec = (PING_TIMEOUT_MS as f64 / 1000.0).max(1.0).ceil() as u32;
+    let timeout_arg = timeout_sec.to_string();
     let output = Command::new("ping")
-        .args(["-c", "1", "-W", &timeout_sec.to_string(), host])
+        .args(["-c", "1", "-W", &timeout_arg, host])
         .output()
         .ok()?;
 
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    parse_ping_ms(&stdout)
+    parse_ping_ms(String::from_utf8_lossy(&output.stdout).as_ref())
 }
 
 fn measure_tcp_latency(host: &str, port: u16) -> Option<f64> {
