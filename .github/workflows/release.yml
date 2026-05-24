@@ -37,8 +37,18 @@ jobs:
           if (-not (Test-Path $p)) { throw "Exe not found: $p" }
           "path=$p" >> $env:GITHUB_OUTPUT
 
+      - name: Extract release notes from CHANGELOG
+        id: notes
+        shell: pwsh
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: |
+          $notes = & "$env:GITHUB_WORKSPACE/scripts/extract-release-notes.ps1" -Tag $env:GITHUB_REF_NAME
+          $notes | Out-File -FilePath "$env:GITHUB_WORKSPACE/release-notes.md" -Encoding utf8NoBOM
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ steps.exe.outputs.path }}
-          generate_release_notes: true
+          body_path: release-notes.md
+          generate_release_notes: false

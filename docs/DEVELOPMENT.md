@@ -246,7 +246,7 @@ git checkout -b feat/ma-feature
 git push -u origin feat/ma-feature   # ouvrir PR sur GitHub
 ```
 
-**Release :** tag `v*` uniquement sur `master` vert → workflow `release.yml` → asset `koi-monitor.exe`.
+**Release :** patchnotes dans **`CHANGELOG.md`** · `scripts/prepare-release.ps1 -Version x.y.z` avant le tag · workflow `release.yml` extrait la section + publie `koi-monitor.exe`.
 
 ## 📁 Structure du Projet
 
@@ -282,7 +282,8 @@ koi-monitor/
 │   │   └── security.rs       # Antivirus WMI (SystemInfo, pas d’UI)
 │   ├── capabilities/
 │   └── tauri.conf.json       # CSP stricte, bundle.active false, targets [] (exe seul)
-├── scripts/                  # koi.ps1 · koi-lib.ps1 · kill-dev-port.ps1 · fix-windows-access.ps1 · postinstall-esbuild.mjs
+├── CHANGELOG.md              # Patchnotes (Keep a Changelog, FR) → Release GitHub
+├── scripts/                  # koi.ps1 · prepare-release.ps1 · extract-release-notes.ps1 · …
 ├── public/
 │   └── audio/                # koi-ambient.mp3 · koi-easter.mp3 (easter egg, lazy)
 ├── koi.bat                   # Point d'entree unique (Build / Dev / DevFast / Setup / Doctor)
