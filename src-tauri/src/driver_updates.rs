@@ -169,10 +169,10 @@ fn fetch_pending_driver_updates() -> Vec<PendingDriverUpdate> {
         return Vec::new();
     };
 
-    let items: Vec<serde_json::Value> = json
-        .as_array()
-        .map(|array| array.to_vec())
-        .unwrap_or_else(|| vec![json]);
+    let items: Vec<serde_json::Value> = match json.as_array() {
+        Some(array) => array.to_vec(),
+        None => vec![json],
+    };
 
     items
         .into_iter()
