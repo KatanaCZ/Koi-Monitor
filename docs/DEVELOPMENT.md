@@ -204,10 +204,9 @@ Navigation latérale sans scroll : **Essentiel · Atmosphère · Connexion · Ve
 
 > Réservée à la **compilation depuis les sources**. Les utilisateurs finaux reçoivent **`koi-monitor.exe`** — voir [Prérequis système](#-prérequis-système).
 
-### Étape 1: Extraire le ZIP
-1. Téléchargez `Koi-Monitor-v1.0.zip`
-2. Extrayez dans un dossier (ex: `C:\KoiMonitor`)
-3. Ouvrez le dossier
+### Étape 1: Cloner le dépôt
+1. `git clone https://github.com/KatanaCZ/Koi-Monitor.git`
+2. Ouvrez le dossier (ex: `C:\KoiMonitor`)
 
 ### Étape 2: Lancer l'Installation
 1. **Clic droit** sur `koi.bat`
@@ -236,7 +235,7 @@ Le script installera automatiquement:
 
 ```
 koi-monitor/
-├── .github/workflows/        # CI audit (npm, tsc, cargo test, budget recharts)
+├── .github/workflows/        # audit.yml (CI) · release.yml (tag v* → exe)
 ├── .github/dependabot.yml    # Mises à jour deps npm + cargo (hebdo)
 ├── AUDIT.md                  # Rapport audit concis (findings + mesures)
 ├── src/                      # Frontend React + TypeScript
@@ -270,9 +269,10 @@ koi-monitor/
 ├── public/
 │   └── audio/                # koi-ambient.mp3 · koi-easter.mp3 (easter egg, lazy)
 ├── koi.bat                   # Point d'entree unique (Build / Dev / DevFast / Setup / Doctor)
-├── README.md                 # Landing GitHub (grand public)
+├── README.md                 # Landing GitHub (grand public + mockups)
 ├── docs/
-│   └── DEVELOPMENT.md        # Doc technique (ce fichier)
+│   ├── DEVELOPMENT.md        # Doc technique (ce fichier)
+│   └── screenshots/          # Mockups README (MockupViews_*.png — versionner pour GitHub)
 └── AUDIT.md
 ```
 
