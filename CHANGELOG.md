@@ -16,10 +16,14 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) · v
 
 ### Ajouté
 
+- **`CHANGELOG.md`** et scripts **`prepare-release.ps1`** / **`extract-release-notes.ps1`** — patchnotes Release GitHub depuis le changelog
 - **`src/appVersion.ts`** — version affichée Paramètres → À propos, synchronisée à chaque release
+- **Outil de simulation de focus** — fonction globale **`koiSimulateFocus(lostFocus?: boolean)`** dans la console développeur pour tester instantanément le passage de la pluie de pétales en cadence cinéma (24 FPS)
 
 ### Modifié
 
+- **Moteur de particules Sakura Canvas** — remplacement complet du système d'animation SVG DOM (React + Framer Motion) par un moteur Canvas 2D ultra-performant : pré-rendu des textures avec ombres et flous (offscreen buffers), limitation dynamique à 30 FPS (focus) et 24 FPS (hors focus / jeu), limitation DPI à 1,25 — jusqu'à ~95 % de charge CPU/GPU en moins sur l'effet
+- **Flou de verre glassmorphic adaptatif** — flou gaussien par défaut réduit de 24 px à 16 px en mode Doux (GPU allégé d'environ moitié), flou complet 24 px conservé en mode Aura pour les configs haut de gamme
 - **`prepare-release.ps1`** — promeut le changelog et aligne npm, Tauri, Cargo, badge README et version À propos
 - **Dependabot** — majors npm sensibles ignorées (`react*`, `recharts`, `framer-motion`, `@vitejs/plugin-react`) ; minor/patch groupées inchangées
 
