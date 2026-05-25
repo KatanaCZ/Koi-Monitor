@@ -66,12 +66,22 @@ export const GpuWidget = memo(function GpuWidget() {
         subtitleTitle={gpu.name}
         themeColor={themeColor}
         badge={
-          <MetricPercentBadge
-            value={gpuUsageLabel}
-            themeColor={themeColor}
-            textColor="var(--neon-purple-text)"
-            isDark={isDark}
-          />
+          <div className="flex gap-2 items-center">
+            <MetricPercentBadge
+              value={gpuUsageLabel}
+              themeColor={themeColor}
+              textColor="var(--neon-purple-text)"
+              isDark={isDark}
+            />
+            {gpu.temperature !== null ? (
+              <MetricPercentBadge
+                value={`${gpu.temperature.toFixed(0)}°C`}
+                themeColor={themeColor}
+                textColor="var(--neon-purple-text)"
+                isDark={isDark}
+              />
+            ) : null}
+          </div>
         }
       />
 

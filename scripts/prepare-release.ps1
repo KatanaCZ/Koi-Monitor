@@ -22,11 +22,11 @@ if ($content -match "(?m)^## \[$([regex]::Escape($Version))\] - ") {
 $unreleasedBlock = @"
 ## [Unreleased]
 
-### Ajouté
+### Ajout$([char]0x00E9)
 
-### Modifié
+### Modifi$([char]0x00E9)
 
-### Corrigé
+### Corrig$([char]0x00E9)
 
 "@
 $content = [regex]::Replace($content, '(?m)^## \[Unreleased\]', "## [$Version] - $date", 1)

@@ -12,6 +12,18 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) · v
 
 ### Corrigé
 
+## [1.1.1] - 2026-05-26
+
+### Ajouté
+
+### Modifié
+
+- **Widgets CPU/GPU** — température live affichée lorsque la télémétrie WMI/DXGI la fournit
+
+### Corrigé
+
+- **Exécutable Release** — livraison effective des optimisations atmosphère annoncées en 1.1.0 (Sakura Canvas, verre Doux 16 px / Aura 24 px, `koiSimulateFocus`)
+
 ## [1.1.0] - 2026-05-26
 
 ### Ajouté
@@ -49,6 +61,7 @@ Première release publique — moniteur Windows local, open source.
 
 - n/a
 
-[Unreleased]: https://github.com/KatanaCZ/Koi-Monitor/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/KatanaCZ/Koi-Monitor/compare/v1.1.1...HEAD
 [1.0.0]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.0.0
 [1.1.0]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.0
+[1.1.1]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.1

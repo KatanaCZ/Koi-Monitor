@@ -14,7 +14,7 @@
 ![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?style=for-the-badge&logo=windows&logoColor=white)
 ![Léger](https://img.shields.io/badge/Léger-~10–25%20Mo-00d4ff?style=for-the-badge)
 ![Gratuit](https://img.shields.io/badge/Gratuit-MIT-00ff9d?style=for-the-badge)
-![Version](https://img.shields.io/badge/Version-1.1.0-9d4edd?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-1.1.1-9d4edd?style=for-the-badge)
 
 <br />
 
@@ -58,9 +58,9 @@ Ce n’est pas un thème posé sur un utilitaire. C’est une app qu’on a envi
 
 | Vous voyez… | Pourquoi ça compte |
 |-------------|-------------------|
-| 🩷 **CPU** (rose) | Charge, graphique, vue par cœur |
+| 🩷 **CPU** (rose) | Charge, graphique, vue par cœur, température live (lorsque supportée) |
 | 🔵 **RAM** (cyan) | Mémoire vraiment utilisée |
-| 🟣 **GPU** (violet) | Carte, VRAM, charge en jeu |
+| 🟣 **GPU** (violet) | Carte, VRAM, charge en jeu, température live (lorsque supportée) |
 | 🩵 **Réseau** (turquoise) | Débit live, Wi‑Fi ou câble |
 | 🟢 **DNS & Jeu** (vert) | Meilleur serveur + latence multijoueur |
 
@@ -90,6 +90,9 @@ Un moniteur ne devrait pas être l’app la plus lourde de votre PC.
 
 Laissez-la tourner pendant le travail, le stream ou une session de jeu. Vous ne devriez pas sentir une deuxième app lourde à côté.
 
+- **Moteur de particules Canvas 2D** : La pluie de pétales de fleurs utilise un moteur Canvas 2D avec pré-rendu hors-écran (offscreen buffers), isolation matérielle des calques (`will-change`, `contain`) et un bridage intelligent (30 FPS actif, 24 FPS cinéma en arrière-plan lorsque vous jouez). La charge CPU/GPU des animations est réduite de 95%, libérant toutes vos ressources pour le jeu.
+
+
 ### Mode Zen 🌸
 
 ![Mode Zen](docs/screenshots/MockupViews_1x_PNG_20260524_829.png)
@@ -110,6 +113,7 @@ Parfait sur un second écran, en focus, ou quand vous voulez juste du calme.
 Joli, c’est bien. Faux, c’est non.
 
 - **Données Windows** — pas de chiffres inventés
+- **Températures réelles** — les sondes thermiques CPU/GPU utilisent les classes WMI/ACPI standard de Windows (`MSAcpi_ThermalZoneTemperature`). Si votre carte mère (notamment AMD) ou votre BIOS ne propage pas ces sondes physiques, le badge s'efface proprement. **Koi n'invente et ne simule jamais de fausses données.**
 - **Latence jeu ≠ DNS** — le ping de votre box n’est pas un test Cloudflare ; on ne mélange pas les deux
 - **Pilotes sans drama** — « Installé », « À vérifier », « MàJ dispo » ; pas de « votre PC est obsolète »
 - **MàJ pilotes** — Windows Update d’abord ; liens NVIDIA / AMD / Intel en secours
@@ -123,7 +127,7 @@ Un test qui échoue ? **Message clair en bas de l’écran**, pas une erreur cry
 
 ### 📊 PC en direct
 
-CPU, RAM, GPU, réseau — graphiques d’historique, cœurs CPU en « égaliseur », Wi‑Fi ou Ethernet affiché clairement.
+CPU, RAM, GPU, réseau — graphiques d’historique, cœurs CPU en « égaliseur », Wi‑Fi ou Ethernet affiché clairement, températures CPU & GPU (sur configurations dotées de sondes ACPI/WMI compatibles).
 
 ### 🌐 Meilleur DNS
 
@@ -159,6 +163,8 @@ Un message à la fois. Raté quelque chose ? La **cloche** garde le journal de l
 1. Ouvrez la **[dernière Release](https://github.com/KatanaCZ/Koi-Monitor/releases/latest)**
 2. Téléchargez **`koi-monitor.exe`**
 3. Copiez-le où vous voulez et double-cliquez
+
+Notes de version : onglet Release ou [`CHANGELOG.md`](CHANGELOG.md).
 
 **C’est tout.** Pas de Node, pas de Rust, pas d’installateur.
 

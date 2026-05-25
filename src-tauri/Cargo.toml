@@ -1,6 +1,6 @@
 [package]
 name = "koi-monitor"
-version = "1.1.0"
+version = "1.1.1"
 description = "Koi System Monitor - Windows 11 System Monitoring App"
 authors = ["Katana"]
 edition = "2021"

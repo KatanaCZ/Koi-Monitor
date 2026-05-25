@@ -24,6 +24,7 @@ interface LargeMetricProps {
   ariaExpanded?: boolean;
   ariaControls?: string;
   detail?: React.ReactNode;
+  temp?: number | null;
 }
 
 function LargeMetric({
@@ -38,6 +39,7 @@ function LargeMetric({
   ariaExpanded,
   ariaControls,
   detail,
+  temp,
 }: LargeMetricProps) {
   const clamped = Math.min(100, Math.max(0, percent));
   const body = (
@@ -54,6 +56,17 @@ function LargeMetric({
       >
         {value}
       </p>
+      {temp !== undefined && temp !== null ? (
+        <p
+          className="text-xs sm:text-sm font-bold tracking-wider mt-2 opacity-80"
+          style={{
+            color: textColor,
+            textShadow: getNeonTextShadow(color, isDark),
+          }}
+        >
+          {temp.toFixed(0)} °C
+        </p>
+      ) : null}
       <div
         className="h-1 sm:h-1.5 w-full max-w-[6rem] sm:max-w-[8rem] mx-auto rounded-full bg-[var(--ring-track)] overflow-hidden mt-3 sm:mt-4"
         aria-hidden="true"
@@ -95,7 +108,9 @@ function LargeMetric({
 
 export const ZenMetricsDock = memo(function ZenMetricsDock() {
   const cpu = useAppStore((s) => s.systemInfo?.cpu.usage ?? 0);
+  const cpuTemp = useAppStore((s) => s.systemInfo?.cpu.temperature ?? null);
   const gpu = useAppStore((s) => s.systemInfo?.gpu?.[0]?.usage ?? 0);
+  const gpuTemp = useAppStore((s) => s.systemInfo?.gpu?.[0]?.temperature ?? null);
   const ram = useAppStore((s) => s.systemInfo?.memory.usage_percent ?? 0);
   const gamingLatency = useAppStore((s) => s.gamingLatency);
   const theme = useAppStore((s) => s.theme);
@@ -163,6 +178,7 @@ export const ZenMetricsDock = memo(function ZenMetricsDock() {
           percent={cpu}
           isDark={isDark}
           ariaLabel="Processeur"
+          temp={cpuTemp}
         />
         <LargeMetric
           label="GPU"
@@ -172,6 +188,7 @@ export const ZenMetricsDock = memo(function ZenMetricsDock() {
           percent={gpu}
           isDark={isDark}
           ariaLabel="Carte graphique"
+          temp={gpuTemp}
         />
         <LargeMetric
           label="Jeu"
