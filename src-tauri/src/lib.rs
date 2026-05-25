@@ -30,6 +30,49 @@ struct GpuMemory {
     dedicated_usage: u64,
 }
 
+
+#[cfg(target_os = "windows")]
+#[derive(serde::Deserialize, Debug)]
+#[serde(rename = "MSAcpi_ThermalZoneTemperature")]
+#[serde(rename_all = "PascalCase")]
+struct ThermalZoneTemperature {
+    instance_name: String,
+    current_temperature: u32,
+}
+
+#[cfg(target_os = "windows")]
+fn query_cpu_temperature(wmi: &wmi::WMIConnection) -> Option<f32> {
+    let zones: Vec<ThermalZoneTemperature> = wmi.query().ok()?;
+    let mut best_temp: Option<f32> = None;
+
+    for zone in zones {
+        let kelvin_tenths = zone.current_temperature;
+        if kelvin_tenths > 2732 && kelvin_tenths < 4232 {
+            let celsius = (kelvin_tenths as f32 / 10.0) - 273.15;
+            if best_temp.is_none() || celsius > best_temp.unwrap() {
+                best_temp = Some(celsius);
+            }
+        }
+    }
+    best_temp
+}
+
+#[cfg(target_os = "windows")]
+fn query_gpu_temperature(wmi: &wmi::WMIConnection) -> Option<f32> {
+    let zones: Vec<ThermalZoneTemperature> = wmi.query().ok()?;
+    for zone in &zones {
+        let name = zone.instance_name.to_lowercase();
+        if name.contains("gpu") || name.contains("gfx") || name.contains("video") || name.contains("peg") {
+            let kelvin_tenths = zone.current_temperature;
+            if kelvin_tenths > 2732 && kelvin_tenths < 4232 {
+                return Some((kelvin_tenths as f32 / 10.0) - 273.15);
+            }
+        }
+    }
+    None
+}
+
+
 #[derive(Debug, Clone)]
 struct SelectedGpuAdapter {
     name: String,
@@ -126,7 +169,9 @@ pub struct CpuInfo {
     pub usage: f32,
     pub per_core_usage: Vec<f32>,
     pub frequency: u64,
+    pub temperature: Option<f32>,
 }
+
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MemoryInfo {
@@ -334,6 +379,7 @@ struct SharedMonitorState {
     cpu_name: String,
     cpu_cores: usize,
     cpu_frequency: u64,
+    cpu_temperature: Option<f32>,
     memory: MemoryInfo,
     download_speed: f64,
     upload_speed: f64,
@@ -353,6 +399,7 @@ impl Default for SharedMonitorState {
             cpu_name: "Loading...".to_string(),
             cpu_cores: 0,
             cpu_frequency: 0,
+            cpu_temperature: None,
             memory: MemoryInfo {
                 total: 0,
                 used: 0,
@@ -371,6 +418,7 @@ impl Default for SharedMonitorState {
         }
     }
 }
+
 
 type MonitorState = Arc<Mutex<SharedMonitorState>>;
 
@@ -408,6 +456,7 @@ fn system_info_from_state(m: &SharedMonitorState) -> SystemInfo {
             usage: m.cpu_usage,
             per_core_usage: m.per_core_usage.clone(),
             frequency: m.cpu_frequency,
+            temperature: m.cpu_temperature,
         },
         memory: m.memory.clone(),
         network: NetworkInfo {
@@ -608,6 +657,10 @@ pub fn run() {
                 let security_wmi = com_con.as_ref().and_then(|com| {
                     WMIConnection::with_namespace_path("ROOT\\SecurityCenter2", *com).ok()
                 });
+                #[cfg(target_os = "windows")]
+                let wmi_root_wmi = com_con.as_ref().and_then(|com| {
+                    WMIConnection::with_namespace_path("ROOT\\WMI", *com).ok()
+                });
 
                 let selected_gpu = read_selected_gpu_adapter();
 
@@ -740,6 +793,16 @@ pub fn run() {
                         last_gpu_wmi = std::time::Instant::now();
                     }
 
+                    #[cfg(target_os = "windows")]
+                    let cpu_temp = wmi_root_wmi.as_ref().and_then(query_cpu_temperature);
+                    #[cfg(not(target_os = "windows"))]
+                    let cpu_temp = None;
+
+                    #[cfg(target_os = "windows")]
+                    let gpu_temp = wmi_root_wmi.as_ref().and_then(query_gpu_temperature);
+                    #[cfg(not(target_os = "windows"))]
+                    let gpu_temp = None;
+
                     let mut current_gpus = Vec::new();
                     if selected_gpu.vram_total > 0 {
                         current_gpus.push(GpuInfo {
@@ -747,7 +810,7 @@ pub fn run() {
                             usage: gpu_usage,
                             memory_used: vram_used,
                             memory_total: selected_gpu.vram_total,
-                            temperature: None,
+                            temperature: gpu_temp,
                         });
                     } else {
                         current_gpus.push(GpuInfo {
@@ -775,6 +838,7 @@ pub fn run() {
                         s.cpu_name = cpu_name.clone();
                         s.cpu_cores = cpu_cores;
                         s.cpu_frequency = cpu_freq;
+                        s.cpu_temperature = cpu_temp;
                         s.memory = memory;
                         s.download_speed = dl_speed;
                         s.upload_speed = ul_speed;

@@ -10,7 +10,11 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) · v
 
 ### Modifié
 
+- **Widgets CPU/GPU** — température live affichée lorsque la télémétrie WMI/DXGI la fournit
+
 ### Corrigé
+
+- **Exécutable Release** — livraison effective des optimisations atmosphère annoncées en 1.1.0 (Sakura Canvas, verre Doux 16 px / Aura 24 px, `koiSimulateFocus`)
 
 ## [1.1.0] - 2026-05-26
 

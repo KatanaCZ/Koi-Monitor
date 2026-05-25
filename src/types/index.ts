@@ -4,6 +4,7 @@ export interface CpuInfo {
   usage: number;
   per_core_usage: number[];
   frequency: number;
+  temperature: number | null;
 }
 
 export interface RamModuleInfo {

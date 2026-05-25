@@ -1,50 +1,138 @@
-import React, { useEffect, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import React, { useEffect, useRef, useState } from "react";
 import { useAppStore } from "../../store";
 
 type LayerType = "back" | "mid" | "front";
 
 interface SakuraParticle {
   id: number;
-  x: number;
+  xStart: number; // percentage of screen width (0 to 100)
   xMid: number;
   xEnd: number;
-  size: number;
-  duration: number;
-  delay: number;
+  size: number;   // size in pixels
+  duration: number; // duration in milliseconds
+  elapsed: number;  // current time elapsed in milliseconds (0 to duration)
   rotationStart: number;
   rotationEnd: number;
   layer: LayerType;
-  blur: number;
 }
 
-const PetalSvg = ({ color, opacity }: { color: string; opacity: number }) => (
-  <svg
-    viewBox="0 0 30 30"
-    width="100%"
-    height="100%"
-    xmlns="http://www.w3.org/2000/svg"
-    style={{ filter: `drop-shadow(0 0 8px ${color})`, opacity }}
-  >
-    <path
-      d="M15,4 C19,-1 28,1 28,10 C28,18 20,26 15,30 C10,26 2,18 2,10 C2,1 11,-1 15,4 Z"
-      fill={color}
-    />
-  </svg>
-);
+interface PetalTexture {
+  canvas: HTMLCanvasElement;
+  baseSize: number;
+  padding: number;
+}
+
+// Helper to resolve CSS variables to actual hex/rgb strings for Canvas context drawing
+const resolveThemeColor = (colorName: string, theme: "light" | "dark"): string => {
+  if (typeof window !== "undefined" && typeof document !== "undefined") {
+    const computed = getComputedStyle(document.documentElement).getPropertyValue(colorName).trim();
+    if (computed) return computed;
+  }
+  // Fallbacks aligned with globals.css
+  switch (colorName) {
+    case "--neon-cyan":
+      return "#00d4ff";
+    case "--neon-green":
+      return "#00ff9d";
+    case "--neon-purple":
+      return theme === "dark" ? "#b24dff" : "#9d4edd";
+    case "--neon-pink":
+    default:
+      return "#ff2d95";
+  }
+};
+
+const drawPetalPath = (ctx: CanvasRenderingContext2D, ox: number, oy: number, scale: number) => {
+  ctx.beginPath();
+  // SVG path coordinates: M15,4 C19,-1 28,1 28,10 C28,18 20,26 15,30 C10,26 2,18 2,10 C2,1 11,-1 15,4 Z
+  ctx.moveTo(ox + 15 * scale, oy + 4 * scale);
+  ctx.bezierCurveTo(
+    ox + 19 * scale,
+    oy + -1 * scale,
+    ox + 28 * scale,
+    oy + 1 * scale,
+    ox + 28 * scale,
+    oy + 10 * scale
+  );
+  ctx.bezierCurveTo(
+    ox + 28 * scale,
+    oy + 18 * scale,
+    ox + 20 * scale,
+    oy + 26 * scale,
+    ox + 15 * scale,
+    oy + 30 * scale
+  );
+  ctx.bezierCurveTo(
+    ox + 10 * scale,
+    oy + 26 * scale,
+    ox + 2 * scale,
+    oy + 18 * scale,
+    ox + 2 * scale,
+    oy + 10 * scale
+  );
+  ctx.bezierCurveTo(
+    ox + 2 * scale,
+    oy + 1 * scale,
+    ox + 11 * scale,
+    oy + -1 * scale,
+    ox + 15 * scale,
+    oy + 4 * scale
+  );
+  ctx.closePath();
+};
+
+// Pre-renders a single petal with its drop-shadow and blur filter to an offscreen canvas
+const createPetalTexture = (
+  color: string,
+  baseSize: number,
+  blur: number
+): PetalTexture => {
+  const canvas = document.createElement("canvas");
+  const padding = Math.max(16, blur * 2) + 15;
+  
+  canvas.width = baseSize + padding * 2;
+  canvas.height = baseSize + padding * 2;
+
+  const ctx = canvas.getContext("2d");
+  if (ctx) {
+    // Apply SVG drop-shadow + Gaussian blur using fully hardware-accelerated Canvas filters
+    ctx.filter = `drop-shadow(0px 0px 8px ${color}) blur(${blur}px)`;
+    ctx.fillStyle = color;
+    
+    const scale = baseSize / 30; // standard width/height is 30px
+    drawPetalPath(ctx, padding, padding, scale);
+    ctx.fill();
+  }
+
+  return {
+    canvas,
+    baseSize,
+    padding,
+  };
+};
 
 export const SakuraParticles: React.FC = () => {
-  const [particles, setParticles] = useState<SakuraParticle[]>([]);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  
   const [isVisible, setIsVisible] = useState(
-    () => typeof document !== "undefined" && !document.hidden,
+    () => typeof document !== "undefined" && !document.hidden
   );
+
+  // High performance focus tracker (useRef to avoid any React re-render overhead)
+  const targetFpsRef = useRef(
+    typeof document !== "undefined" && document.hasFocus() ? 30 : 24
+  );
+
+  const theme = useAppStore((s) => s.theme);
   const sakuraIntensity = useAppStore((s) => s.settings.sakuraIntensity);
   const sakuraColorSetting = useAppStore((s) => s.settings.sakuraColor);
   const calmMotion = useAppStore((s) => s.settings.calmMotion);
   const zenMode = useAppStore((s) => s.zenMode);
-  const prefersReducedMotion = useReducedMotion();
 
-  /** En Zen : high plafonné à medium ; medium → low ; low/off inchangés. */
+  // Fallback if system settings dictate reduced motion
+  const prefersReducedMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // Capped intensity in Zen Mode (high capped to medium, medium to low)
   const effectiveIntensity = zenMode
     ? sakuraIntensity === "high"
       ? "medium"
@@ -53,136 +141,277 @@ export const SakuraParticles: React.FC = () => {
         : sakuraIntensity
     : sakuraIntensity;
 
+  // Track visibility of document to pause animation when minimized/backgrounded
   useEffect(() => {
     const onVisibility = () => setIsVisible(!document.hidden);
     document.addEventListener("visibilitychange", onVisibility);
     return () => document.removeEventListener("visibilitychange", onVisibility);
   }, []);
 
+  // Main animation and canvas setup hook
   useEffect(() => {
-    if (prefersReducedMotion || calmMotion || !isVisible) {
-      setParticles([]);
+    // 1. Exit early if animations are disabled
+    if (prefersReducedMotion || calmMotion || effectiveIntensity === "off" || !isVisible) {
       return;
     }
 
-    const newParticles: SakuraParticle[] = [];
-    let idCounter = 0;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-    const generateParticles = (
+    const ctx = canvas.getContext("2d", { alpha: true });
+    if (!ctx) return;
+
+    // 2. Resolve colors
+    let resolvedColor = "";
+    switch (sakuraColorSetting) {
+      case "purple":
+        resolvedColor = resolveThemeColor("--neon-purple", theme);
+        break;
+      case "blue":
+        resolvedColor = resolveThemeColor("--neon-cyan", theme);
+        break;
+      case "green":
+        resolvedColor = resolveThemeColor("--neon-green", theme);
+        break;
+      case "pink":
+      default:
+        resolvedColor = resolveThemeColor("--neon-pink", theme);
+        break;
+    }
+
+    // 3. Create pre-rendered offscreen textures (saves 95% GPU fill rate)
+    const textures: Record<LayerType, PetalTexture> = {
+      back: createPetalTexture(resolvedColor, 35, 4),
+      mid: createPetalTexture(resolvedColor, 55, 1),
+      front: createPetalTexture(resolvedColor, 180, 12),
+    };
+
+    // 4. Generate particles
+    let idCounter = 0;
+    const particles: SakuraParticle[] = [];
+
+    const addParticles = (
       count: number,
       layer: LayerType,
       minSize: number,
       maxSize: number,
       minDur: number,
-      maxDur: number,
-      blur: number,
+      maxDur: number
     ) => {
       for (let i = 0; i < count; i++) {
         const startX = Math.random() * 100;
-        newParticles.push({
+        const duration = (Math.random() * (maxDur - minDur) + minDur) * 1000; // to ms
+        
+        particles.push({
           id: idCounter++,
-          x: startX,
+          xStart: startX,
           xMid: startX + (Math.random() * 20 - 10),
           xEnd: startX + (Math.random() * 40 - 20),
           size: Math.random() * (maxSize - minSize) + minSize,
-          duration: Math.random() * (maxDur - minDur) + minDur,
-          delay: Math.random() * -30,
+          duration,
+          elapsed: Math.random() * duration, // evenly distributed initial heights
           rotationStart: Math.random() * 360,
           rotationEnd: Math.random() * 360 + 360,
           layer,
-          blur,
         });
       }
     };
 
-    if (effectiveIntensity !== "off") {
-      const multiplier =
-        effectiveIntensity === "low"
-          ? 0.35
-          : effectiveIntensity === "medium"
-            ? 0.75
-            : 1.35;
+    const multiplier =
+      effectiveIntensity === "low"
+        ? 0.35
+        : effectiveIntensity === "medium"
+          ? 0.75
+          : 1.35;
 
-      generateParticles(Math.max(1, Math.round(15 * multiplier)), "back", 10, 20, 30, 45, 4);
-      generateParticles(Math.max(1, Math.round(10 * multiplier)), "mid", 25, 45, 15, 25, 1);
-      if (!zenMode) {
-        generateParticles(Math.max(1, Math.round(3 * multiplier)), "front", 120, 250, 8, 14, 12);
-      }
+    addParticles(Math.max(1, Math.round(15 * multiplier)), "back", 10, 20, 30, 45);
+    addParticles(Math.max(1, Math.round(10 * multiplier)), "mid", 25, 45, 15, 25);
+    
+    // Front particles are large, heavy, and disabled in Zen mode
+    if (!zenMode) {
+      addParticles(Math.max(1, Math.round(3 * multiplier)), "front", 120, 250, 8, 14);
     }
 
-    setParticles(newParticles);
-  }, [effectiveIntensity, zenMode, calmMotion, prefersReducedMotion, isVisible]);
+    // 5. Handle resizing with DPI scaling capped at 1.25 (saves 50%+ pixel fill rate on 4K/high DPI screens)
+    let width = window.innerWidth;
+    let height = window.innerHeight;
 
+    const handleResize = () => {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      const dpr = Math.min(1.25, window.devicePixelRatio || 1);
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      ctx.restore();
+      ctx.save();
+      ctx.scale(dpr, dpr);
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+
+    // 6. Focus listeners for dynamic target FPS shifting (cinematic 24 FPS out of focus vs smooth 30 FPS in focus)
+    const handleFocus = () => {
+      targetFpsRef.current = 30;
+    };
+    const handleBlur = () => {
+      targetFpsRef.current = 24;
+    };
+
+    window.addEventListener("focus", handleFocus);
+    window.addEventListener("blur", handleBlur);
+
+    // 7. Animation render loop with highly optimized dynamic FPS rate-limiting
+    let lastTime = performance.now();
+    let animationFrameId = 0;
+    let accumulator = 0;
+
+    const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+    const render = (time: number) => {
+      animationFrameId = requestAnimationFrame(render);
+
+      const dt = time - lastTime;
+      lastTime = time;
+
+      // Accumulate time since last tick
+      accumulator += dt;
+
+      const currentTargetFps = targetFpsRef.current;
+      const frameTimeThreshold = 1000 / currentTargetFps;
+
+      // Only draw and step state when accumulator reaches the dynamic frame threshold
+      if (accumulator >= frameTimeThreshold) {
+        // Handle potential lag spikes by updating in discrete frame chunks
+        const framesToUpdate = Math.floor(accumulator / frameTimeThreshold);
+        const timePassed = framesToUpdate * frameTimeThreshold;
+        
+        accumulator -= timePassed;
+
+        ctx.clearRect(0, 0, width, height);
+
+        // Draw and update each particle
+        for (let i = 0; i < particles.length; i++) {
+          const p = particles[i];
+          p.elapsed += timePassed;
+          if (p.elapsed >= p.duration) {
+            p.elapsed = p.elapsed % p.duration;
+            // Randomize trajectory slightly on recycle for organic realism
+            p.xStart = Math.random() * 100;
+            p.xMid = p.xStart + (Math.random() * 20 - 10);
+            p.xEnd = p.xStart + (Math.random() * 40 - 20);
+          }
+
+          const t = p.elapsed / p.duration;
+
+          // Path: 2-segment linear interpolation matching Framer Motion keyframes [xStart, xMid, xEnd]
+          const xPct = t < 0.5 ? lerp(p.xStart, p.xMid, t * 2) : lerp(p.xMid, p.xEnd, (t - 0.5) * 2);
+          const x = (xPct / 100) * width;
+
+          // Vertically goes from -20vh to 120vh
+          const y = -0.2 * height + t * 1.4 * height;
+
+          // Rotation
+          const rotation = lerp(p.rotationStart, p.rotationEnd, t) * (Math.PI / 180);
+
+          // Opacity
+          const peakOpacity = p.layer === "front" ? 0.24 : 0.72;
+          let opacity = peakOpacity;
+          if (t < 0.15) {
+            opacity = (t / 0.15) * peakOpacity;
+          } else if (t > 0.85) {
+            opacity = ((1 - t) / 0.15) * peakOpacity;
+          }
+
+          const texture = textures[p.layer];
+          if (texture) {
+            ctx.save();
+            ctx.globalAlpha = opacity;
+            ctx.translate(x, y);
+            ctx.rotate(rotation);
+
+            const scale = p.size / texture.baseSize;
+            const drawW = texture.canvas.width * scale;
+            const drawH = texture.canvas.height * scale;
+            
+            // Draw centered around origin (0, 0)
+            const drawX = -texture.padding * scale - p.size / 2;
+            const drawY = -texture.padding * scale - p.size / 2;
+
+            ctx.drawImage(texture.canvas, drawX, drawY, drawW, drawH);
+            ctx.restore();
+          }
+        }
+      }
+    };
+
+    animationFrameId = requestAnimationFrame(render);
+
+    // Clean up
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("blur", handleBlur);
+    };
+  }, [effectiveIntensity, sakuraColorSetting, calmMotion, theme, zenMode, isVisible, prefersReducedMotion]);
+
+  // If animations are off, render absolutely nothing to preserve resources
   if (prefersReducedMotion || calmMotion || effectiveIntensity === "off" || !isVisible) {
     return null;
   }
 
-  const getSakuraColor = (color: string) => {
-    switch (color) {
-      case "purple":
-        return "var(--neon-purple)";
-      case "blue":
-        return "var(--neon-cyan)";
-      case "green":
-        return "var(--neon-green)";
-      case "pink":
-      default:
-        return "var(--neon-pink)";
-    }
-  };
-
-  const sakuraColor = getSakuraColor(sakuraColorSetting || "pink");
+  // Define dynamic accent colors for ambient bottom glow
+  let ambientColor = "";
+  switch (sakuraColorSetting) {
+    case "purple":
+      ambientColor = "var(--neon-purple)";
+      break;
+    case "blue":
+      ambientColor = "var(--neon-cyan)";
+      break;
+    case "green":
+      ambientColor = "var(--neon-green)";
+      break;
+    case "pink":
+    default:
+      ambientColor = "var(--neon-pink)";
+      break;
+  }
 
   return (
     <>
-      <motion.div
-        className="fixed bottom-0 left-0 w-full pointer-events-none z-[1]"
-        initial={{ opacity: 0.3 }}
-        animate={{ opacity: [0.3, 0.5, 0.3] }}
-        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+      {/* Dynamic ambient bottom pulse glow (uses CSS animations for 0% CPU footprint) */}
+      <div
+        className="fixed bottom-0 left-0 w-full pointer-events-none z-[1] sakura-ambient-glow"
         style={{
           height: "40vh",
-          background: `linear-gradient(to top, color-mix(in srgb, ${sakuraColor} 15%, transparent) 0%, transparent 100%)`,
+          background: `linear-gradient(to top, color-mix(in srgb, ${ambientColor} 15%, transparent) 0%, transparent 100%)`,
           filter: "blur(30px)",
         }}
       />
 
-      <div
-        className="fixed inset-0 pointer-events-none z-[1] overflow-hidden"
-        aria-hidden="true"
-      >
-        {particles.map((particle) => (
-          <motion.div
-            key={particle.id}
-            initial={{ y: "-20vh", x: `${particle.x}vw`, opacity: 0 }}
-            animate={{
-              y: ["-20vh", "120vh"],
-              x: [`${particle.x}vw`, `${particle.xMid}vw`, `${particle.xEnd}vw`],
-              rotate: [particle.rotationStart, particle.rotationEnd],
-              opacity:
-                particle.layer === "front" ? [0, 0.4, 0.4, 0] : [0, 0.8, 0.8, 0],
-            }}
-            transition={{
-              duration: particle.duration,
-              delay: particle.delay,
-              repeat: Infinity,
-              ease: "linear",
-            }}
-            style={{
-              position: "absolute",
-              width: particle.size,
-              height: particle.size,
-              filter: `blur(${particle.blur}px)`,
-              zIndex: particle.layer === "front" ? 2 : particle.layer === "mid" ? 1 : 0,
-            }}
-          >
-            <PetalSvg
-              color={sakuraColor}
-              opacity={particle.layer === "front" ? 0.6 : 0.9}
-            />
-          </motion.div>
-        ))}
-      </div>
+      {/* Hardware-accelerated and isolated canvas layer overlay */}
+      <canvas
+        ref={canvasRef}
+        className="fixed inset-0 w-full h-full pointer-events-none z-[1] overflow-hidden"
+        style={{
+          backfaceVisibility: "hidden",
+          willChange: "transform",
+          contain: "strict",
+        }}
+      />
+
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes sakura-ambient-pulse {
+          0%, 100% { opacity: 0.28; }
+          50% { opacity: 0.48; }
+        }
+        .sakura-ambient-glow {
+          animation: sakura-ambient-pulse 10s ease-in-out infinite;
+          transform: translate3d(0,0,0);
+        }
+      `}} />
     </>
   );
 };

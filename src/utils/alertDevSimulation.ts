@@ -16,6 +16,7 @@ declare global {
     koiSimulateZen?: () => void;
     koiSimulateFlow?: () => void;
     koiSimulateBoost?: () => void;
+    koiSimulateFocus?: (lostFocus?: boolean) => void;
     __koiForceGamingProfile?: boolean;
     __koiDevSimActive?: boolean;
   }
@@ -53,6 +54,7 @@ function mockSystemInfo(): SystemInfo {
       usage: 12,
       per_core_usage: [12, 10, 8, 6],
       frequency: 3600,
+      temperature: 42,
     },
     memory: {
       total: 16_000_000_000,
@@ -470,6 +472,16 @@ function simulateZenBoost(): void {
   runZenLoadSim(92, 88, 'Boost', 12);
 }
 
+function simulateFocusState(lostFocus: boolean = true): void {
+  if (lostFocus) {
+    window.dispatchEvent(new Event('blur'));
+    console.info("[Koi Dev] Simulation : Fenêtre hors-focus (Pétales à 24 FPS) 🎬");
+  } else {
+    window.dispatchEvent(new Event('focus'));
+    console.info("[Koi Dev] Simulation : Fenêtre active (Pétales à 30 FPS) 🚀");
+  }
+}
+
 export function mountAlertDevSimulation(): void {
   if (!import.meta.env.DEV) return;
 
@@ -479,8 +491,9 @@ export function mountAlertDevSimulation(): void {
   window.koiSimulateZen = simulateZenRest;
   window.koiSimulateFlow = simulateZenFlow;
   window.koiSimulateBoost = simulateZenBoost;
+  window.koiSimulateFocus = simulateFocusState;
   (window as Window & { __koiStore?: typeof useAppStore }).__koiStore = useAppStore;
   console.info(
-    '[Koi Dev] koiSimulateLoad() · koiSimulateGaming() · koiSimulateLatency200() · koiSimulateZen() · koiSimulateFlow() · koiSimulateBoost()',
+    '[Koi Dev] koiSimulateLoad() · koiSimulateGaming() · koiSimulateLatency200() · koiSimulateZen() · koiSimulateFlow() · koiSimulateBoost() · koiSimulateFocus(lostFocus?: boolean)',
   );
 }
