@@ -10,6 +10,7 @@ export const CpuWidget = memo(function CpuWidget() {
   const cpuRing = useAppStore((s) => s.cpuHistoryRing);
   const cpuHistory = useMemo(() => ringToArray(cpuRing), [cpuRing.seq]);
   const cpuUsage = useAppStore((s) => s.systemInfo?.cpu.usage ?? 0);
+  const cpuTemp = useAppStore((s) => s.systemInfo?.cpu.temperature ?? null);
   const cores = useAppStore((s) => s.systemInfo?.cpu.cores ?? 0);
   const perCoreUsage = useAppStore((s) => s.systemInfo?.cpu.per_core_usage ?? []);
   const name = useAppStore((s) => s.systemInfo?.cpu.name ?? "Chargement...");
@@ -56,12 +57,22 @@ export const CpuWidget = memo(function CpuWidget() {
         subtitleTitle={displayName}
         themeColor={themeColor}
         badge={
-          <MetricPercentBadge
-            value={`${usage.toFixed(1)}%`}
-            themeColor={themeColor}
-            textColor="var(--neon-pink-text)"
-            isDark={isDark}
-          />
+          <div className="flex gap-2 items-center">
+            <MetricPercentBadge
+              value={`${usage.toFixed(1)}%`}
+              themeColor={themeColor}
+              textColor="var(--neon-pink-text)"
+              isDark={isDark}
+            />
+            {cpuTemp !== null ? (
+              <MetricPercentBadge
+                value={`${cpuTemp.toFixed(0)}°C`}
+                themeColor={themeColor}
+                textColor="var(--neon-pink-text)"
+                isDark={isDark}
+              />
+            ) : null}
+          </div>
         }
       />
 
