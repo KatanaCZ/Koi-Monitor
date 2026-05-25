@@ -39,7 +39,7 @@ Rapport concis post-remédiation. Mesures : npm audit 0 vuln · build OK · rech
 ## CI & Docs
 
 - **OK** — CI : `tsc --noEmit` + `cargo test` + budget recharts
-- **OK** — Dependabot npm + cargo
+- **OK** — Dependabot npm + cargo (minor/patch groupées ; majors npm sensibles ignorées — migrations manuelles)
 - **OK** — README public + `docs/DEVELOPMENT.md` + AUDIT alignés (sans doc outillage IA)
 
 ## Hygiène repo (UltraClean — mai 2026)
