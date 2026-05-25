@@ -157,7 +157,7 @@ Comme une brise sur l'eau, au bureau un mot si la machine force, en session un m
 - **Optimisation et Robustesse** : télémétrie push (événement Tauri 1 Hz), ring buffer historiques, Recharts lazy-load, sélecteurs Zustand granulaires, toasts erreurs visibles (DNS/pilotes), splash non bloquant, mémoïsation widgets, CI audit + budget bundle.
 - **Uptime dashboard** : chip **Actif** centré dans la TitleBar (`SystemUptimeChip`, `md+`) — `formatUptimeShort` · mode Zen = `ZenMetricsDock` (RAM · Actif en ligne)
 - **Grille dashboard** : rangée **CPU · RAM · GPU** (`md:grid-cols-3 gap-6`) puis **Réseau + DNS** (`lg:grid-cols-3 items-stretch`, DNS `col-span-2`, hauteur synchronisée **400/460 px** + **+184** détail jeu) ; en-têtes CPU/RAM/GPU via `WidgetMetricHeader` + `MetricPercentBadge`
-- **Animation Sakura** : pétales en arrière-plan — en mode Zen : plafonné (`high→medium`, `medium→low`, pas de couche avant-plan)
+- **Animation Sakura** : pétales en arrière-plan animés via un moteur HTML5 Canvas 2D ultra-performant. Les textures des pétales et leurs effets (drop-shadow/blur) sont pré-dessinées sur des canvas hors écran. Le ratio DPI est plafonné à `1.25` maximum (évite la surconsommation sur écran 4K). Le framerate est bridé de manière dynamique : **30 FPS** lorsque l'application a le focus, et **24 FPS** (cadence cinéma) en arrière-plan lorsqu'un jeu est lancé au premier plan. En mode Zen : intensité plafonnée (`high→medium`, `medium→low`, pas de couche avant-plan).
 
 ### Paramètres Persistants
 Navigation latérale sans scroll : **Essentiel · Atmosphère · Connexion · Veille · À propos** — ton **Premium Zen**, libellés accessibles ; contenu des onglets scrollable si besoin.

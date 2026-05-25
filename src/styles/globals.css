@@ -55,7 +55,7 @@
 
     --card-solid: #f7f8fd;
     --glass-surface: color-mix(in srgb, var(--card-solid) 88%, transparent);
-    --glass-blur: 24px;
+    --glass-blur: 16px;
     --liquid-glass-solid: #f7f8fd;
     --liquid-glass-bg: color-mix(in srgb, var(--card-solid) 88%, transparent);
     --liquid-glass-border: color-mix(in srgb, var(--neon-purple) 14%, rgba(16, 8, 24, 0.12));
@@ -74,7 +74,7 @@
     --card-solid: rgb(17, 9, 38);
     --card: rgba(17, 9, 38, 0.4);
     --glass-surface: rgba(17, 9, 38, 0.4);
-    --glass-blur: 24px;
+    --glass-blur: 16px;
     --card-hover: rgba(28, 16, 56, 0.6);
     --card-foreground: #f4ecf9;
     --border: rgba(255, 255, 255, 0.08);
@@ -116,6 +116,10 @@
     --liquid-glass-border: rgba(255, 255, 255, 0.06);
     --liquid-glass-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15), inset 0 -1px 1px rgba(0, 0, 0, 0.4);
     --overlay: rgba(0, 0, 0, 0.55);
+  }
+
+  html[data-neon-glow="vivid"] {
+    --glass-blur: 24px;
   }
 
   body {
