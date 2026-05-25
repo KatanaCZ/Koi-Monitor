@@ -8,7 +8,7 @@ $ErrorActionPreference = 'Stop'
 $version = $Tag -replace '^v', ''
 $changelogPath = (Resolve-Path (Join-Path $PSScriptRoot '..\CHANGELOG.md')).Path
 
-$content = Get-Content -LiteralPath $changelogPath -Raw
+$content = Get-Content -LiteralPath $changelogPath -Raw -Encoding UTF8
 $pattern = "(?ms)^## \[$([regex]::Escape($version))\][^\n]*\r?\n(.*?)(?=^## \[|\z)"
 $match = [regex]::Match($content, $pattern)
 

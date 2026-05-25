@@ -22,6 +22,7 @@ import {
 } from '../../utils/atmospherePresets';
 import { REFRESH_OPTIONS, DNS_OPTIONS, BACKGROUND_AURA_SEGMENT, NEON_GLOW_SEGMENT } from '../../utils/settingsOptions';
 import { isValidCustomDnsIpv4 } from '../../utils/dnsPing';
+import { APP_VERSION } from '../../appVersion';
 import {
   ALERT_SENSITIVITY_SEGMENT,
   applyDesktopSensitivity,
@@ -876,7 +877,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             Tauri · React · Rust
                           </p>
                           <p className="text-[10px] font-bold tracking-[0.24em] mono-text text-[var(--text-subtle)]">
-                            v1.0.0
+                            v{APP_VERSION}
                           </p>
                         </div>
                       </motion.div>

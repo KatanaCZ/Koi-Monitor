@@ -246,14 +246,24 @@ git checkout -b feat/ma-feature
 git push -u origin feat/ma-feature   # ouvrir PR sur GitHub
 ```
 
-**Release :** patchnotes dans **`CHANGELOG.md`** · `scripts/prepare-release.ps1 -Version x.y.z` avant le tag · workflow `release.yml` extrait la section + publie `koi-monitor.exe`.
+**Release :** patchnotes dans **`CHANGELOG.md`** · `scripts/prepare-release.ps1 -Version x.y.z` (changelog + sync version app/npm/Tauri) · workflow `release.yml` extrait la section + publie `koi-monitor.exe`.
+
+### Dependabot (mises à jour deps)
+
+| Flux | Action |
+|------|--------|
+| **Minor/patch** npm ou cargo (PR groupée hebdo) | Merger si CI `audit` verte |
+| **Major** npm (`react*`, `recharts`, `framer-motion`, `@vitejs/plugin-react`) | Ignorée par config — branche `feat/*` dédiée + QA |
+| **Major** cargo | PR Dependabot possible ; évaluer au cas par cas |
+
+Config : `.github/dependabot.yml` · politique PR : [`CONTRIBUTING.md`](../CONTRIBUTING.md).
 
 ## 📁 Structure du Projet
 
 ```
 koi-monitor/
 ├── .github/workflows/        # audit.yml (CI) · release.yml (tag v* → exe)
-├── .github/dependabot.yml    # Mises à jour deps npm + cargo (hebdo)
+├── .github/dependabot.yml    # Deps npm + cargo (hebdo, minor+patch ; majors npm sensibles ignorées)
 ├── AUDIT.md                  # Rapport audit concis (findings + mesures)
 ├── src/                      # Frontend React + TypeScript
 │   ├── components/

@@ -14,7 +14,7 @@
 ![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?style=for-the-badge&logo=windows&logoColor=white)
 ![Léger](https://img.shields.io/badge/Léger-~10–25%20Mo-00d4ff?style=for-the-badge)
 ![Gratuit](https://img.shields.io/badge/Gratuit-MIT-00ff9d?style=for-the-badge)
-![Version](https://img.shields.io/badge/Version-1.0.0-9d4edd?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-1.1.0-9d4edd?style=for-the-badge)
 
 <br />
 

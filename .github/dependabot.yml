@@ -5,6 +5,22 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      # Majors planifiées manuellement (React 18, recharts 2, framer-motion 11).
+      - dependency-name: react
+        update-types: [version-update:semver-major]
+      - dependency-name: react-dom
+        update-types: [version-update:semver-major]
+      - dependency-name: "@types/react"
+        update-types: [version-update:semver-major]
+      - dependency-name: "@types/react-dom"
+        update-types: [version-update:semver-major]
+      - dependency-name: recharts
+        update-types: [version-update:semver-major]
+      - dependency-name: framer-motion
+        update-types: [version-update:semver-major]
+      - dependency-name: "@vitejs/plugin-react"
+        update-types: [version-update:semver-major]
     groups:
       npm-production:
         patterns:
