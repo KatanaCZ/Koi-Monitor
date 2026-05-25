@@ -46,8 +46,8 @@ Patchnotes utilisateur : **[`CHANGELOG.md`](CHANGELOG.md)** (français, [Keep a 
 2. Sur `master` vert :
 
 ```powershell
-.\scripts\prepare-release.ps1 -Version 1.0.1   # promeut [Unreleased] → [1.0.1]
-git add CHANGELOG.md
+.\scripts\prepare-release.ps1 -Version 1.0.1   # CHANGELOG + version app (À propos, npm, Tauri, Cargo, README)
+git add CHANGELOG.md src/appVersion.ts package.json package-lock.json src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/Cargo.lock README.md
 git commit -m "chore(release): prepare v1.0.1"
 git push origin master
 git tag v1.0.1
@@ -87,7 +87,8 @@ CI also runs `npm audit`, `cargo audit`, and a Recharts bundle budget (≤ 550 K
 - Target branch: **`master`** (protected — merge via PR only)
 - One logical change per PR when possible
 - Update user-visible behavior in `README.md` and technical details in `docs/DEVELOPMENT.md` when relevant
-- **Dependabot PRs:** rebase on latest `master` before merge; close if CI fails on stale base
+- **Dependabot PRs:** merge **minor/patch** groupées quand CI `audit` est verte (hebdo, npm + cargo)
+- **Majors npm ignorées** dans `.github/dependabot.yml` : `react`, `react-dom`, `@types/react*`, `recharts`, `framer-motion`, `@vitejs/plugin-react` — migrations manuelles via branche `feat/*`
 
 ## Code conventions
 

@@ -8,9 +8,20 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) · v
 
 ### Ajouté
 
-- **`CHANGELOG.md`** et scripts **`prepare-release.ps1`** / **`extract-release-notes.ps1`** — patchnotes Release GitHub depuis le changelog
+### Modifié
+
+### Corrigé
+
+## [1.1.0] - 2026-05-26
+
+### Ajouté
+
+- **`src/appVersion.ts`** — version affichée Paramètres → À propos, synchronisée à chaque release
 
 ### Modifié
+
+- **`prepare-release.ps1`** — promeut le changelog et aligne npm, Tauri, Cargo, badge README et version À propos
+- **Dependabot** — majors npm sensibles ignorées (`react*`, `recharts`, `framer-motion`, `@vitejs/plugin-react`) ; minor/patch groupées inchangées
 
 ### Corrigé
 
@@ -34,5 +45,6 @@ Première release publique — moniteur Windows local, open source.
 
 - n/a
 
-[Unreleased]: https://github.com/KatanaCZ/Koi-Monitor/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/KatanaCZ/Koi-Monitor/compare/v1.1.0...HEAD
 [1.0.0]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.0.0
+[1.1.0]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.0
