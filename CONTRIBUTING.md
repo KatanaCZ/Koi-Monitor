@@ -80,7 +80,15 @@ cargo clippy --release -- -D warnings
 cargo test
 ```
 
-CI also runs `npm audit`, `cargo audit`, and a Recharts bundle budget (≤ 550 KB).
+CI also runs `npm audit`, `rustsec/audit-check` (cargo advisories), and a Recharts bundle budget (≤ 550 KB). The full **`koi.bat build`** runs on **push to `master`** and on **Release tags** — not on PRs (saves ~7 min; shipping exe is validated at tag).
+
+**Expected CI times (GitHub Actions, `windows-latest`):**
+
+| Trigger | Job | Typical duration |
+|---------|-----|------------------|
+| Pull request | `audit` (npm + rust checks) | ~6–10 min (warm cache) · ~12–15 min (cold) |
+| Push `master` | `audit` + build exe | ~12–18 min |
+| Tag `v*` | `release` | ~3–8 min (warm) · ~7 min baseline |
 
 ## Pull requests
 

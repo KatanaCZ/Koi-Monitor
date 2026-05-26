@@ -11,6 +11,8 @@ permissions:
 jobs:
   release:
     runs-on: windows-latest
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/.cargo-target
     steps:
       - uses: actions/checkout@v4
 
@@ -23,6 +25,12 @@ jobs:
         run: npm ci
 
       - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          shared-key: release
+          cache-on-failure: true
 
       - name: Build release exe
         run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/koi.ps1 -Action Build -SkipClean -NonInteractive

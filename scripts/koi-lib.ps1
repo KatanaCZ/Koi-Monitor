@@ -21,6 +21,10 @@ function Get-KoiCargoTargetDir {
 }
 
 function Initialize-KoiCargoTargetDir {
+    if ($env:CARGO_TARGET_DIR) {
+        New-Item -ItemType Directory -Force -Path $env:CARGO_TARGET_DIR | Out-Null
+        return $env:CARGO_TARGET_DIR
+    }
     $localTarget = Join-Path $env:LOCALAPPDATA 'koi-monitor\target'
     New-Item -ItemType Directory -Force -Path $localTarget | Out-Null
     $env:CARGO_TARGET_DIR = $localTarget
