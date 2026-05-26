@@ -14,6 +14,8 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) · v
 
 ### Corrigé
 
+- **CI master** — `rustsec/audit-check` remplacé par `cargo audit` (évite l’échec Check API « Resource not accessible by integration ») ; cache Cargo aligné sur `.cargo-target`
+
 ## [1.1.1] - 2026-05-26
 
 ### Ajouté

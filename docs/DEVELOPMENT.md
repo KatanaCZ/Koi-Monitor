@@ -256,7 +256,7 @@ git push -u origin feat/ma-feature   # ouvrir PR sur GitHub
 | **Push `master`** | PR checks + **`koi.ps1 -Action Build`** | ~12–18 min |
 | **Tag `v*`** | build exe + notes CHANGELOG → GitHub Release | ~3–8 min (cache warm) |
 
-Optimisations : `rustsec/audit-check` (plus de `cargo install cargo-audit`), `swatinem/rust-cache`, `CARGO_TARGET_DIR=.cargo-target` en CI (`koi-lib.ps1` respecte la variable si déjà définie).
+Optimisations : `taiki-e/install-action@cargo-audit`, `swatinem/rust-cache` (`src-tauri -> ../.cargo-target`), `CARGO_TARGET_DIR=.cargo-target` en CI (`koi-lib.ps1` respecte la variable si déjà définie).
 
 ### Dependabot (mises à jour deps)
 
@@ -463,7 +463,7 @@ Puis lancez **`%LOCALAPPDATA%\koi-monitor\koi-monitor.exe`** — pas l'ancien ex
 - [x] Toasts erreurs utilisateur + splash résilient
 - [x] Musique ambiante post-splash (boucle, fondu, mute TitleBar, persistance)
 - [x] Easter egg musique (5 clics « Koi », hints + piste secrète crossfade, dev console)
-- [x] CI audit (npm, tsc, rustsec, cargo test/clippy, budget recharts ≤ 550 KB ; build exe sur master + tag ; cache Cargo)
+- [x] CI audit (npm, tsc, cargo audit, cargo test/clippy, budget recharts ≤ 550 KB ; build exe sur master + tag ; cache Cargo)
 
 ## 📄 Licence
 
