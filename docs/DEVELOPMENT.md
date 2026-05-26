@@ -248,6 +248,16 @@ git push -u origin feat/ma-feature   # ouvrir PR sur GitHub
 
 **Release :** patchnotes dans **`CHANGELOG.md`** · `scripts/prepare-release.ps1 -Version x.y.z` (changelog + sync version app/npm/Tauri) · workflow `release.yml` extrait la section + publie `koi-monitor.exe`.
 
+### CI GitHub (`audit.yml` · `release.yml`)
+
+| Déclencheur | Contenu | Durée typique |
+|-------------|---------|---------------|
+| **PR** | npm audit · build · tsc · budget recharts · rustsec · check · clippy · test | ~6–10 min (cache warm) |
+| **Push `master`** | PR checks + **`koi.ps1 -Action Build`** | ~12–18 min |
+| **Tag `v*`** | build exe + notes CHANGELOG → GitHub Release | ~3–8 min (cache warm) |
+
+Optimisations : `rustsec/audit-check` (plus de `cargo install cargo-audit`), `swatinem/rust-cache`, `CARGO_TARGET_DIR=.cargo-target` en CI (`koi-lib.ps1` respecte la variable si déjà définie).
+
 ### Dependabot (mises à jour deps)
 
 | Flux | Action |
@@ -453,7 +463,7 @@ Puis lancez **`%LOCALAPPDATA%\koi-monitor\koi-monitor.exe`** — pas l'ancien ex
 - [x] Toasts erreurs utilisateur + splash résilient
 - [x] Musique ambiante post-splash (boucle, fondu, mute TitleBar, persistance)
 - [x] Easter egg musique (5 clics « Koi », hints + piste secrète crossfade, dev console)
-- [x] CI audit (npm, tsc, cargo test/clippy, budget recharts ≤ 550 KB, Dependabot)
+- [x] CI audit (npm, tsc, rustsec, cargo test/clippy, budget recharts ≤ 550 KB ; build exe sur master + tag ; cache Cargo)
 
 ## 📄 Licence
 

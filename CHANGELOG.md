@@ -10,6 +10,8 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) · v
 
 ### Modifié
 
+- **CI GitHub** — audit PR accéléré : `rustsec/audit-check`, cache Cargo (`swatinem/rust-cache`), build exe réservé au push `master` et au tag Release
+
 ### Corrigé
 
 ## [1.1.1] - 2026-05-26

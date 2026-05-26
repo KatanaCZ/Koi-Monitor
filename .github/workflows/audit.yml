@@ -8,6 +8,8 @@ on:
 jobs:
   audit:
     runs-on: windows-latest
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/.cargo-target
     steps:
       - uses: actions/checkout@v4
 
@@ -39,12 +41,16 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
-      - name: Install cargo-audit
-        run: cargo install cargo-audit --locked
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          shared-key: release
+          cache-on-failure: true
 
-      - name: cargo audit
-        working-directory: src-tauri
-        run: cargo audit
+      - uses: rustsec/audit-check@v2.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          working-directory: src-tauri
 
       - name: cargo check (release)
         working-directory: src-tauri
@@ -59,6 +65,7 @@ jobs:
         run: cargo test
 
       - name: Build release exe
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
         run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/koi.ps1 -Action Build -SkipClean -NonInteractive
         env:
           CI: true

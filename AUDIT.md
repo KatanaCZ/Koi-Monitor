@@ -38,9 +38,21 @@ Rapport concis post-remédiation. Mesures : npm audit 0 vuln · build OK · rech
 
 ## CI & Docs
 
-- **OK** — CI : `tsc --noEmit` + `cargo test` + budget recharts
+- **OK** — CI PR (`audit.yml`) : npm audit/build/tsc + budget recharts · `rustsec/audit-check` · `cargo check/clippy/test` · **sans** build exe (PR ~6–10 min cache warm, vs ~20 min avant)
+- **OK** — CI push `master` : audit PR + **`koi.ps1 -Action Build`** (filet post-merge)
+- **OK** — CI Release (tag `v*`) : build exe + notes CHANGELOG (~3–8 min cache warm)
+- **OK** — Cache Cargo : `CARGO_TARGET_DIR=${{ github.workspace }}/.cargo-target` + `swatinem/rust-cache` (audit + release) ; `Initialize-KoiCargoTargetDir` respecte `CARGO_TARGET_DIR` pré-défini
 - **OK** — Dependabot npm + cargo (minor/patch groupées ; majors npm sensibles ignorées — migrations manuelles)
 - **OK** — README public + `docs/DEVELOPMENT.md` + AUDIT alignés (sans doc outillage IA)
+
+### Durées CI (baseline PR #21, mai 2026)
+
+| Étape (avant) | Durée | Mitigation |
+|---------------|-------|------------|
+| `cargo install cargo-audit` | ~5 min 28 s | → `rustsec/audit-check` (~4 s) |
+| `cargo check` + `test` (froid) | ~6 min | → cache Cargo partagé |
+| `koi.ps1 Build` sur PR | ~6 min 42 s | → PR uniquement ; master + tag Release |
+| **Total PR** | **~20 min** | **cible ~6–10 min** (warm) |
 
 ## Hygiène repo (UltraClean — mai 2026)
 
