@@ -28,9 +28,11 @@ jobs:
 
       - uses: swatinem/rust-cache@v2
         with:
-          workspaces: src-tauri
+          workspaces: |
+            src-tauri -> ../.cargo-target
           shared-key: release
           cache-on-failure: true
+          cache-all-crates: true
 
       - name: Build release exe
         run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/koi.ps1 -Action Build -SkipClean -NonInteractive
