@@ -1,4 +1,4 @@
-#Extract the CHANGELOG section for a release tag (e.g. v1.0.1 → ## [1.0.1]).
+# Extract user-facing release notes for a tag (e.g. v1.1.2 -> ### Pour vous from ## [1.1.2]).
 param(
     [Parameter(Mandatory = $true)]
     [string]$Tag
@@ -17,16 +17,26 @@ if (-not $match.Success) {
 }
 
 $section = $match.Groups[1].Value.Trim()
+$pourVousPattern = '(?ms)^### Pour vous\s*\r?\n(.*?)(?=^### |\z)'
+$pourVousMatch = [regex]::Match($section, $pourVousPattern)
+
+if ($pourVousMatch.Success) {
+    $body = $pourVousMatch.Groups[1].Value.Trim()
+} else {
+    Write-Warning "CHANGELOG.md: pas de ### Pour vous pour [$version] - export de la section complète (legacy)."
+    $body = $section
+}
+
 $title = "Koi Monitor v$version"
 
 @(
     "# $title"
     ''
-    $section
+    $body
     ''
     '---'
     ''
-    '**Téléchargement :** fichier **`koi-monitor.exe`** ci-dessous — Windows 10/11, portable, sans installateur.'
+    '**Téléchargement :** fichier **`koi-monitor.exe`** ci-dessous — Windows 10/11 10/11, portable, sans installateur.'
     ''
-    "[Voir le changelog complet](https://github.com/KatanaCZ/Koi-Monitor/blob/master/CHANGELOG.md)"
+    "[Changelog complet (technique)](https://github.com/KatanaCZ/Koi-Monitor/blob/master/CHANGELOG.md)"
 ) -join "`n"

@@ -38,11 +38,14 @@ Open a PR on GitHub → wait for **Audit & Build** green → merge. Solo maintai
 
 ### Releases
 
-Patchnotes utilisateur : **[`CHANGELOG.md`](CHANGELOG.md)** (français, [Keep a Changelog](https://keepachangelog.com/fr/)).
+Patchnotes : **[`CHANGELOG.md`](CHANGELOG.md)** (français, [Keep a Changelog](https://keepachangelog.com/fr/)).
+
+- **`### Pour vous`** — texte publié sur la **Release GitHub** (utilisateurs, sans jargon dev). Guide de ton : [`docs/marketing-context.md`](docs/marketing-context.md).
+- **`### Détail technique`** — Ajouté / Modifié / Corrigé pour les contributeurs.
 
 **Avant chaque version :**
 
-1. Remplir la section **`## [Unreleased]`** pendant le dev (Ajouté / Modifié / Corrigé).
+1. Remplir **`## [Unreleased]`** : d’abord **Pour vous** (3–5 puces, bénéfices), puis **Détail technique** (Ajouté / Modifié / Corrigé). Ne pas mettre CI/infra dans **Pour vous**.
 2. Sur `master` vert :
 
 ```powershell
