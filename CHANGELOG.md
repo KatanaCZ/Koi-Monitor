@@ -10,12 +10,19 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) · v
 
 ### Modifié
 
+### Corrigé
+
+## [1.1.2] - 2026-05-28
+
+### Ajouté
+
+### Modifié
+
 - **Perf WebView2 (Sakura + verre)** — bridage strict du canvas Sakura au budget 30 FPS (focus) / 24 FPS (hors focus), sans rattrapage multi-frame ; glow bas sans `filter: blur` ; couche `.sakura-fx-layer` isolée ; cartes glass promues GPU (`translateZ`) ; suppression du `backdrop-blur` redondant dans les widgets bento
-- **CI GitHub** — audit PR accéléré : `rustsec/audit-check`, cache Cargo (`swatinem/rust-cache`), build exe réservé au push `master` et au tag Release
 
 ### Corrigé
 
-- **CI master** — `rustsec/audit-check` remplacé par `cargo audit` (évite l’échec Check API « Resource not accessible by integration ») ; cache Cargo aligné sur `.cargo-target`
+- **CI GitHub** — audit PR accéléré (cache Cargo `swatinem/rust-cache`, build exe sur push `master` et tag Release) ; push `master` : `cargo audit` à la place de `rustsec/audit-check` (évite l’échec Check API « Resource not accessible by integration »)
 
 ## [1.1.1] - 2026-05-26
 
@@ -66,7 +73,8 @@ Première release publique — moniteur Windows local, open source.
 
 - n/a
 
-[Unreleased]: https://github.com/KatanaCZ/Koi-Monitor/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/KatanaCZ/Koi-Monitor/compare/v1.1.2...HEAD
 [1.0.0]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.0.0
 [1.1.0]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.0
 [1.1.1]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.1
+[1.1.2]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.2
