@@ -22,6 +22,7 @@ Rapport concis post-remédiation. Mesures : npm audit 0 vuln · build OK · rech
 ## Frontend / Perf
 
 - **OK** — Ring buffers, lazy widgets/charts, Zen suspend, sélecteurs granulaires
+- **OK** — Perf WebView2 UI : Sakura budget FPS strict (`lastDrawTime`), `.sakura-fx-layer`, glow sans `filter: blur` ; glass GPU + pas de blur imbriqué dans bento
 - **OK** — StatsBar / TelemetryGrid retirés · uptime `SystemUptimeChip` · latence jeu `DnsViaBand`
 - **OK** — Préréglages Atmosphère Zen/Doux/Aura (`atmospherePresets.ts`)
 - **OK** — Toasts Paramètres via `toastToneClass()` (tokens `--warning-text`, pas Tailwind `dark:`)

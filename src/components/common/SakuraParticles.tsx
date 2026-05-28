@@ -261,39 +261,35 @@ export const SakuraParticles: React.FC = () => {
     window.addEventListener("focus", handleFocus);
     window.addEventListener("blur", handleBlur);
 
-    // 7. Animation render loop with highly optimized dynamic FPS rate-limiting
-    let lastTime = performance.now();
+    // 7. Strict FPS cap — draw only when frame budget elapsed (30 in focus, 24 blurred)
+    let lastDrawTime = 0;
     let animationFrameId = 0;
-    let accumulator = 0;
 
+    const frameBudgetMs = () => 1000 / targetFpsRef.current;
     const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
-    const render = (time: number) => {
-      animationFrameId = requestAnimationFrame(render);
+    const tick = (now: number) => {
+      animationFrameId = requestAnimationFrame(tick);
 
-      const dt = time - lastTime;
-      lastTime = time;
+      if (lastDrawTime === 0) {
+        lastDrawTime = now;
+        return;
+      }
 
-      // Accumulate time since last tick
-      accumulator += dt;
+      const elapsed = now - lastDrawTime;
+      const budget = frameBudgetMs();
+      if (elapsed < budget) {
+        return;
+      }
 
-      const currentTargetFps = targetFpsRef.current;
-      const frameTimeThreshold = 1000 / currentTargetFps;
+      lastDrawTime = now;
+      const stepMs = budget;
 
-      // Only draw and step state when accumulator reaches the dynamic frame threshold
-      if (accumulator >= frameTimeThreshold) {
-        // Handle potential lag spikes by updating in discrete frame chunks
-        const framesToUpdate = Math.floor(accumulator / frameTimeThreshold);
-        const timePassed = framesToUpdate * frameTimeThreshold;
-        
-        accumulator -= timePassed;
+      ctx.clearRect(0, 0, width, height);
 
-        ctx.clearRect(0, 0, width, height);
-
-        // Draw and update each particle
-        for (let i = 0; i < particles.length; i++) {
-          const p = particles[i];
-          p.elapsed += timePassed;
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        p.elapsed += stepMs;
           if (p.elapsed >= p.duration) {
             p.elapsed = p.elapsed % p.duration;
             // Randomize trajectory slightly on recycle for organic realism
@@ -342,10 +338,9 @@ export const SakuraParticles: React.FC = () => {
             ctx.restore();
           }
         }
-      }
     };
 
-    animationFrameId = requestAnimationFrame(render);
+    animationFrameId = requestAnimationFrame(tick);
 
     // Clean up
     return () => {
@@ -380,38 +375,16 @@ export const SakuraParticles: React.FC = () => {
   }
 
   return (
-    <>
-      {/* Dynamic ambient bottom pulse glow (uses CSS animations for 0% CPU footprint) */}
+    <div className="sakura-fx-layer" aria-hidden>
       <div
-        className="fixed bottom-0 left-0 w-full pointer-events-none z-[1] sakura-ambient-glow"
+        className="absolute bottom-0 left-0 w-full sakura-ambient-glow"
         style={{
           height: "40vh",
-          background: `linear-gradient(to top, color-mix(in srgb, ${ambientColor} 15%, transparent) 0%, transparent 100%)`,
-          filter: "blur(30px)",
+          background: `radial-gradient(ellipse 120% 80% at 50% 100%, color-mix(in srgb, ${ambientColor} 22%, transparent) 0%, transparent 72%)`,
         }}
       />
 
-      {/* Hardware-accelerated and isolated canvas layer overlay */}
-      <canvas
-        ref={canvasRef}
-        className="fixed inset-0 w-full h-full pointer-events-none z-[1] overflow-hidden"
-        style={{
-          backfaceVisibility: "hidden",
-          willChange: "transform",
-          contain: "strict",
-        }}
-      />
-
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes sakura-ambient-pulse {
-          0%, 100% { opacity: 0.28; }
-          50% { opacity: 0.48; }
-        }
-        .sakura-ambient-glow {
-          animation: sakura-ambient-pulse 10s ease-in-out infinite;
-          transform: translate3d(0,0,0);
-        }
-      `}} />
-    </>
+      <canvas ref={canvasRef} className="sakura-fx-canvas absolute inset-0 w-full h-full overflow-hidden" />
+    </div>
   );
 };
