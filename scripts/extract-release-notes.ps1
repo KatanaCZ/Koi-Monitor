@@ -23,7 +23,7 @@ $pourVousMatch = [regex]::Match($section, $pourVousPattern)
 if ($pourVousMatch.Success) {
     $body = $pourVousMatch.Groups[1].Value.Trim()
 } else {
-    Write-Warning "CHANGELOG.md: pas de ### Pour vous pour [$version] - export de la section complète (legacy)."
+    Write-Warning "CHANGELOG.md: pas de ### Pour vous pour [$version] - export de la section complete (legacy)."
     $body = $section
 }
 
@@ -36,7 +36,7 @@ $title = "Koi Monitor v$version"
     ''
     '---'
     ''
-    '**Téléchargement :** fichier **`koi-monitor.exe`** ci-dessous — Windows 10/11 10/11, portable, sans installateur.'
+    '**Telechargement :** fichier **`koi-monitor.exe`** ci-dessous - Windows 10/11, portable, sans installateur.'
     ''
     "[Changelog complet (technique)](https://github.com/KatanaCZ/Koi-Monitor/blob/master/CHANGELOG.md)"
 ) -join "`n"
