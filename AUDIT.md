@@ -41,7 +41,8 @@ Rapport concis post-remédiation. Mesures : npm audit 0 vuln · build OK · rech
 
 - **OK** — CI PR (`audit.yml`) : npm audit/build/tsc + budget recharts · `cargo audit` (binaire `taiki-e/install-action`) · `cargo check/clippy/test` · **sans** build exe (PR ~6–10 min cache warm, vs ~20 min avant)
 - **OK** — CI push `master` : audit PR + **`koi.ps1 -Action Build`** (filet post-merge)
-- **OK** — CI Release (tag `v*`) : build exe + notes CHANGELOG (~3–8 min cache warm)
+- **OK** — CI Release (tag `v*`) : build exe + notes **`### Pour vous`** via `extract-release-notes.ps1` (~3–8 min cache warm)
+- **OK** — Changelog dual **Pour vous** / **Détail technique** + `docs/marketing-context.md` (releases grand public)
 - **OK** — Cache Cargo : `CARGO_TARGET_DIR=${{ github.workspace }}/.cargo-target` + `swatinem/rust-cache` (`src-tauri -> ../.cargo-target`) ; `Initialize-KoiCargoTargetDir` respecte `CARGO_TARGET_DIR` pré-défini
 - **OK** — Dependabot npm + cargo (minor/patch groupées ; majors npm sensibles ignorées — migrations manuelles)
 - **OK** — README public + `docs/DEVELOPMENT.md` + AUDIT alignés (sans doc outillage IA)

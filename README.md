@@ -164,7 +164,7 @@ Un message à la fois. Raté quelque chose ? La **cloche** garde le journal de l
 2. Téléchargez **`koi-monitor.exe`**
 3. Copiez-le où vous voulez et double-cliquez
 
-Notes de version : onglet Release ou [`CHANGELOG.md`](CHANGELOG.md).
+Notes de version : onglet **Release** (texte simple, section *Pour vous*) ou [`CHANGELOG.md`](CHANGELOG.md) pour le détail complet.
 
 **C’est tout.** Pas de Node, pas de Rust, pas d’installateur.
 
