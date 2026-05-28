@@ -148,7 +148,7 @@ Comme une brise sur l'eau, au bureau un mot si la machine force, en session un m
 - **Système de Grille 8px (8-Pt Grid System)** : Tous les paddings, margins, gaps, hauteurs et largeurs de l'application sont rigoureusement alignés sur des multiples de 8px (avec tolérance exceptionnelle de 4px pour les détails ultra-fins), garantissant un alignement visuel parfait.
 - **Loi de la Proximité (Contenu Proche / Distant)** : Regroupement visuel intelligent avec des écarts minimes (ex: `gap-2` / 8px) pour les éléments fortement liés (icône + texte, titre + sous-titre) et des espacements plus aérés (ex: `space-y-6` / 24px) pour les sections fonctionnelles distinctes.
 - **Hiérarchie des Bordures & Rayons (Border-Radius)** : Structure organique cohérente avec des rayons de courbure adaptés au niveau d'imbrication (Cartes Bento parentes à `rounded-[2rem]` / 32px, conteneurs internes enfants à `rounded-2xl` / 16px, boutons interactifs et petits contrôles à `rounded-xl` / 12px ou `rounded-lg` / 8px).
-- **Glassmorphisme Liquid Glass**: Panneaux transparents avec blur (toggle **Verre dépoli** dans Paramètres). **Sans grain** sur cartes glass (évite texture granuleuse). Mode Zen sombre : bento plus opaque, blur adouci — le wallpaper Zen reste typographie seule (pas de docks glass).
+- **Glassmorphisme Liquid Glass**: Panneaux transparents avec `backdrop-filter` (toggle **Verre dépoli** dans Paramètres). **Sans grain** sur cartes glass. Cartes `.bento-card` / `.liquid-glass` : `translateZ(0)` + `backface-visibility: hidden` ; **pas de `backdrop-blur` imbriqué** dans les enfants bento (`globals.css`). Mode Zen sombre : bento plus opaque, blur 12 px — wallpaper Zen typographie seule.
 - **Tailwind CSS v4**: Architecture stylistique robuste, responsive et gérant nativement le mode sombre/clair via attributs de données (`data-theme`).
 - **Typographie Premium**: `Geist Sans` pour l'interface globale, et `JetBrains Mono` pour les données et statistiques.
 - **Couleurs Koi & Néon**: Préservation des identités colorées vibrantes (Pink, Cyan, Purple) sur fonds minimalistes.
@@ -157,7 +157,7 @@ Comme une brise sur l'eau, au bureau un mot si la machine force, en session un m
 - **Optimisation et Robustesse** : télémétrie push (événement Tauri 1 Hz), ring buffer historiques, Recharts lazy-load, sélecteurs Zustand granulaires, toasts erreurs visibles (DNS/pilotes), splash non bloquant, mémoïsation widgets, CI audit + budget bundle.
 - **Uptime dashboard** : chip **Actif** centré dans la TitleBar (`SystemUptimeChip`, `md+`) — `formatUptimeShort` · mode Zen = `ZenMetricsDock` (RAM · Actif en ligne)
 - **Grille dashboard** : rangée **CPU · RAM · GPU** (`md:grid-cols-3 gap-6`) puis **Réseau + DNS** (`lg:grid-cols-3 items-stretch`, DNS `col-span-2`, hauteur synchronisée **400/460 px** + **+184** détail jeu) ; en-têtes CPU/RAM/GPU via `WidgetMetricHeader` + `MetricPercentBadge`
-- **Animation Sakura** : pétales en arrière-plan animés via un moteur HTML5 Canvas 2D ultra-performant. Les textures des pétales et leurs effets (drop-shadow/blur) sont pré-dessinées sur des canvas hors écran. Le ratio DPI est plafonné à `1.25` maximum (évite la surconsommation sur écran 4K). Le framerate est bridé de manière dynamique : **30 FPS** lorsque l'application a le focus, et **24 FPS** (cadence cinéma) en arrière-plan lorsqu'un jeu est lancé au premier plan. En mode Zen : intensité plafonnée (`high→medium`, `medium→low`, pas de couche avant-plan).
+- **Animation Sakura** (`SakuraParticles.tsx`) : Canvas 2D, textures pétales pré-dessinées (drop-shadow/blur offscreen), DPI max `1.25`. Boucle `tick` : **draw uniquement** si `now - lastDrawTime >= 1000/targetFps` (30 focus, 24 blur fenêtre) — pas d'accumulateur ni de catch-up multi-frame ; glow bas en `radial-gradient` (pas `filter: blur`). Wrapper `.sakura-fx-layer` + canvas `.sakura-fx-canvas` (`contain: strict`, `isolation: isolate`). Zen : intensité plafonnée (`high→medium`, `medium→low`, pas de couche front). Dev : `koiSimulateFocus()`.
 
 ### Paramètres Persistants
 Navigation latérale sans scroll : **Essentiel · Atmosphère · Connexion · Veille · À propos** — ton **Premium Zen**, libellés accessibles ; contenu des onglets scrollable si besoin.
@@ -373,7 +373,8 @@ koi.bat build   # embarquer la nouvelle icône dans l’exe
 | **Splash** | Intro katana → étapes/barre sync (`resolveSplashUi`) ; min 1,3–1,9 s/phase + dwell 650 ms ; dashboard ready via `splashReadiness.ts` ; timeout 90 s ; **puis** musique ambiante |
 | **Musique** | `koi-ambient.mp3` post-splash ; easter `koi-easter.mp3` (5 clics « Koi », crossfade) ; mute TitleBar · `ambientMusicMuted` persisté · `easterMusicActive` session |
 | **Icône app** | Wordmark **Koi** néon (Geist) ; `icon-source.png` → `npm run icons:wordmark` → `icon.ico` ; fenêtre + tray embarqués (`lib.rs` + `get_app_icon_png`) |
-| **Glass blur** | Classe `html.no-blur` + tokens `--glass-blur`, `--glass-surface`, `--card-solid` |
+| **Glass blur** | `glassBlur.ts` → `html.no-blur` ; tokens `--glass-blur` (16 px Doux, 24 px Aura), `--glass-surface` ; GPU `translateZ(0)` sur bento/liquid-glass ; `.bento-card [class*='backdrop-blur']` désactivé |
+| **Sakura / WebView2** | `SakuraParticles.tsx` + `.sakura-fx-*` dans `globals.css` — budget FPS strict, pas de blur CSS sur le glow |
 
 ## 🔧 Dépannage
 

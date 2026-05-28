@@ -231,6 +231,8 @@
     backdrop-filter: blur(var(--glass-blur));
     -webkit-backdrop-filter: blur(var(--glass-blur));
     box-shadow: var(--bento-shadow), var(--liquid-glass-shadow);
+    transform: translateZ(0);
+    backface-visibility: hidden;
   }
 
   html:not(.no-blur) .liquid-glass {
@@ -238,6 +240,50 @@
     backdrop-filter: blur(var(--glass-blur));
     -webkit-backdrop-filter: blur(var(--glass-blur));
     box-shadow: var(--liquid-glass-shadow);
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+
+  /* Inner panels already sit on glass cards — nested blur is redundant and costly */
+  html:not(.no-blur) .bento-card [class*='backdrop-blur'] {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* Sakura — isolated compositor layer (canvas + ambient glow) */
+  .sakura-fx-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    contain: strict;
+    isolation: isolate;
+  }
+
+  .sakura-fx-canvas {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    will-change: transform;
+    contain: strict;
+  }
+
+  @keyframes sakura-ambient-pulse {
+    0%,
+    100% {
+      opacity: 0.28;
+    }
+    50% {
+      opacity: 0.48;
+    }
+  }
+
+  .sakura-ambient-glow {
+    animation: sakura-ambient-pulse 10s ease-in-out infinite;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    will-change: opacity;
   }
 
   /* Grain + translucency + blur = muddy texture — solid cards only */

@@ -90,7 +90,7 @@ Un moniteur ne devrait pas être l’app la plus lourde de votre PC.
 
 Laissez-la tourner pendant le travail, le stream ou une session de jeu. Vous ne devriez pas sentir une deuxième app lourde à côté.
 
-- **Moteur de particules Canvas 2D** : La pluie de pétales de fleurs utilise un moteur Canvas 2D avec pré-rendu hors-écran (offscreen buffers), isolation matérielle des calques (`will-change`, `contain`) et un bridage intelligent (30 FPS actif, 24 FPS cinéma en arrière-plan lorsque vous jouez). La charge CPU/GPU des animations est réduite de 95%, libérant toutes vos ressources pour le jeu.
+- **Moteur de particules Canvas 2D** : pétales en Canvas avec textures pré-rendues (offscreen), couche isolée `.sakura-fx-layer`, bridage strict **30 FPS** (focus) / **24 FPS** (hors focus) sans rattrapage multi-image, glow bas sans filtre CSS coûteux ; verre dépoli optimisé pour WebView2 (couches GPU, pas de double flou dans les cartes bento).
 
 
 ### Mode Zen 🌸

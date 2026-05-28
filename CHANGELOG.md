@@ -10,6 +10,7 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) · v
 
 ### Modifié
 
+- **Perf WebView2 (Sakura + verre)** — bridage strict du canvas Sakura au budget 30 FPS (focus) / 24 FPS (hors focus), sans rattrapage multi-frame ; glow bas sans `filter: blur` ; couche `.sakura-fx-layer` isolée ; cartes glass promues GPU (`translateZ`) ; suppression du `backdrop-blur` redondant dans les widgets bento
 - **CI GitHub** — audit PR accéléré : `rustsec/audit-check`, cache Cargo (`swatinem/rust-cache`), build exe réservé au push `master` et au tag Release
 
 ### Corrigé
