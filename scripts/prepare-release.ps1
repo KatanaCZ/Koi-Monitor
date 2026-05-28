@@ -22,6 +22,10 @@ if ($content -match "(?m)^## \[$([regex]::Escape($Version))\] - ") {
 $unreleasedBlock = @"
 ## [Unreleased]
 
+### Pour vous
+
+### Détail technique
+
 ### Ajout$([char]0x00E9)
 
 ### Modifi$([char]0x00E9)

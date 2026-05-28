@@ -246,7 +246,7 @@ git checkout -b feat/ma-feature
 git push -u origin feat/ma-feature   # ouvrir PR sur GitHub
 ```
 
-**Release :** patchnotes dans **`CHANGELOG.md`** · `scripts/prepare-release.ps1 -Version x.y.z` (changelog + sync version app/npm/Tauri) · workflow `release.yml` extrait la section + publie `koi-monitor.exe`.
+**Release :** **`CHANGELOG.md`** avec **`### Pour vous`** (notes GitHub, grand public) et **`### Détail technique`** (contributeurs) — guide [`docs/marketing-context.md`](marketing-context.md) · `prepare-release.ps1 -Version x.y.z` · `extract-release-notes.ps1` n’exporte que **Pour vous** · workflow `release.yml` + `koi-monitor.exe`.
 
 ### CI GitHub (`audit.yml` · `release.yml`)
 
