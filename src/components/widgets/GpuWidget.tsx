@@ -8,7 +8,19 @@ import { SingleAreaChart } from "../charts";
 export const GpuWidget = memo(function GpuWidget() {
   const gpuRing = useAppStore((s) => s.gpuHistoryRing);
   const gpuHistory = useMemo(() => ringToArray(gpuRing), [gpuRing.seq]);
-  const gpu = useAppStore((s) => s.systemInfo?.gpu?.[0]) ?? {
+  const activeGpuIndex = useAppStore((s) => {
+    if (!s.systemInfo?.gpu || s.systemInfo.gpu.length === 0) return 0;
+    let maxIdx = 0;
+    let maxUsage = -1;
+    s.systemInfo.gpu.forEach((g, idx) => {
+      if (g.usage > maxUsage) {
+        maxUsage = g.usage;
+        maxIdx = idx;
+      }
+    });
+    return maxIdx;
+  });
+  const gpu = useAppStore((s) => s.systemInfo?.gpu?.[activeGpuIndex]) ?? {
     name: "GPU Info Unavailable",
     usage: 0,
     memory_used: 0,

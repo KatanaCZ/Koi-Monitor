@@ -28,6 +28,7 @@ const audioElements: Partial<Record<AudioTrackId, HTMLAudioElement>> = {};
 let activeTrack: AudioTrackId | null = null;
 let fadeRaf: number | null = null;
 let fadeGeneration = 0;
+let muteReleaseTimeout: number | null = null;
 
 function clampVolume(value: number): number {
   return Math.min(1, Math.max(0, value));
@@ -99,10 +100,21 @@ export function getActiveTrack(): AudioTrackId | null {
 }
 
 export async function playTrack(id: AudioTrackId, fadeIn = true): Promise<void> {
+  if (muteReleaseTimeout !== null) {
+    clearTimeout(muteReleaseTimeout);
+    muteReleaseTimeout = null;
+  }
+
   cancelFade();
 
   const track = TRACKS[id];
   const el = getOrCreateAudio(id);
+
+  // Restore src if it was cleared to free RAM
+  if (!el.src || el.src === "" || el.src.endsWith("/")) {
+    el.src = track.src;
+    el.load();
+  }
 
   if (
     activeTrack === id &&
@@ -211,13 +223,47 @@ export async function crossfadeTo(
   }
 }
 
-export function pauseAll(): void {
-  cancelFade();
-  for (const el of Object.values(audioElements)) {
-    if (el && !el.paused) {
-      el.pause();
+export async function pauseAll(durationMs = 300): Promise<void> {
+  const active = activeTrack;
+  if (!active) {
+    cancelFade();
+    for (const el of Object.values(audioElements)) {
+      if (el && !el.paused) el.pause();
     }
+    scheduleAudioRelease();
+    return;
   }
+  const el = audioElements[active];
+  if (!el || el.paused) {
+    cancelFade();
+    for (const el of Object.values(audioElements)) {
+      if (el && !el.paused) el.pause();
+    }
+    scheduleAudioRelease();
+    return;
+  }
+  const fromVol = el.volume;
+  await fadeVolume(el, fromVol, 0, durationMs);
+  el.pause();
+  el.volume = TRACKS[active].volume;
+
+  scheduleAudioRelease();
+}
+
+function scheduleAudioRelease(): void {
+  if (muteReleaseTimeout !== null) {
+    clearTimeout(muteReleaseTimeout);
+  }
+  muteReleaseTimeout = window.setTimeout(() => {
+    for (const id of Object.keys(audioElements) as AudioTrackId[]) {
+      const el = audioElements[id];
+      if (el && el.paused && el.src !== "") {
+        el.removeAttribute("src");
+        el.load();
+      }
+    }
+    muteReleaseTimeout = null;
+  }, 15000) as unknown as number;
 }
 
 export async function startAmbientMusic(fadeIn = true): Promise<void> {
