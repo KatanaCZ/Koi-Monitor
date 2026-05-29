@@ -27,7 +27,11 @@ export function useZenLoadState(): {
   const zenMode = useAppStore((s) => s.zenMode);
   const zenTrackerResetSeq = useAppStore((s) => s.zenTrackerResetSeq);
   const cpuUsage = useAppStore((s) => s.systemInfo?.cpu.usage ?? 0);
-  const gpuUsage = useAppStore((s) => s.systemInfo?.gpu?.[0]?.usage ?? 0);
+  const gpuUsage = useAppStore((s) =>
+    s.systemInfo?.gpu && s.systemInfo.gpu.length > 0
+      ? Math.max(...s.systemInfo.gpu.map((g) => g.usage))
+      : 0
+  );
 
   const trackerRef = useRef(createZenLoadTracker());
   const wasZenRef = useRef(false);

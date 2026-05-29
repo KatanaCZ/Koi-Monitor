@@ -139,27 +139,66 @@ fn std_dev(samples: &VecDeque<f64>) -> f64 {
 
 #[cfg(target_os = "windows")]
 fn measure_latency(host: &str) -> Option<f64> {
-    use std::os::windows::process::CommandExt;
-    use std::process::Command;
+    type IpAddr = u32;
 
-    let timeout_ms = PING_TIMEOUT_MS.to_string();
-    let output = Command::new("ping")
-        .args([
-            "-n",
-            "1",
-            "-w",
-            &timeout_ms,
-            host,
-        ])
-        .creation_flags(0x08000000)
-        .output()
-        .ok()?;
+    #[link(name = "iphlpapi")]
+    extern "system" {
+        fn IcmpCreateFile() -> *mut std::ffi::c_void;
+        fn IcmpCloseHandle(icmp_handle: *mut std::ffi::c_void) -> i32;
+        fn IcmpSendEcho(
+            icmp_handle: *mut std::ffi::c_void,
+            destination_address: IpAddr,
+            request_data: *mut std::ffi::c_void,
+            request_size: u16,
+            request_options: *const std::ffi::c_void,
+            reply_buffer: *mut std::ffi::c_void,
+            reply_size: u32,
+            timeout: u32,
+        ) -> u32;
+    }
 
-    if !output.status.success() && output.stdout.is_empty() {
+    use std::net::Ipv4Addr;
+    use std::str::FromStr;
+
+    let ipv4 = Ipv4Addr::from_str(host).ok()?;
+    let octets = ipv4.octets();
+    let destination_address = u32::from_ne_bytes(octets);
+
+    let handle = unsafe { IcmpCreateFile() };
+    if handle.is_null() || handle as usize == usize::MAX {
         return None;
     }
 
-    parse_ping_ms(String::from_utf8_lossy(&output.stdout).as_ref())
+    let mut request_data = [0u8; 32];
+    let mut reply_buffer = [0u8; 256];
+    let reply_size = reply_buffer.len() as u32;
+
+    let replies = unsafe {
+        IcmpSendEcho(
+            handle,
+            destination_address,
+            request_data.as_mut_ptr() as _,
+            request_data.len() as u16,
+            std::ptr::null(),
+            reply_buffer.as_mut_ptr() as _,
+            reply_size,
+            PING_TIMEOUT_MS,
+        )
+    };
+
+    unsafe { IcmpCloseHandle(handle) };
+
+    if replies > 0 {
+        let rtt = u32::from_ne_bytes([
+            reply_buffer[8],
+            reply_buffer[9],
+            reply_buffer[10],
+            reply_buffer[11],
+        ]);
+        Some(rtt.max(1) as f64)
+    } else {
+        None
+    }
 }
 
 #[cfg(not(target_os = "windows"))]
@@ -188,6 +227,7 @@ fn measure_tcp_latency(host: &str, port: u16) -> Option<f64> {
     Some(start.elapsed().as_secs_f64() * 1000.0)
 }
 
+#[allow(dead_code)]
 fn parse_ping_ms(output: &str) -> Option<f64> {
     let lower = output.to_lowercase();
 

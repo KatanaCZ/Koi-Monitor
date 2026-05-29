@@ -9,7 +9,7 @@ export function formatUptimeShort(totalSeconds: number): string {
 
   const dStr = days > 0 ? `${days} j ` : "";
   const hStr = hours > 0 || days > 0 ? `${hours} h ` : "";
-  const mStr = `${minutes} m`;
+  const mStr = days > 0 ? "" : `${minutes} m`;
 
   return `${dStr}${hStr}${mStr}`.trim() || "0 m";
 }

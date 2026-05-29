@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { listen } from '@tauri-apps/api/event';
+import { invoke } from '@tauri-apps/api/core';
 import { useAppStore } from '../store';
 import { systemService, gamingLatencyService, GAMING_LATENCY_EVENT } from '../services/api';
 import { runDnsPingSession } from '../utils/dnsPing';
@@ -24,15 +25,20 @@ export function useTelemetryPoller() {
   const setGamingLatency = useAppStore((s) => s.setGamingLatency);
   const setDnsFetchAttempted = useAppStore((s) => s.setDnsFetchAttempted);
   const pushStatusToast = useAppStore((s) => s.pushStatusToast);
+  const alertsEnabled = useAppStore((s) => s.settings.alertThresholds.enabled);
 
   const pollGen = useRef(0);
   const zenModeRef = useRef(zenMode);
   const lastTelemetryApplyRef = useRef(0);
   zenModeRef.current = zenMode;
 
+  const lastActiveRef = useRef<boolean | null>(null);
+  const lastThrottledRef = useRef<boolean | null>(null);
+
   const runDnsPing = useCallback(
     async (checklist: string[], custom: CustomDnsServer | null, gen: number) => {
       if (zenModeRef.current) return;
+      if (typeof document !== 'undefined' && document.hidden) return;
       if (import.meta.env.DEV && isDevTelemetryBlocked()) return;
       await runDnsPingSession(
         checklist,
@@ -58,6 +64,50 @@ export function useTelemetryPoller() {
     },
     [setDnsResults, setDnsFetchAttempted, pushStatusToast],
   );
+
+  useEffect(() => {
+    if (!isTauriRuntime()) return;
+
+    const handleVisibilityChange = () => {
+      const isHidden = document.hidden;
+
+      // Toggle CPU/GPU bypass styles on the HTML element
+      if (typeof document !== 'undefined') {
+        document.documentElement.classList.toggle('document-hidden', isHidden);
+      }
+
+      const targetActive = isHidden ? alertsEnabled : true;
+      const targetThrottled = isHidden ? alertsEnabled : false;
+
+      if (targetActive !== lastActiveRef.current) {
+        lastActiveRef.current = targetActive;
+        invoke('set_telemetry_active', { active: targetActive }).catch(console.error);
+      }
+      if (targetThrottled !== lastThrottledRef.current) {
+        lastThrottledRef.current = targetThrottled;
+        invoke('set_telemetry_throttled', { throttled: targetThrottled }).catch(console.error);
+      }
+
+      // Instant refresh on restore
+      if (!isHidden && !zenModeRef.current) {
+        runDnsPing(dnsChecklist, customDns, pollGen.current).catch(console.error);
+      }
+    };
+
+    handleVisibilityChange();
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (typeof document !== 'undefined') {
+        document.documentElement.classList.remove('document-hidden');
+      }
+      lastActiveRef.current = null;
+      lastThrottledRef.current = null;
+      invoke('set_telemetry_active', { active: true }).catch(console.error);
+      invoke('set_telemetry_throttled', { throttled: false }).catch(console.error);
+    };
+  }, [alertsEnabled, dnsChecklist, customDns, runDnsPing]);
 
   useEffect(() => {
     const gen = ++pollGen.current;

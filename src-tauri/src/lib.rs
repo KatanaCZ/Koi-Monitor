@@ -472,6 +472,20 @@ fn system_info_from_state(m: &SharedMonitorState) -> SystemInfo {
     }
 }
 
+use std::sync::atomic::{AtomicBool, Ordering};
+static TELEMETRY_ACTIVE: AtomicBool = AtomicBool::new(true);
+static TELEMETRY_THROTTLED: AtomicBool = AtomicBool::new(false);
+
+#[tauri::command]
+fn set_telemetry_active(active: bool) {
+    TELEMETRY_ACTIVE.store(active, Ordering::Relaxed);
+}
+
+#[tauri::command]
+fn set_telemetry_throttled(throttled: bool) {
+    TELEMETRY_THROTTLED.store(throttled, Ordering::Relaxed);
+}
+
 #[tauri::command]
 fn get_gaming_latency(
     state: tauri::State<'_, GamingLatencyState>,
@@ -611,7 +625,9 @@ pub fn run() {
             get_gaming_latency,
             get_drivers,
             open_windows_update,
-            get_app_icon_png
+            get_app_icon_png,
+            set_telemetry_active,
+            set_telemetry_throttled
         ])
         .setup(move |app| {
             log::info!("Application setup complete");
@@ -698,7 +714,6 @@ pub fn run() {
                 let mut last_gpu_wmi = std::time::Instant::now()
                     .checked_sub(std::time::Duration::from_secs(10))
                     .unwrap_or_else(std::time::Instant::now);
-                let gpu_wmi_interval = std::time::Duration::from_secs(2);
 
                 let mut gpu_usage = 0.0f32;
                 let mut vram_used = 0u64;
@@ -714,6 +729,11 @@ pub fn run() {
                 }
 
                 loop {
+                    if !TELEMETRY_ACTIVE.load(Ordering::Relaxed) {
+                        std::thread::sleep(std::time::Duration::from_secs(2));
+                        continue;
+                    }
+
                     tick = tick.wrapping_add(1);
                     sys.refresh_cpu_usage();
                     sys.refresh_memory();
@@ -784,13 +804,21 @@ pub fn run() {
                     last_check = std::time::Instant::now();
 
                     #[cfg(target_os = "windows")]
-                    if last_gpu_wmi.elapsed() >= gpu_wmi_interval {
-                        if let Some(wmi) = &wmi_con {
-                            let (usage, mem) = read_gpu_wmi_metrics(wmi, &selected_gpu);
-                            gpu_usage = usage;
-                            vram_used = mem;
+                    {
+                        let dynamic_interval = if cpu_usage < 15.0 && gpu_usage < 5.0 {
+                            std::time::Duration::from_secs(6)
+                        } else {
+                            std::time::Duration::from_secs(2)
+                        };
+
+                        if last_gpu_wmi.elapsed() >= dynamic_interval {
+                            if let Some(wmi) = &wmi_con {
+                                let (usage, mem) = read_gpu_wmi_metrics(wmi, &selected_gpu);
+                                gpu_usage = usage;
+                                vram_used = mem;
+                            }
+                            last_gpu_wmi = std::time::Instant::now();
                         }
-                        last_gpu_wmi = std::time::Instant::now();
                     }
 
                     #[cfg(target_os = "windows")]
@@ -864,7 +892,12 @@ pub fn run() {
                         }
                     }
 
-                    std::thread::sleep(std::time::Duration::from_secs(1));
+                    let sleep_secs = if TELEMETRY_THROTTLED.load(Ordering::Relaxed) {
+                        5
+                    } else {
+                        1
+                    };
+                    std::thread::sleep(std::time::Duration::from_secs(sleep_secs));
                 }
             });
 

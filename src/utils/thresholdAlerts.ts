@@ -198,7 +198,8 @@ function trackSustainedBreach(
 }
 
 function primaryGpuUsage(systemInfo: SystemInfo): number {
-  return systemInfo.gpu[0]?.usage ?? 0;
+  if (!systemInfo.gpu || systemInfo.gpu.length === 0) return 0;
+  return Math.max(...systemInfo.gpu.map((g) => g.usage));
 }
 
 export interface ThresholdAlertResult {

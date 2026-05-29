@@ -16,9 +16,35 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) · v
 
 ### Modifié
 
-- **Notes de version** — Releases GitHub publient la section **Pour vous** ; détail contributeur dans **Détail technique** (voir [`docs/marketing-context.md`](docs/marketing-context.md))
+### Corrigé
+
+## [1.1.3] - 2026-05-29
+
+### Pour vous
+
+- **PC à deux cartes graphiques** — Le mode Zen et l’état Boost suivent la carte réellement sollicitée (portables avec puce intégrée + dédiée). Le widget GPU affiche toujours les bonnes métriques.
+- **Ping en jeu plus juste** — La latence passe par les outils Windows natifs : moins de décalage affiché et moins de charge processeur.
+- **Veille intelligente** — Minimisée, dans la barre d’état ou derrière une autre fenêtre, Koi se met au repos (télémétrie, DNS, effets visuels) pour libérer CPU, GPU et RAM. Avec les alertes activées, la surveillance continue en filigrane.
+- **Plus léger au quotidien** — Musique ambiante avec fondu doux ; widgets agrandis sans double copie en mémoire ; musique en sourdine qui libère la RAM après quinze secondes.
+- **Mode Zen allégé** — Moins de données chargées en coulisse pour une expérience encore plus fluide.
+
+### Détail technique
+
+### Ajouté
+
+- **Store Zustand en slices** — `settingsSlice`, `telemetrySlice`, `uiSlice` + `store/types.ts` ; hooks `useAtmosphereSync`, `useDriversData`, `useKeyboardNavigation` ; vues `DashboardView` / `ZenView`
+
+### Modifié
+
+- **Agrégation multi-GPU** — Enveloppe d’utilisation max (`Math.max` sur tous les GPU) dans `useZenLoadState`, `telemetrySlice` et `thresholdAlerts` ; `GpuWidget` et `ZenMetricsDock` sélectionnent l’index le plus actif
+- **Ping Windows natif IcmpSendEcho** — Remplacement de `ping.exe` par FFI `IcmpSendEcho` (`iphlpapi.dll`) ; clamp minimum 1 ms
+- **Contrôle télémétrie visibilité** — `document.hidden` + IPC `TELEMETRY_ACTIVE` / `TELEMETRY_THROTTLED` ; classe `html.document-hidden` ; suspension DNS avec rafraîchissement au retour ; timeout DNS TCP 400 ms
+- **Perf arrière-plan** — `useAtmosphereSync` coupe le blur glass hors focus ; démontage widgets grille lors d’agrandissement DNS/Pilotes ; filtrage télémétrie Zen ; throttling WMI GPU 6 s au repos ; `formatUptimeShort` compact ≥ 24 h
+- **Audio** — Fondu 300 ms sur pause/mute ; déchargement buffers audio après 15 s en sourdine (`ambientMusic.ts`)
 
 ### Corrigé
+
+- **Mode Boost multi-GPU** — Détection charge basée sur le GPU le plus sollicité, plus sur `gpu[0]` fixe
 
 ## [1.1.2] - 2026-05-28
 
@@ -113,8 +139,9 @@ Première release publique — moniteur Windows local, open source.
 
 - n/a
 
-[Unreleased]: https://github.com/KatanaCZ/Koi-Monitor/compare/v1.1.2...HEAD
+[Unreleased]: https://github.com/KatanaCZ/Koi-Monitor/compare/v1.1.3...HEAD
 [1.0.0]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.0.0
 [1.1.0]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.0
 [1.1.1]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.1
 [1.1.2]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.2
+[1.1.3]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.3

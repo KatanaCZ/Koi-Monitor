@@ -90,7 +90,7 @@ pub struct DnsResult {
     pub is_best: bool,
 }
 
-const DNS_CONNECT_TIMEOUT_MS: u64 = 800;
+const DNS_CONNECT_TIMEOUT_MS: u64 = 400;
 
 pub async fn ping_dns_server(server: &str) -> Result<f64, String> {
     let start = Instant::now();

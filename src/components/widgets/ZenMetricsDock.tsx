@@ -109,8 +109,20 @@ function LargeMetric({
 export const ZenMetricsDock = memo(function ZenMetricsDock() {
   const cpu = useAppStore((s) => s.systemInfo?.cpu.usage ?? 0);
   const cpuTemp = useAppStore((s) => s.systemInfo?.cpu.temperature ?? null);
-  const gpu = useAppStore((s) => s.systemInfo?.gpu?.[0]?.usage ?? 0);
-  const gpuTemp = useAppStore((s) => s.systemInfo?.gpu?.[0]?.temperature ?? null);
+  const activeGpuIndex = useAppStore((s) => {
+    if (!s.systemInfo?.gpu || s.systemInfo.gpu.length === 0) return 0;
+    let maxIdx = 0;
+    let maxUsage = -1;
+    s.systemInfo.gpu.forEach((g, idx) => {
+      if (g.usage > maxUsage) {
+        maxUsage = g.usage;
+        maxIdx = idx;
+      }
+    });
+    return maxIdx;
+  });
+  const gpu = useAppStore((s) => s.systemInfo?.gpu?.[activeGpuIndex]?.usage ?? 0);
+  const gpuTemp = useAppStore((s) => s.systemInfo?.gpu?.[activeGpuIndex]?.temperature ?? null);
   const ram = useAppStore((s) => s.systemInfo?.memory.usage_percent ?? 0);
   const gamingLatency = useAppStore((s) => s.gamingLatency);
   const theme = useAppStore((s) => s.theme);

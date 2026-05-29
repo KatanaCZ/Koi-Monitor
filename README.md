@@ -14,7 +14,7 @@
 ![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?style=for-the-badge&logo=windows&logoColor=white)
 ![Léger](https://img.shields.io/badge/Léger-~10–25%20Mo-00d4ff?style=for-the-badge)
 ![Gratuit](https://img.shields.io/badge/Gratuit-MIT-00ff9d?style=for-the-badge)
-![Version](https://img.shields.io/badge/Version-1.1.2-9d4edd?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-1.1.3-9d4edd?style=for-the-badge)
 
 <br />
 
@@ -86,11 +86,12 @@ Un moniteur ne devrait pas être l’app la plus lourde de votre PC.
 |--|-------------|------------------------------|
 | **Disque** | ~10–25 Mo | Souvent 150 Mo+ |
 | **RAM au repos** | ~80–150 Mo | Souvent bien plus |
-| **En veille** | Très faible | Variable |
+| **En veille** | Très faible — l’app se met au repos minimisée ou en arrière-plan | Variable |
 
 Laissez-la tourner pendant le travail, le stream ou une session de jeu. Vous ne devriez pas sentir une deuxième app lourde à côté.
 
-- **Moteur de particules Canvas 2D** : pétales en Canvas avec textures pré-rendues (offscreen), couche isolée `.sakura-fx-layer`, bridage strict **30 FPS** (focus) / **24 FPS** (hors focus) sans rattrapage multi-image, glow bas sans filtre CSS coûteux ; verre dépoli optimisé pour WebView2 (couches GPU, pas de double flou dans les cartes bento).
+- **Moteur de particules Canvas 2D** : pétales en Canvas avec textures pré-rendues (offscreen), couche isolée, bridage strict **30 FPS** (focus) / **24 FPS** (hors focus) ; verre dépoli qui se coupe hors focus pour libérer le GPU.
+- **Veille intelligente** : minimisée, dans la barre d’état ou derrière une autre fenêtre, Koi suspend télémétrie, DNS et effets visuels. Les alertes actives continuent de surveiller en filigrane.
 
 
 ### Mode Zen 🌸
@@ -101,7 +102,7 @@ Un clic sur la fleur de cerisier. Le dashboard s’efface. Il reste :
 
 - une **grande horloge** et la date ;
 - un **étang** qui ondule selon l’état **Zen · Flow · Boost** ;
-- **CPU · GPU · Jeu** en grands chiffres, **RAM · Actif** en dessous (masquables) ;
+- **CPU · GPU · Jeu** en grands chiffres, **RAM · Actif** en dessous (masquables) — le GPU affiché est celui réellement sollicité (portables bi-GPU) ;
 - la barre du haut qui réapparaît au survol — volume, réglages, cloche.
 
 Parfait sur un second écran, en focus, ou quand vous voulez juste du calme.
@@ -135,7 +136,7 @@ Compare Google, Cloudflare, Quad9, OpenDNS. Cochez les serveurs, lancez le test.
 
 ### 🎮 Prêt pour le jeu ?
 
-Badge simple : *Prêt pour le jeu*, *Limite ranked*, *Problème box / Wi‑Fi*… Un clic pour le détail : box, internet, jitter. Visible sur le dashboard et en mode Zen.
+Badge simple : *Prêt pour le jeu*, *Limite ranked*, *Problème box / Wi‑Fi*… Mesure native Windows pour un ping plus juste. Un clic pour le détail : box, internet, jitter. Visible sur le dashboard et en mode Zen.
 
 ### 🔧 Pilotes
 
