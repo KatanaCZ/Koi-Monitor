@@ -714,7 +714,6 @@ pub fn run() {
                 let mut last_gpu_wmi = std::time::Instant::now()
                     .checked_sub(std::time::Duration::from_secs(10))
                     .unwrap_or_else(std::time::Instant::now);
-                let gpu_wmi_interval = std::time::Duration::from_secs(2);
 
                 let mut gpu_usage = 0.0f32;
                 let mut vram_used = 0u64;
