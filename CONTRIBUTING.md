@@ -99,7 +99,7 @@ CI also runs `npm audit`, `cargo audit`, and a Recharts bundle budget (≤ 550 K
 - One logical change per PR when possible
 - Update user-visible behavior in `README.md` and technical details in `docs/DEVELOPMENT.md` when relevant
 - **Dependabot PRs:** merge **minor/patch** groupées quand CI `audit` est verte (hebdo, npm + cargo)
-- **Majors npm ignorées** dans `.github/dependabot.yml` : `react`, `react-dom`, `@types/react*`, `recharts`, `framer-motion`, `@vitejs/plugin-react` — migrations manuelles via branche `feat/*` (React 19, recharts 3, framer-motion 12, etc.)
+- **Majors npm ignorées** dans `.github/dependabot.yml` : `react`, `react-dom`, `@types/react*`, `recharts`, `framer-motion`, `@vitejs/plugin-react`, `vite`, `typescript`, `zustand`, `lucide-react` — migrations manuelles via branche `chore/deps-*` ou `feat/*` + QA locale (`koi.bat dev`, `npm run build`, `tsc`)
 - Fermer sans merger les PR Dependabot major obsolètes plutôt que les laisser pourrir
 
 ## Code conventions
