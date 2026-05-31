@@ -10,21 +10,16 @@ import {
   normalizeDnsChecklist,
 } from '../../types';
 import { syncGlassBlurClass } from '../../utils/glassBlur';
+import { isMaxAtmosphereProfile } from '../../utils/atmosphereSettings';
 import {
-  isMaxAtmosphereProfile,
-  MAX_ATMOSPHERE_TOAST,
-} from '../../utils/atmosphereSettings';
-import {
-  ATMOSPHERE_PRESET_SEGMENT,
   applyAtmospherePreset,
   inferAtmospherePreset,
   type AtmospherePresetId,
 } from '../../utils/atmospherePresets';
-import { REFRESH_OPTIONS, DNS_OPTIONS, BACKGROUND_AURA_SEGMENT, NEON_GLOW_SEGMENT } from '../../utils/settingsOptions';
+import { REFRESH_OPTIONS, DNS_OPTIONS } from '../../utils/settingsOptions';
 import { isValidCustomDnsIpv4 } from '../../utils/dnsPing';
 import { APP_VERSION } from '../../appVersion';
 import {
-  ALERT_SENSITIVITY_SEGMENT,
   applyDesktopSensitivity,
   applyGamingNetworkAlerts,
   inferDesktopSensitivity,
@@ -35,6 +30,7 @@ import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { SlashTitle } from './SlashTitle';
 import { DonateButton } from './DonateButton';
 import { toastToneClass } from './StatusToast';
+import { useTranslation } from '../../hooks/useTranslation';
 
 type TabId = 'general' | 'visual' | 'network' | 'alerts' | 'about';
 
@@ -45,33 +41,6 @@ interface Tab {
   label: string;
   icon: React.ReactNode;
 }
-
-const tabs: Tab[] = [
-  { id: 'general', label: 'Essentiel', icon: <Monitor size={15} /> },
-  { id: 'visual', label: 'Atmosphère', icon: <Eye size={15} /> },
-  { id: 'network', label: 'Connexion', icon: <Wifi size={15} /> },
-  { id: 'alerts', label: 'Veille', icon: <Bell size={15} /> },
-  { id: 'about', label: 'À propos', icon: <Info size={15} /> },
-];
-
-const SAKURA_OPTIONS: { value: AppSettings['sakuraIntensity']; label: string }[] = [
-  { value: 'off', label: 'Aucun' },
-  { value: 'low', label: 'Léger' },
-  { value: 'medium', label: 'Doux' },
-  { value: 'high', label: 'Dense' },
-];
-
-const SAKURA_COLOR_OPTIONS: { value: AppSettings['sakuraColor']; label: string }[] = [
-  { value: 'pink', label: 'Rose' },
-  { value: 'purple', label: 'Violet' },
-  { value: 'blue', label: 'Bleu' },
-  { value: 'green', label: 'Menthe' },
-];
-
-const THEME_OPTIONS = [
-  { value: 'dark' as const, label: 'Sombre' },
-  { value: 'light' as const, label: 'Clair' },
-];
 
 const SegmentControl: <T extends string | number>(props: {
   options: { value: T; label: string }[];
@@ -231,6 +200,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   initialTab,
   onEasterSecretTap,
 }) => {
+  const { t, language } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabId>('general');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'warning' } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
@@ -243,6 +213,57 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const setTheme = useAppStore((s) => s.setTheme);
   const dialogRef = useFocusTrap(isOpen);
   const prefersReducedMotion = useReducedMotion();
+
+  const tabs: Tab[] = [
+    { id: 'general', label: t('tab_general'), icon: <Monitor size={15} /> },
+    { id: 'visual', label: t('tab_visual'), icon: <Eye size={15} /> },
+    { id: 'network', label: t('tab_network'), icon: <Wifi size={15} /> },
+    { id: 'alerts', label: t('tab_alerts'), icon: <Bell size={15} /> },
+    { id: 'about', label: t('tab_about'), icon: <Info size={15} /> },
+  ];
+
+  const sakuraOptions = [
+    { value: 'off' as const, label: t('sakura_intensity_off') },
+    { value: 'low' as const, label: t('sakura_intensity_low') },
+    { value: 'medium' as const, label: t('sakura_intensity_medium') },
+    { value: 'high' as const, label: t('sakura_intensity_high') },
+  ];
+
+  const sakuraColorOptions = [
+    { value: 'pink' as const, label: t('sakura_color_pink') },
+    { value: 'purple' as const, label: t('sakura_color_purple') },
+    { value: 'blue' as const, label: t('sakura_color_blue') },
+    { value: 'green' as const, label: t('sakura_color_green') },
+  ];
+
+  const themeOptions = [
+    { value: 'dark' as const, label: t('theme_dark') },
+    { value: 'light' as const, label: t('theme_light') },
+  ];
+
+  const backgroundAuraSegment = [
+    { value: 'off' as const, label: t('aura_off') },
+    { value: 'soft' as const, label: t('aura_soft') },
+    { value: 'full' as const, label: t('aura_full') },
+  ];
+
+  const neonGlowSegment = [
+    { value: 'soft' as const, label: t('neon_soft') },
+    { value: 'balanced' as const, label: t('neon_balanced') },
+    { value: 'vivid' as const, label: t('neon_vivid') },
+  ];
+
+  const atmospherePresetSegment = [
+    { value: 'zen' as const, label: 'Zen' },
+    { value: 'doux' as const, label: language === 'fr' ? 'Doux' : 'Soft' },
+    { value: 'aura' as const, label: 'Aura' },
+  ];
+
+  const alertSensitivitySegment = [
+    { value: 'low' as const, label: t('sensitivity_low') },
+    { value: 'medium' as const, label: t('sensitivity_medium') },
+    { value: 'high' as const, label: t('sensitivity_high') },
+  ];
 
   const showToast = (message: string, type: 'success' | 'warning' = 'success') => {
     setToast({ message, type });
@@ -299,16 +320,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         : settings.dnsChecklist.filter((n) => n !== name),
     );
     if (newList.length === 0) {
-      showToast('Gardez au moins un serveur sous observation', 'warning');
+      showToast(t('toast_dns_keep_one'), 'warning');
       return;
     }
     updateSettings({ dnsChecklist: newList });
-    showToast(checked ? `${name} rejoint l'observation` : `${name} retiré de l'observation`);
+    showToast(
+      checked
+        ? t('toast_dns_added', { name })
+        : t('toast_dns_removed', { name })
+    );
   };
 
   const customIpError =
     customIpDraft.trim().length > 0 && !isValidCustomDnsIpv4(customIpDraft.trim())
-      ? 'Adresse invalide'
+      ? t('settings_custom_dns_invalid_ip')
       : '';
 
   const customDnsDraftIp = customIpDraft.trim();
@@ -334,7 +359,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     const current = settings.customDns;
     if (current?.ip === ip && current.label === label) return;
     updateSettings({ customDns: { ip, label } });
-    showToast('Serveur personnel mémorisé');
+    showToast(t('toast_dns_personal_saved'));
   };
 
   const handleCustomDnsKeyDown = (e: React.KeyboardEvent) => {
@@ -348,17 +373,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setCustomIpDraft('');
     setCustomLabelDraft('');
     updateSettings({ customDns: null });
-    showToast('Serveur personnel retiré');
+    showToast(t('toast_dns_personal_removed'));
   };
 
   const handleReset = () => {
     if (!confirmReset) {
       setConfirmReset(true);
-      showToast('Confirmez une seconde fois pour tout effacer', 'warning');
+      showToast(t('toast_reset_confirm_message'), 'warning');
       return;
     }
 
     const defaultSettings: AppSettings = {
+      language: settings.language,
       refreshInterval: 2000,
       dnsInterval: 15000,
       sakuraIntensity: 'medium',
@@ -380,7 +406,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
     syncGlassBlurClass(defaultSettings.enableGlassmorphicBlur);
     setConfirmReset(false);
-    showToast('Tout revient à l\'essentiel');
+    showToast(t('toast_reset_success'));
   };
 
   const handleDesktopSensitivity = (sensitivity: AlertDesktopSensitivity) => {
@@ -390,7 +416,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         desktop: applyDesktopSensitivity(sensitivity),
       },
     });
-    showToast('Seuil de veille mémorisé');
+    showToast(t('toast_alert_saved'));
   };
 
   const handleGamingNetworkAlerts = (networkAlerts: boolean) => {
@@ -400,7 +426,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         gaming: applyGamingNetworkAlerts(networkAlerts),
       },
     });
-    showToast('Préférence mémorisée');
+    showToast(t('toast_pref_saved'));
   };
 
   const desktopSensitivity = inferDesktopSensitivity(settings.alertThresholds.desktop);
@@ -419,17 +445,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       syncGlassBlurClass(Boolean(value));
     }
     if (reachedMaxAtmosphere) {
-      showToast(MAX_ATMOSPHERE_TOAST, 'warning');
+      showToast(t('toast_max_atmosphere'), 'warning');
       return;
     }
     if (key === 'simplifiedMode') {
       if (value) {
-        showToast('Mode essentiel activé. Analyse en cours');
+        showToast(t('toast_simplified_active'));
       } else {
-        showToast('Analyse complète en cours. Comptez une à deux minutes', 'warning');
+        showToast(t('toast_simplified_inactive'), 'warning');
       }
     } else {
-      showToast('Préférence mémorisée');
+      showToast(t('toast_pref_saved'));
     }
   };
 
@@ -443,10 +469,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     syncGlassBlurClass(Boolean(patch.enableGlassmorphicBlur));
 
     if (reachedMaxAtmosphere) {
-      showToast(MAX_ATMOSPHERE_TOAST, 'warning');
+      showToast(t('toast_max_atmosphere'), 'warning');
       return;
     }
-    showToast('Préférence mémorisée');
+    showToast(t('toast_pref_saved'));
   };
 
   const handleTabKeyDown = (e: React.KeyboardEvent, tabId: TabId) => {
@@ -497,11 +523,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <div className="bento-card overflow-hidden flex flex-col">
               <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)] shrink-0">
                 <h2 id="settings-modal-title" className="text-lg font-semibold text-[var(--foreground)]">
-                  Paramètres
+                  {t('settings_title')}
                 </h2>
                 <button
                   onClick={onClose}
-                  aria-label="Fermer les paramètres"
+                  aria-label={t('settings_close_aria')}
                   className="w-11 h-11 rounded-lg flex items-center justify-center text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)] transition-colors cursor-pointer"
                 >
                   <X size={16} />
@@ -511,7 +537,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <div className="flex min-h-[26rem]">
                 <nav
                   role="tablist"
-                  aria-label="Catégories de paramètres"
+                  aria-label={t('settings_tabs_aria')}
                   className="w-[7.25rem] shrink-0 border-r border-[var(--border)] p-2 flex flex-col gap-1 bg-[var(--surface-inset)]/40"
                 >
                   {tabs.map((tab) => (
@@ -546,32 +572,44 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         aria-labelledby="tab-general"
                         {...panelMotion}
                       >
-                        <SettingRow label="Cadence" hint="À quelle vitesse Koi lit votre machine">
+                        <SettingRow label={t('settings_cadence')} hint={t('settings_cadence_hint')}>
                           <SegmentControl
                             compact
                             options={REFRESH_OPTIONS}
                             value={settings.refreshInterval}
                             onChange={(v) => handleSettingChange('refreshInterval', v)}
-                            ariaLabel="Cadence de lecture des métriques"
+                            ariaLabel={t('settings_cadence')}
+                          />
+                        </SettingRow>
+                        <SettingRow label={t('settings_lang_label')} hint={t('settings_lang_hint')}>
+                          <SegmentControl
+                            compact
+                            options={[
+                              { value: 'fr', label: 'Français' },
+                              { value: 'en', label: 'English' },
+                            ]}
+                            value={settings.language}
+                            onChange={(v) => handleSettingChange('language', v)}
+                            ariaLabel={t('settings_lang_aria')}
                           />
                         </SettingRow>
                         <NeonSwitch
                           checked={settings.simplifiedMode}
                           onChange={(v) => handleSettingChange('simplifiedMode', v)}
-                          label="Pilotes essentiels"
-                          hint="Trois regards suffisent. L'analyse complète demande un moment de recueil"
+                          label={t('settings_drivers_essential')}
+                          hint={t('settings_drivers_essential_hint')}
                         />
                         <NeonSwitch
                           checked={settings.launchAtStartup}
                           onChange={(v) => handleSettingChange('launchAtStartup', v)}
-                          label="Éveil avec Windows"
-                          hint="Koi vous accompagne dès l'ouverture de session"
+                          label={t('settings_startup')}
+                          hint={t('settings_startup_hint')}
                         />
                         <NeonSwitch
                           checked={settings.minimizeToTray}
                           onChange={(v) => handleSettingChange('minimizeToTray', v)}
-                          label="Présence discrète"
-                          hint="Fermer masque l'app. Un clic dans la barre la réveille"
+                          label={t('settings_tray')}
+                          hint={t('settings_tray_hint')}
                         />
                       </motion.div>
                     )}
@@ -586,86 +624,86 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       >
                         <div className="pb-1">
                           <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--text-subtle)] mb-1">
-                            Préréglage Koi
+                            {t('settings_preset')}
                           </p>
                           <SegmentControl
                             wrap
                             compact
-                            options={ATMOSPHERE_PRESET_SEGMENT}
+                            options={atmospherePresetSegment}
                             value={atmospherePreset}
                             onChange={handleAtmospherePreset}
-                            ariaLabel="Préréglage d'atmosphère Koi"
+                            ariaLabel={t('settings_preset')}
                           />
                           <p className="text-[11px] text-[var(--text-muted)] mt-2 leading-snug">
-                            Un geste pour l&apos;ambiance — affinez en dessous si besoin
+                            {t('settings_preset_hint')}
                           </p>
                         </div>
 
-                        <SettingSection title="Lumière">
-                          <SettingRow label="Thème" hint="Clair pour le jour, sombre pour la nuit">
+                        <SettingSection title={t('settings_section_light')}>
+                          <SettingRow label={t('settings_theme')} hint={t('settings_theme_hint')}>
                             <SegmentControl
                               compact
-                              options={THEME_OPTIONS}
+                              options={themeOptions}
                               value={theme}
                               onChange={(v) => setTheme(v)}
-                              ariaLabel="Thème de l'application"
+                              ariaLabel={t('settings_theme')}
                             />
                           </SettingRow>
                         </SettingSection>
 
-                        <SettingSection title="Nature">
-                          <SettingRow label="Sakura" hint="Pétales flottants en fond d'écran">
+                        <SettingSection title={t('settings_section_nature')}>
+                          <SettingRow label={t('settings_sakura')} hint={t('settings_sakura_hint')}>
                             <SegmentControl
                               compact
-                              options={SAKURA_OPTIONS}
+                              options={sakuraOptions}
                               value={settings.sakuraIntensity}
                               onChange={(v) => handleSettingChange('sakuraIntensity', v)}
-                              ariaLabel="Intensité des pétales Sakura"
+                              ariaLabel={t('settings_sakura')}
                             />
                           </SettingRow>
                           {settings.sakuraIntensity !== 'off' && (
-                            <SettingRow label="Teinte Sakura" hint="La couleur du vent et des touches de l'interface">
+                            <SettingRow label={t('settings_sakura_tint')} hint={t('settings_sakura_tint_hint')}>
                               <SegmentControl
                                 compact
-                                options={SAKURA_COLOR_OPTIONS}
+                                options={sakuraColorOptions}
                                 value={settings.sakuraColor || 'pink'}
                                 onChange={(v) => handleSettingChange('sakuraColor', v)}
-                                ariaLabel="Teinte des pétales Sakura"
+                                ariaLabel={t('settings_sakura_tint')}
                               />
                             </SettingRow>
                           )}
                         </SettingSection>
 
-                        <SettingSection title="Ambiance">
+                        <SettingSection title={t('settings_section_ambiance')}>
                           <NeonSwitch
                             checked={settings.enableGlassmorphicBlur}
                             onChange={(v) => handleSettingChange('enableGlassmorphicBlur', v)}
-                            label="Verre dépoli"
-                            hint="Effet cristal sur les panneaux. Sans lui, l'interface gagne en légèreté"
+                            label={t('settings_glass')}
+                            hint={t('settings_glass_hint')}
                           />
-                          <SettingRow label="Aura de fond" hint="Brume colorée derrière l'interface. Aucune pour un fond plus neutre">
+                          <SettingRow label={t('settings_aura')} hint={t('settings_aura_hint')}>
                             <SegmentControl
                               compact
-                              options={BACKGROUND_AURA_SEGMENT}
+                              options={backgroundAuraSegment}
                               value={settings.backgroundAura}
                               onChange={(v) => handleSettingChange('backgroundAura', v)}
-                              ariaLabel="Aura de fond"
+                              ariaLabel={t('settings_aura')}
                             />
                           </SettingRow>
-                          <SettingRow label="Lueur néon" hint="Intensité des reflets sur les chiffres et badges">
+                          <SettingRow label={t('settings_neon')} hint={t('settings_neon_hint')}>
                             <SegmentControl
                               compact
-                              options={NEON_GLOW_SEGMENT}
+                              options={neonGlowSegment}
                               value={settings.neonGlow}
                               onChange={(v) => handleSettingChange('neonGlow', v)}
-                              ariaLabel="Lueur néon"
+                              ariaLabel={t('settings_neon')}
                             />
                           </SettingRow>
                           <NeonSwitch
                             checked={settings.calmMotion}
                             onChange={(v) => handleSettingChange('calmMotion', v)}
-                            label="Animations calmes"
-                            hint="Moins de mouvement à l'écran, même si Windows autorise les effets"
+                            label={t('settings_calm')}
+                            hint={t('settings_calm_hint')}
                           />
                         </SettingSection>
                       </motion.div>
@@ -679,18 +717,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         {...panelMotion}
                         className="space-y-3"
                       >
-                        <SettingRow label="Rythme DNS" hint="Fréquence des contrôles réseau">
+                        <SettingRow label={t('settings_dns_interval')} hint={t('settings_dns_interval_hint')}>
                           <SegmentControl
                             compact
                             options={DNS_OPTIONS}
                             value={settings.dnsInterval}
                             onChange={(v) => handleSettingChange('dnsInterval', v)}
-                            ariaLabel="Rythme des contrôles DNS"
+                            ariaLabel={t('settings_dns_interval')}
                           />
                         </SettingRow>
                         <div>
                           <p className="text-sm font-medium text-[var(--foreground)] mb-2">
-                            Serveurs observés
+                            {t('settings_dns_servers')}
                           </p>
                           <div className="grid grid-cols-2 gap-2">
                             {POPULAR_DNS_SERVERS.map((dns) => (
@@ -708,10 +746,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           <div className="flex items-start justify-between gap-3 mb-3">
                             <div className="min-w-0">
                               <p className="text-sm font-medium text-[var(--foreground)] leading-snug">
-                                Serveur personnel
+                                {t('settings_custom_dns')}
                               </p>
                               <p className="text-[11px] text-[var(--text-muted)] mt-0.5 leading-snug">
-                                Un DNS de confiance, chez vous. L&apos;adresse suffit, Koi s&apos;en souvient
+                                {t('settings_custom_dns_hint')}
                               </p>
                             </div>
                             {settings.customDns && (
@@ -720,7 +758,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                 onClick={clearCustomDns}
                                 className="shrink-0 text-[11px] font-semibold text-[var(--text-muted)] hover:text-[var(--foreground)] transition-colors cursor-pointer px-2 py-1 -mr-1 -mt-0.5"
                               >
-                                Effacer
+                                {t('settings_custom_dns_clear')}
                               </button>
                             )}
                           </div>
@@ -730,7 +768,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                 htmlFor="custom-dns-ip"
                                 className="block text-[11px] font-medium text-[var(--text-muted)] mb-1.5"
                               >
-                                Adresse
+                                {t('settings_custom_dns_ip')}
                               </label>
                               <div className="flex gap-2 items-start">
                                 <div className="flex-1 min-w-0">
@@ -740,7 +778,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                     inputMode="decimal"
                                     autoComplete="off"
                                     spellCheck={false}
-                                    placeholder="192.168.1.1 · chez vous, en exemple"
+                                    placeholder={t('settings_custom_dns_ip_placeholder')}
                                     value={customIpDraft}
                                     onChange={(e) => setCustomIpDraft(e.target.value)}
                                     onKeyDown={handleCustomDnsKeyDown}
@@ -761,10 +799,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                   type="button"
                                   onClick={commitCustomDns}
                                   disabled={!canValidateCustomDns}
-                                  aria-label="Valider le serveur DNS personnel"
+                                  aria-label={t('settings_custom_dns_validate')}
                                   className="shrink-0 h-10 px-4 rounded-xl text-xs font-semibold transition-opacity cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed bg-[var(--accent)] text-white hover:opacity-90"
                                 >
-                                  Valider
+                                  {t('settings_custom_dns_validate')}
                                 </button>
                               </div>
                             </div>
@@ -773,15 +811,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                 htmlFor="custom-dns-label"
                                 className="block text-[11px] font-medium text-[var(--text-muted)] mb-1.5"
                               >
-                                Surnom
-                                <span className="font-normal opacity-70"> · optionnel</span>
+                                {t('settings_custom_dns_nickname')}
+                                <span className="font-normal opacity-70">{t('settings_custom_dns_nickname_optional')}</span>
                               </label>
                               <input
                                 id="custom-dns-label"
                                 type="text"
                                 maxLength={24}
                                 autoComplete="off"
-                                placeholder="Pi-hole · Ma box · un mot pour l'accueillir"
+                                placeholder={t('settings_custom_dns_nickname_placeholder')}
                                 value={customLabelDraft}
                                 onChange={(e) => setCustomLabelDraft(e.target.value)}
                                 onKeyDown={handleCustomDnsKeyDown}
@@ -809,34 +847,34 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                 enabled,
                               },
                             });
-                            showToast('Préférence mémorisée');
+                            showToast(t('toast_pref_saved'));
                           }}
-                          label="Veille Koi"
-                          hint="Signaux calmes en bas de l'écran. Jamais de fenêtre intrusive"
+                          label={t('settings_alerts_title')}
+                          hint={t('settings_alerts_hint')}
                         />
                         {alertsEnabled && (
                           <>
                             <div className="py-3 border-b border-[var(--border)]">
                               <p className="text-sm font-medium text-[var(--foreground)] mb-2">
-                                Sensibilité
+                                {t('settings_alerts_sensitivity')}
                               </p>
                               <SegmentControl
                                 wrap
                                 compact
-                                options={ALERT_SENSITIVITY_SEGMENT}
+                                options={alertSensitivitySegment}
                                 value={desktopSensitivity}
                                 onChange={handleDesktopSensitivity}
-                                ariaLabel="Sensibilité de la veille"
+                                ariaLabel={t('settings_alerts_sensitivity')}
                               />
                               <p className="text-[11px] text-[var(--text-muted)] mt-2 leading-snug">
-                                Koi s'accorde à votre rythme, au bureau comme en jeu
+                                {t('settings_alerts_sensitivity_hint')}
                               </p>
                             </div>
                             <NeonSwitch
                               checked={gamingNetworkAlerts}
                               onChange={handleGamingNetworkAlerts}
-                              label="Latence en jeu"
-                              hint="Un signe si le ping s'éloigne de l'habitude en session de jeu"
+                              label={t('settings_alerts_gaming')}
+                              hint={t('settings_alerts_gaming_hint')}
                             />
                           </>
                         )}
@@ -860,17 +898,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         />
                         <div className="mt-5 flex flex-col items-center gap-2 w-full">
                           <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-[var(--accent-text)]">
-                            Merci de garder Koi avec vous
+                            {t('settings_about_thanks')}
                           </p>
                           <p className="text-xs text-[var(--text-muted)] leading-relaxed max-w-[18rem]">
-                            Votre machine lue avec tendresse. Charge, connexion, pilotes et veille
-                            discrète, au bureau comme en jeu. Pensé pour Windows, léger, fiable,
-                            tout simplement.
+                            {t('settings_about_desc')}
                           </p>
                           <DonateButton
                             reducedMotion={prefersReducedMotion ?? false}
                             onClick={() =>
-                              showToast('Lien de don bientôt disponible — merci pour le geste.')
+                              showToast(t('settings_about_donate_toast'))
                             }
                           />
                           <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--text-subtle)]">
@@ -915,7 +951,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         }`}
                       >
                         <RotateCcw size={13} className={confirmReset ? 'animate-spin' : ''} />
-                        {confirmReset ? 'Vraiment effacer ?' : 'Tout effacer'}
+                        {confirmReset ? t('settings_reset_confirm') : t('settings_reset_button')}
                       </button>
                     </div>
                   </div>

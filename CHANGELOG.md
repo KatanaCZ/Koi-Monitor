@@ -1,147 +1,169 @@
 # Changelog
 
-Toutes les modifications notables de **Koi Monitor** sont documentées ici.
+All notable changes to **Koi Monitor** are documented here.
 
-Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) · versions [SemVer](https://semver.org/lang/fr/).
+Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · [SemVer](https://semver.org/).
 
-**Releases GitHub** : seule la section **Pour vous** est publiée aux utilisateurs. **Détail technique** sert aux contributeurs (voir [`docs/marketing-context.md`](docs/marketing-context.md)).
+**GitHub Releases**: only the **For you** section is published to users. **Technical details** is for contributors (see [`docs/marketing-context.md`](docs/marketing-context.md)).
 
 ## [Unreleased]
 
-### Pour vous
+### For you
 
-### Détail technique
+### Technical details
 
-### Ajouté
+### Added
 
-### Modifié
+### Changed
 
-### Corrigé
+### Fixed
+
+## [1.1.4] - 2026-05-31
+
+### For you
+
+- **Bilingual support (French / English)** — Full app translation (dashboard, Zen mode, headers, and settings).
+- **Language choice** — Language selector (English / French) in **Settings → Essential**.
+- **Automatic language on first launch** — Koi detects your system language (French for `fr`, English for everything else).
+
+### Technical details
+
+### Added
+
+- **Lightweight translation system (`useTranslation`)** — Custom Zustand-based i18n for full reactivity without heavy external dependencies.
+- **Dynamic translations** — Language preference wired through Zustand for dynamic widgets (`driverCopy.ts`), DNS latency copy, and Zen time formats.
+
+### Changed
+
+- **Essential settings** — Language selector added; reset action now keeps the active language.
+
+### Fixed
 
 ## [1.1.3] - 2026-05-29
 
-### Pour vous
+### For you
 
-- **PC à deux cartes graphiques** — Le mode Zen et l’état Boost suivent la carte réellement sollicitée (portables avec puce intégrée + dédiée). Le widget GPU affiche toujours les bonnes métriques.
-- **Ping en jeu plus juste** — La latence passe par les outils Windows natifs : moins de décalage affiché et moins de charge processeur.
-- **Veille intelligente** — Minimisée, dans la barre d’état ou derrière une autre fenêtre, Koi se met au repos (télémétrie, DNS, effets visuels) pour libérer CPU, GPU et RAM. Avec les alertes activées, la surveillance continue en filigrane.
-- **Plus léger au quotidien** — Musique ambiante avec fondu doux ; widgets agrandis sans double copie en mémoire ; musique en sourdine qui libère la RAM après quinze secondes.
-- **Mode Zen allégé** — Moins de données chargées en coulisse pour une expérience encore plus fluide.
+- **Dual-GPU PCs** — Zen mode and Boost state follow the GPU actually under load (laptops with integrated + dedicated). The GPU widget always shows the right metrics.
+- **Fairer in-game ping** — Latency uses native Windows tools: less display lag and lower CPU overhead.
+- **Smart idle** — Minimized, in the tray, or behind another window, Koi rests (telemetry, DNS, visual effects) to free CPU, GPU, and RAM. With alerts enabled, monitoring continues in the background.
+- **Lighter day to day** — Ambient music with a soft fade; expanded widgets without duplicate background rendering; muted music releases RAM after fifteen seconds.
+- **Leaner Zen mode** — Less data loaded behind the scenes for an even smoother experience.
 
-### Détail technique
+### Technical details
 
-### Ajouté
+### Added
 
-- **Store Zustand en slices** — `settingsSlice`, `telemetrySlice`, `uiSlice` + `store/types.ts` ; hooks `useAtmosphereSync`, `useDriversData`, `useKeyboardNavigation` ; vues `DashboardView` / `ZenView`
+- **Zustand slice store** — `settingsSlice`, `telemetrySlice`, `uiSlice` + `store/types.ts`; hooks `useAtmosphereSync`, `useDriversData`, `useKeyboardNavigation`; views `DashboardView` / `ZenView`
 
-### Modifié
+### Changed
 
-- **Agrégation multi-GPU** — Enveloppe d’utilisation max (`Math.max` sur tous les GPU) dans `useZenLoadState`, `telemetrySlice` et `thresholdAlerts` ; `GpuWidget` et `ZenMetricsDock` sélectionnent l’index le plus actif
-- **Ping Windows natif IcmpSendEcho** — Remplacement de `ping.exe` par FFI `IcmpSendEcho` (`iphlpapi.dll`) ; clamp minimum 1 ms
-- **Contrôle télémétrie visibilité** — `document.hidden` + IPC `TELEMETRY_ACTIVE` / `TELEMETRY_THROTTLED` ; classe `html.document-hidden` ; suspension DNS avec rafraîchissement au retour ; timeout DNS TCP 400 ms
-- **Perf arrière-plan** — `useAtmosphereSync` coupe le blur glass hors focus ; démontage widgets grille lors d’agrandissement DNS/Pilotes ; filtrage télémétrie Zen ; throttling WMI GPU 6 s au repos ; `formatUptimeShort` compact ≥ 24 h
-- **Audio** — Fondu 300 ms sur pause/mute ; déchargement buffers audio après 15 s en sourdine (`ambientMusic.ts`)
+- **Multi-GPU aggregation** — Max usage envelope (`Math.max` across GPUs) in `useZenLoadState`, `telemetrySlice`, and `thresholdAlerts`; `GpuWidget` and `ZenMetricsDock` pick the most active index
+- **Native Windows ping via IcmpSendEcho** — Replaced `ping.exe` with FFI `IcmpSendEcho` (`iphlpapi.dll`); minimum clamp 1 ms
+- **Visibility-aware telemetry** — `document.hidden` + IPC `TELEMETRY_ACTIVE` / `TELEMETRY_THROTTLED`; `html.document-hidden` class; DNS polling paused with refresh on return; DNS TCP timeout 400 ms
+- **Background performance** — `useAtmosphereSync` disables glass blur when unfocused; grid widgets unmount when DNS/Drivers expanded; Zen telemetry filtered; WMI GPU throttled to 6 s at rest; compact `formatUptimeShort` ≥ 24 h
+- **Audio** — 300 ms fade on pause/mute; audio buffers unloaded after 15 s muted (`ambientMusic.ts`)
 
-### Corrigé
+### Fixed
 
-- **Mode Boost multi-GPU** — Détection charge basée sur le GPU le plus sollicité, plus sur `gpu[0]` fixe
+- **Multi-GPU Boost mode** — Load detection based on the busiest GPU, not fixed `gpu[0]`
 
 ## [1.1.2] - 2026-05-28
 
-### Pour vous
+### For you
 
-- **Plus léger au quotidien** — l’application consomme moins de ressources quand le tableau de bord reste ouvert ; l’ambiance sakura et le verre dépoli restent fluides.
-- **Même rendu qu’avant** — pas de changement visible à part une interface un peu plus souple sous charge.
+- **Lighter day to day** — the app uses fewer resources with the dashboard open; sakura atmosphere and frosted glass stay smooth.
+- **Same look as before** — no visible change except a slightly smoother UI under load.
 
-### Détail technique
+### Technical details
 
-### Ajouté
+### Added
 
-### Modifié
+### Changed
 
-- **Perf WebView2 (Sakura + verre)** — bridage strict du canvas Sakura au budget 30 FPS (focus) / 24 FPS (hors focus), sans rattrapage multi-frame ; glow bas sans `filter: blur` ; couche `.sakura-fx-layer` isolée ; cartes glass promues GPU (`translateZ`) ; suppression du `backdrop-blur` redondant dans les widgets bento
+- **WebView2 performance (Sakura + glass)** — strict Sakura canvas budget at 30 FPS (focus) / 24 FPS (unfocused), no multi-frame catch-up; bottom glow without `filter: blur`; isolated `.sakura-fx-layer`; glass cards GPU-promoted (`translateZ`); redundant `backdrop-blur` removed inside bento widgets
 
-### Corrigé
+### Fixed
 
-- **CI GitHub** — audit PR accéléré (cache Cargo `swatinem/rust-cache`, build exe sur push `master` et tag Release) ; push `master` : `cargo audit` à la place de `rustsec/audit-check` (évite l’échec Check API « Resource not accessible by integration »)
+- **GitHub CI** — faster PR audit (Cargo cache `swatinem/rust-cache`, exe build on push to `master` and Release tags); push to `master`: `cargo audit` instead of `rustsec/audit-check` (avoids Check API “Resource not accessible by integration” failure)
 
 ## [1.1.1] - 2026-05-26
 
-### Pour vous
+### For you
 
-- **Températures CPU et GPU** — affichées sur les widgets lorsque Windows les fournit ; sinon le badge reste masqué (aucune valeur inventée).
-- **Correctif de livraison** — cette version inclut bien les améliorations d’ambiance (sakura, verre Doux/Aura) annoncées précédemment.
+- **CPU & GPU temperatures** — shown on widgets when Windows provides them; otherwise the badge stays hidden (no fake values).
+- **Delivery fix** — this release actually ships the atmosphere improvements (sakura, Soft/Aura glass) announced earlier.
 
-### Détail technique
+### Technical details
 
-### Ajouté
+### Added
 
-### Modifié
+### Changed
 
-- **Widgets CPU/GPU** — température live affichée lorsque la télémétrie WMI/DXGI la fournit
+- **CPU/GPU widgets** — live temperature when WMI/DXGI telemetry provides it
 
-### Corrigé
+### Fixed
 
-- **Exécutable Release** — livraison effective des optimisations atmosphère annoncées en 1.1.0 (Sakura Canvas, verre Doux 16 px / Aura 24 px, `koiSimulateFocus`)
+- **Release executable** — effective delivery of atmosphere optimizations announced in 1.1.0 (Sakura Canvas, Soft 16 px / Aura 24 px glass, `koiSimulateFocus`)
 
 ## [1.1.0] - 2026-05-26
 
-### Pour vous
+### For you
 
-- **Notes de version** — historique dans ce fichier ; numéro de version visible dans **Paramètres → À propos**.
-- **Sakura plus fluide et plus léger** — pétales en fond optimisés pour moins peser sur le PC.
-- **Verre dépoli** — mode **Doux** un peu plus léger ; mode **Aura** garde le rendu premium pour les machines puissantes.
-- **Préréglages atmosphère** — **Zen · Doux · Aura** toujours en un clic dans **Paramètres → Atmosphère**.
+- **Release notes** — history in this file; version number visible in **Settings → About**.
+- **Smoother, lighter Sakura** — background petals optimized to weigh less on your PC.
+- **Frosted glass** — **Soft** mode a bit lighter; **Aura** keeps the premium look for powerful machines.
+- **Atmosphere presets** — **Zen · Soft · Aura** still one click in **Settings → Atmosphere**.
 
-### Détail technique
+### Technical details
 
-### Ajouté
+### Added
 
-- **`CHANGELOG.md`** et scripts **`prepare-release.ps1`** / **`extract-release-notes.ps1`** — patchnotes Release GitHub depuis le changelog
-- **`src/appVersion.ts`** — version affichée Paramètres → À propos, synchronisée à chaque release
-- **Outil de simulation de focus** — fonction globale **`koiSimulateFocus(lostFocus?: boolean)`** dans la console développeur pour tester instantanément le passage de la pluie de pétales en cadence cinéma (24 FPS)
+- **`CHANGELOG.md`** and scripts **`prepare-release.ps1`** / **`extract-release-notes.ps1`** — GitHub Release notes from the changelog
+- **`src/appVersion.ts`** — version shown in Settings → About, synced on each release
+- **Focus simulation tool** — global **`koiSimulateFocus(lostFocus?: boolean)`** in the dev console to instantly test sakura cadence (24 FPS) when unfocused
 
-### Modifié
+### Changed
 
-- **Moteur de particules Sakura Canvas** — remplacement complet du système d'animation SVG DOM (React + Framer Motion) par un moteur Canvas 2D ultra-performant : pré-rendu des textures avec ombres et flous (offscreen buffers), limitation dynamique à 30 FPS (focus) et 24 FPS (hors focus / jeu), limitation DPI à 1,25 — jusqu'à ~95 % de charge CPU/GPU en moins sur l'effet
-- **Flou de verre glassmorphic adaptatif** — flou gaussien par défaut réduit de 24 px à 16 px en mode Doux (GPU allégé d'environ moitié), flou complet 24 px conservé en mode Aura pour les configs haut de gamme
-- **`prepare-release.ps1`** — promeut le changelog et aligne npm, Tauri, Cargo, badge README et version À propos
-- **Dependabot** — majors npm sensibles ignorées (`react*`, `recharts`, `framer-motion`, `@vitejs/plugin-react`) ; minor/patch groupées inchangées
+- **Sakura Canvas particle engine** — full replacement of SVG DOM animation (React + Framer Motion) with a high-performance Canvas 2D engine: pre-rendered textures with shadows and blur (offscreen buffers), dynamic cap at 30 FPS (focus) and 24 FPS (unfocused / gaming), DPI cap at 1.25 — up to ~95% less CPU/GPU load on the effect
+- **Adaptive glassmorphic blur** — default Gaussian blur reduced from 24 px to 16 px in Soft mode (~half GPU load), full 24 px blur kept in Aura for high-end configs
+- **`prepare-release.ps1`** — promotes changelog and aligns npm, Tauri, Cargo, README badge, and About version
+- **Dependabot** — sensitive npm majors ignored (`react*`, `recharts`, `framer-motion`, `@vitejs/plugin-react`); grouped minor/patch unchanged
 
-### Corrigé
+### Fixed
 
 ## [1.0.0] - 2026-05-24
 
-Première release publique — moniteur Windows local, open source.
+First public release — local Windows monitor, open source.
 
-### Pour vous
+### For you
 
-- **Première version publique** — tableau de bord CPU, RAM, GPU, réseau et DNS avec thème néon et verre dépoli.
-- **Mode Zen** — horloge, étang, métriques essentielles pour un second écran ou le focus.
-- **Jeu et réseau** — latence multijoueur et comparateur DNS ; pilotes en langage clair.
-- **Alertes et ambiance** — alertes intelligentes désactivées par défaut ; musique zen après l’ouverture ; exécutable portable sans installateur.
+- **First public release** — CPU, RAM, GPU, network, and DNS dashboard with neon theme and frosted glass.
+- **Zen mode** — clock, pond, essential metrics for a second screen or focus.
+- **Gaming & network** — multiplayer latency and DNS comparator; drivers in plain language.
+- **Alerts & atmosphere** — smart alerts off by default; zen music after opening; portable executable, no installer.
 
-### Détail technique
+### Technical details
 
-### Ajouté
+### Added
 
-- Dashboard CPU · RAM · GPU · Réseau · DNS avec thème néon et verre dépoli
-- Mode Zen (horloge, étang, métriques essentielles)
-- Latence jeu (passerelle + internet), comparateur DNS, pilotes simplifié/étendu
-- Alertes intelligentes (off par défaut), musique ambiante, splash orchestré
-- Exécutable portable **`koi-monitor.exe`** (Windows 10/11, sans installateur)
+- Dashboard CPU · RAM · GPU · Network · DNS with neon theme and frosted glass
+- Zen mode (clock, pond, essential metrics)
+- Gaming latency (router + internet), DNS comparator, simplified/extended drivers
+- Smart alerts (off by default), ambient music, orchestrated splash
+- Portable executable **`koi-monitor.exe`** (Windows 10/11, no installer)
 
-### Modifié
-
-- n/a
-
-### Corrigé
+### Changed
 
 - n/a
 
-[Unreleased]: https://github.com/KatanaCZ/Koi-Monitor/compare/v1.1.3...HEAD
+### Fixed
+
+- n/a
+
+[Unreleased]: https://github.com/KatanaCZ/Koi-Monitor/compare/v1.1.4...HEAD
 [1.0.0]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.0.0
 [1.1.0]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.0
 [1.1.1]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.1
 [1.1.2]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.2
 [1.1.3]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.3
+[1.1.4]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.4

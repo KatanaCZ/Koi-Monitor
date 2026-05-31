@@ -47,15 +47,17 @@ export function prependNotificationLog(
   return [entry, ...log].slice(0, NOTIFICATION_LOG_MAX);
 }
 
-export function formatNotificationTime(timestamp: number, now = Date.now()): string {
+import { LanguageMode } from '../types';
+
+export function formatNotificationTime(timestamp: number, now = Date.now(), language: LanguageMode = 'fr'): string {
   const deltaSec = Math.max(0, Math.floor((now - timestamp) / 1000));
-  if (deltaSec < 10) return "À l'instant";
-  if (deltaSec < 60) return `Il y a ${deltaSec} s`;
+  if (deltaSec < 10) return language === 'fr' ? "À l'instant" : "Just now";
+  if (deltaSec < 60) return language === 'fr' ? `Il y a ${deltaSec} s` : `${deltaSec}s ago`;
   const deltaMin = Math.floor(deltaSec / 60);
-  if (deltaMin < 60) return `Il y a ${deltaMin} min`;
+  if (deltaMin < 60) return language === 'fr' ? `Il y a ${deltaMin} min` : `${deltaMin}m ago`;
   const deltaHour = Math.floor(deltaMin / 60);
-  if (deltaHour < 24) return `Il y a ${deltaHour} h`;
-  return new Date(timestamp).toLocaleDateString('fr-FR', {
+  if (deltaHour < 24) return language === 'fr' ? `Il y a ${deltaHour} h` : `${deltaHour}h ago`;
+  return new Date(timestamp).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
     day: 'numeric',
     month: 'short',
     hour: '2-digit',

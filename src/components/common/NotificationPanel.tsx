@@ -4,6 +4,7 @@ import { Bell, Trash2, X } from 'lucide-react';
 import { useAppStore } from '../../store';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { formatNotificationTime } from '../../utils/notificationLog';
+import { useTranslation } from '../../hooks/useTranslation';
 
 function entryToneClass(type: 'success' | 'warning' | 'error'): string {
   switch (type) {
@@ -41,6 +42,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({
   const markNotificationsRead = useAppStore((s) => s.markNotificationsRead);
   const clearNotificationLog = useAppStore((s) => s.clearNotificationLog);
   const markedRef = useRef(false);
+  const { t, language } = useTranslation();
 
   useEffect(() => {
     if (!isOpen) {
@@ -70,7 +72,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({
         <>
           <motion.button
             type="button"
-            aria-label="Fermer le journal de veille"
+            aria-label={t('notif_close_aria')}
             className="fixed inset-0 cursor-default bg-transparent pointer-events-auto"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -99,10 +101,10 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({
                     id="notification-panel-title"
                     className="text-sm font-semibold text-[var(--foreground)] truncate"
                   >
-                    Journal de veille
+                    {t('notif_panel_title')}
                   </h2>
                   <p className="text-[10px] text-[var(--text-subtle)]">
-                    Cette session · les 24 derniers signaux de Koi
+                    {t('notif_panel_subtitle')}
                   </p>
                 </div>
               </div>
@@ -112,8 +114,8 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({
                     type="button"
                     onClick={clearNotificationLog}
                     className="w-11 h-11 rounded-lg flex items-center justify-center text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)] transition-colors"
-                    title="Effacer le journal"
-                    aria-label="Effacer le journal de veille"
+                    title={t('notif_clear_tooltip')}
+                    aria-label={t('notif_clear_tooltip')}
                   >
                     <Trash2 size={14} />
                   </button>
@@ -122,7 +124,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({
                   type="button"
                   onClick={onClose}
                   className="w-11 h-11 rounded-lg flex items-center justify-center text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)] transition-colors"
-                  aria-label="Fermer le journal"
+                  aria-label={t('notif_close_aria')}
                 >
                   <X size={14} />
                 </button>
@@ -132,9 +134,9 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({
             <div className="overflow-y-auto p-2 space-y-2">
               {notificationLog.length === 0 ? (
                 <div className="px-3 py-8 text-center">
-                  <p className="text-sm text-[var(--text-muted)]">Tout est calme pour l&apos;instant</p>
+                  <p className="text-sm text-[var(--text-muted)]">{t('notif_empty_title')}</p>
                   <p className="text-xs text-[var(--text-subtle)] mt-1">
-                    Un message passé à côté ? Il reste ici, dans ce journal.
+                    {t('notif_empty_desc')}
                   </p>
                 </div>
               ) : (
@@ -154,14 +156,14 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({
                         <div className="flex items-center gap-2 mb-1">
                           {entry.source === 'alert' && (
                             <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--neon-green-text)]">
-                              Veille
+                              {t('notif_source_alert')}
                             </span>
                           )}
                           <time
                             className="text-[10px] text-[var(--text-subtle)]"
                             dateTime={new Date(entry.createdAt).toISOString()}
                           >
-                            {formatNotificationTime(entry.createdAt)}
+                            {formatNotificationTime(entry.createdAt, Date.now(), language)}
                           </time>
                         </div>
                         <p className="text-sm font-medium leading-snug break-words">

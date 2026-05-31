@@ -10,12 +10,14 @@ import {
   getActiveNetworkAdapterName,
 } from "../../utils/networkInterface";
 import { DNS_WIDGET_BASE_HEIGHT } from "../../utils/dnsWidgetLayout";
+import { useTranslation } from "../../hooks/useTranslation";
 
-const parseSpeed = (speed: number) => {
+const parseSpeed = (speed: number, language: string = "fr") => {
+  const isFr = language === "fr";
   if (speed < 1) {
-    return { value: (speed * 1024).toFixed(1), unit: "Ko/s" };
+    return { value: (speed * 1024).toFixed(1), unit: isFr ? "Ko/s" : "KB/s" };
   }
-  return { value: speed.toFixed(2), unit: "Mo/s" };
+  return { value: speed.toFixed(2), unit: isFr ? "Mo/s" : "MB/s" };
 };
 
 export const NetworkWidget = memo(function NetworkWidget({
@@ -23,6 +25,7 @@ export const NetworkWidget = memo(function NetworkWidget({
 }: {
   layoutHeight?: number | null;
 }) {
+  const { t, language } = useTranslation();
   const downloadRing = useAppStore((s) => s.networkDownloadRing);
   const uploadRing = useAppStore((s) => s.networkUploadRing);
   const networkDownloadHistory = useMemo(
@@ -44,12 +47,12 @@ export const NetworkWidget = memo(function NetworkWidget({
   const drivers = useAppStore((s) => s.drivers);
 
   const formatSpeed = (speed: number) => {
-    const { value, unit } = parseSpeed(speed);
+    const { value, unit } = parseSpeed(speed, language);
     return `${value} ${unit}`;
   };
 
-  const downloadSpeed = parseSpeed(network.download_speed);
-  const uploadSpeed = parseSpeed(network.upload_speed);
+  const downloadSpeed = parseSpeed(network.download_speed, language);
+  const uploadSpeed = parseSpeed(network.upload_speed, language);
   const interfaces = network.interfaces ?? [];
 
   const interfaceKey = useMemo(
@@ -106,14 +109,16 @@ export const NetworkWidget = memo(function NetworkWidget({
   );
 
   const formatTime = (ts: number) =>
-    new Date(ts).toLocaleTimeString("fr-FR", {
+    new Date(ts).toLocaleTimeString(language === "fr" ? "fr-FR" : "en-US", {
       hour: "2-digit",
       minute: "2-digit",
       second: "2-digit",
     });
 
   const formatMbps = (v: number) =>
-    v < 1 ? `${(v * 1024).toFixed(1)} Ko/s` : `${v.toFixed(2)} Mo/s`;
+    v < 1
+      ? `${(v * 1024).toFixed(1)} ${language === "fr" ? "Ko/s" : "KB/s"}`
+      : `${v.toFixed(2)} ${language === "fr" ? "Mo/s" : "MB/s"}`;
 
   const isDark = theme === "dark";
   const themeColorDown = "var(--neon-turquoise)";
@@ -145,7 +150,7 @@ export const NetworkWidget = memo(function NetworkWidget({
         </div>
         <div className="min-w-0 flex-1">
           <h3 className="text-base font-semibold tracking-tight text-[var(--foreground)] mb-1">
-            Réseau
+            {t("net_title")}
           </h3>
           <p
             className="text-xs text-[var(--text-muted)] leading-snug line-clamp-2"
@@ -167,11 +172,14 @@ export const NetworkWidget = memo(function NetworkWidget({
         />
       </div>
       <ChartSrTable
-        caption={`Historique débit réseau — téléchargement ${formatSpeed(network.download_speed)}, envoi ${formatSpeed(network.upload_speed)}`}
+        caption={t("net_history_caption", {
+          download: formatSpeed(network.download_speed),
+          upload: formatSpeed(network.upload_speed),
+        })}
         columns={[
-          { key: "time", label: "Heure", format: formatTime },
-          { key: "download", label: "Téléchargement", format: formatMbps },
-          { key: "upload", label: "Envoi", format: formatMbps },
+          { key: "time", label: t("cpu_sr_hour"), format: formatTime },
+          { key: "download", label: language === "fr" ? "Téléchargement" : "Download", format: formatMbps },
+          { key: "upload", label: language === "fr" ? "Envoi" : "Upload", format: formatMbps },
         ]}
         rows={srChartRows}
       />
@@ -190,7 +198,7 @@ export const NetworkWidget = memo(function NetworkWidget({
               aria-hidden="true"
             />
             <p className="text-[10px] uppercase font-bold tracking-widest text-[var(--text-subtle)]">
-              Réception
+              {t("net_reception")}
             </p>
           </div>
           <p
@@ -207,7 +215,7 @@ export const NetworkWidget = memo(function NetworkWidget({
             </span>
           </p>
           <p className="text-[11px] text-[var(--text-muted)] mt-2">
-            Total{" "}
+            {t("net_total")}{" "}
             <span className="mono-text font-semibold text-[var(--foreground)]">
               {formatTotal(network.total_received)}
             </span>
@@ -223,7 +231,7 @@ export const NetworkWidget = memo(function NetworkWidget({
               aria-hidden="true"
             />
             <p className="text-[10px] uppercase font-bold tracking-widest text-[var(--text-subtle)]">
-              Émission
+              {t("net_emission")}
             </p>
           </div>
           <p
@@ -238,7 +246,7 @@ export const NetworkWidget = memo(function NetworkWidget({
             </span>
           </p>
           <p className="text-[11px] text-[var(--text-muted)] mt-2">
-            Total{" "}
+            {t("net_total")}{" "}
             <span className="mono-text font-semibold text-[var(--foreground)]">
               {formatTotal(network.total_transmitted)}
             </span>

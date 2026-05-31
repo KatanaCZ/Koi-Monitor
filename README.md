@@ -5,219 +5,221 @@
 [![Audit & Build](https://github.com/KatanaCZ/Koi-Monitor/actions/workflows/audit.yml/badge.svg)](https://github.com/KatanaCZ/Koi-Monitor/actions/workflows/audit.yml)
 [![Release](https://img.shields.io/github/v/release/KatanaCZ/Koi-Monitor?label=Release&color=9d4edd)](https://github.com/KatanaCZ/Koi-Monitor/releases/latest)
 
-### *Votre PC, enfin lisible. Beau. Léger. Fiable.*
+### *Your PC, finally readable. Beautiful. Light. Reliable.*
 
-**Surveillez Windows sans ouvrir un outil gris des années 2000.**
+**Monitor Windows without opening a gray tool from 2005.**
 
 <br />
 
 ![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?style=for-the-badge&logo=windows&logoColor=white)
-![Léger](https://img.shields.io/badge/Léger-~10–25%20Mo-00d4ff?style=for-the-badge)
-![Gratuit](https://img.shields.io/badge/Gratuit-MIT-00ff9d?style=for-the-badge)
-![Version](https://img.shields.io/badge/Version-1.1.3-9d4edd?style=for-the-badge)
+![Lightweight](https://img.shields.io/badge/Lightweight-~10–25%20MB-00d4ff?style=for-the-badge)
+![Free](https://img.shields.io/badge/Free-MIT-00ff9d?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-1.1.4-9d4edd?style=for-the-badge)
 
 <br />
 
-![Aperçu de Koi Monitor — dashboard](docs/screenshots/MockupViews_1x_PNG_20260524_274.png)
+![Koi Monitor preview — dashboard](docs/screenshots/MockupViews_1x_PNG_20260524_274.png)
 
-*Verre dépoli · Thème sombre & clair · Ambiance sakura*
+*Frosted glass · Dark & light theme · Sakura atmosphere*
 
 <br />
 
-[Pourquoi Koi](#-pourquoi-koi) ·
-[Interface](#-une-interface-qui-fait-envie) ·
-[Léger & discret](#-léger-et-discret) ·
-[Fiable](#-des-chiffres-honnêtes) ·
-[Fonctionnalités](#-ce-que-vous-pouvez-faire) ·
-[Installation](#-installation) ·
-[Vie privée](#-vie-privée--sécurité)
+[Why Koi](#-why-koi) ·
+[Interface](#-an-interface-youll-want-to-keep-open) ·
+[Light & discreet](#-light-and-discreet) ·
+[Honest metrics](#-honest-numbers) ·
+[Features](#-what-you-can-do) ·
+[Install](#-installation) ·
+[Privacy](#-privacy--security)
 
 </div>
 
 ---
 
-## 🎐 Pourquoi Koi
+## 🎐 Why Koi
 
-Les moniteurs système classiques ? Chiffres partout, fond gris, courbes illisibles. On dirait le panneau de config Windows, version fatigue.
+Classic system monitors? Numbers everywhere, gray background, unreadable charts. It feels like the Windows control panel on a bad day.
 
-**Koi, c’est l’inverse.**
+**Koi is the opposite.**
 
-Une app claire et colorée qui répond à trois questions simples :
+A clear, colorful app that answers three simple questions:
 
-- Mon PC va bien ?
-- Ma connexion tient le coup pour jouer en ligne ?
-- Un pilote mérite un coup d’œil ?
+- Is my PC doing okay?
+- Will my connection hold up for online gaming?
+- Does a driver deserve a look?
 
-Pas de jargon. Pas de fausses alertes pour vous stresser. **Votre machine, en langage humain.**
+No jargon. No fake alerts to stress you out. **Your machine, in human language.**
 
----
-
-## ✨ Une interface qui fait envie
-
-Ce n’est pas un thème posé sur un utilitaire. C’est une app qu’on a envie de **laisser ouverte**.
-
-| Vous voyez… | Pourquoi ça compte |
-|-------------|-------------------|
-| 🩷 **CPU** (rose) | Charge, graphique, vue par cœur, température live (lorsque supportée) |
-| 🔵 **RAM** (cyan) | Mémoire vraiment utilisée |
-| 🟣 **GPU** (violet) | Carte, VRAM, charge en jeu, température live (lorsque supportée) |
-| 🩵 **Réseau** (turquoise) | Débit live, Wi‑Fi ou câble |
-| 🟢 **DNS & Jeu** (vert) | Meilleur serveur + latence multijoueur |
-
-**Ce qui fait la différence au quotidien :**
-
-- **Cartes en verre** — lisibles, désactivables si vous préférez plus sobre
-- **Sakura** — pétales en fond, 4 teintes (rose, violet, bleu, menthe) qui colorent aussi l’interface
-- **Ouverture signature** — animation katana, splash ~8–10 s sur une machine rapide
-- **Icône app** — le mot **Koi** en néon (même style que la barre de titre), visible fenêtre, barre des tâches et zone de notification
-- **Musique zen** — démarre avec le tableau de bord, volume mémorisé ; une seconde piste se cache pour les curieux
-- **Thème clair ou sombre** — confortable de jour comme de nuit
-- **Paramètres** — **Essentiel · Atmosphère · Connexion · Veille · À propos** ; préréglages **Zen · Doux · Aura** en un clic ; serveur DNS perso (IP + surnom)
-
-> Beau à garder ouvert — pas seulement utile une fois par mois.
+**French & English** — full UI translation; pick your language in **Settings → Essential**, or let Koi detect your system language on first launch.
 
 ---
 
-## ⚡ Léger et discret
+## ✨ An interface you'll want to keep open
 
-Un moniteur ne devrait pas être l’app la plus lourde de votre PC.
+This isn't a theme slapped on a utility. It's an app you actually **leave open**.
 
-| | Koi Monitor | Beaucoup d’apps « modernes » |
-|--|-------------|------------------------------|
-| **Disque** | ~10–25 Mo | Souvent 150 Mo+ |
-| **RAM au repos** | ~80–150 Mo | Souvent bien plus |
-| **En veille** | Très faible — l’app se met au repos minimisée ou en arrière-plan | Variable |
+| What you see… | Why it matters |
+|---------------|----------------|
+| 🩷 **CPU** (pink) | Load, chart, per-core view, live temperature (when supported) |
+| 🔵 **RAM** (cyan) | Memory actually in use |
+| 🟣 **GPU** (purple) | Card, VRAM, in-game load, live temperature (when supported) |
+| 🩵 **Network** (turquoise) | Live throughput, Wi‑Fi or Ethernet |
+| 🟢 **DNS & Gaming** (green) | Best server + multiplayer latency |
 
-Laissez-la tourner pendant le travail, le stream ou une session de jeu. Vous ne devriez pas sentir une deuxième app lourde à côté.
+**What makes the daily difference:**
 
-- **Moteur de particules Canvas 2D** : pétales en Canvas avec textures pré-rendues (offscreen), couche isolée, bridage strict **30 FPS** (focus) / **24 FPS** (hors focus) ; verre dépoli qui se coupe hors focus pour libérer le GPU.
-- **Veille intelligente** : minimisée, dans la barre d’état ou derrière une autre fenêtre, Koi suspend télémétrie, DNS et effets visuels. Les alertes actives continuent de surveiller en filigrane.
+- **Glass cards** — readable; disable them if you prefer something calmer
+- **Sakura** — petals in the background, 4 tints (pink, purple, blue, mint) that tint the UI too
+- **Signature opening** — katana animation, ~8–10 s splash on a fast machine
+- **App icon** — the word **Koi** in neon (same style as the title bar), visible in the window, taskbar, and notification area
+- **Zen music** — starts with the dashboard, volume remembered; a second track hides for the curious
+- **Light or dark theme** — comfortable day and night
+- **Settings** — **Essential · Atmosphere · Connection · Watch · About**; **Zen · Soft · Aura** presets in one click; personal DNS server (IP + nickname)
 
-
-### Mode Zen 🌸
-
-![Mode Zen](docs/screenshots/MockupViews_1x_PNG_20260524_829.png)
-
-Un clic sur la fleur de cerisier. Le dashboard s’efface. Il reste :
-
-- une **grande horloge** et la date ;
-- un **étang** qui ondule selon l’état **Zen · Flow · Boost** ;
-- **CPU · GPU · Jeu** en grands chiffres, **RAM · Actif** en dessous (masquables) — le GPU affiché est celui réellement sollicité (portables bi-GPU) ;
-- la barre du haut qui réapparaît au survol — volume, réglages, cloche.
-
-Parfait sur un second écran, en focus, ou quand vous voulez juste du calme.
+> Beautiful enough to keep open — not just useful once a month.
 
 ---
 
-## 🛡️ Des chiffres honnêtes
+## ⚡ Light and discreet
 
-Joli, c’est bien. Faux, c’est non.
+A monitor shouldn't be the heaviest app on your PC.
 
-- **Données Windows** — pas de chiffres inventés
-- **Températures réelles** — les sondes thermiques CPU/GPU utilisent les classes WMI/ACPI standard de Windows (`MSAcpi_ThermalZoneTemperature`). Si votre carte mère (notamment AMD) ou votre BIOS ne propage pas ces sondes physiques, le badge s'efface proprement. **Koi n'invente et ne simule jamais de fausses données.**
-- **Latence jeu ≠ DNS** — le ping de votre box n’est pas un test Cloudflare ; on ne mélange pas les deux
-- **Pilotes sans drama** — « Installé », « À vérifier », « MàJ dispo » ; pas de « votre PC est obsolète »
-- **MàJ pilotes** — Windows Update d’abord ; liens NVIDIA / AMD / Intel en secours
-- **Alertes** — off par défaut ; si activées : toast discret, zéro popup Windows
+| | Koi Monitor | Many “modern” apps |
+|--|-------------|---------------------|
+| **Disk** | ~10–25 MB | Often 150 MB+ |
+| **RAM at rest** | ~80–150 MB | Often much more |
+| **When idle** | Very low — the app rests when minimized or in the background | Varies |
 
-Un test qui échoue ? **Message clair en bas de l’écran**, pas une erreur cryptique. Et si un scan pilote traîne, l’app démarre quand même (jusqu’à ~90 s au pire).
+Leave it running while you work, stream, or game. You shouldn't feel a second heavy app beside you.
+
+- **Canvas 2D particle engine**: petals in Canvas with pre-rendered textures (offscreen), isolated layer, strict cap at **30 FPS** (focus) / **24 FPS** (unfocused); frosted glass turns off when unfocused to free the GPU.
+- **Smart idle**: minimized, in the tray, or behind another window, Koi suspends telemetry, DNS, and visual effects. Active alerts keep watching in the background.
+
+
+### Zen Mode 🌸
+
+![Zen Mode](docs/screenshots/MockupViews_1x_PNG_20260524_829.png)
+
+One click on the cherry blossom. The dashboard fades. What remains:
+
+- a **large clock** and the date;
+- a **pond** that ripples with **Zen · Flow · Boost** state;
+- **CPU · GPU · Gaming** in large figures, **RAM · Uptime** below (hideable) — the GPU shown is the one actually under load (dual-GPU laptops);
+- the top bar reappears on hover — volume, settings, bell.
+
+Perfect on a second screen, for focus, or when you just want calm.
 
 ---
 
-## 🧩 Ce que vous pouvez faire
+## 🛡️ Honest numbers
 
-### 📊 PC en direct
+Pretty is good. Fake is not.
 
-CPU, RAM, GPU, réseau — graphiques d’historique, cœurs CPU en « égaliseur », Wi‑Fi ou Ethernet affiché clairement, températures CPU & GPU (sur configurations dotées de sondes ACPI/WMI compatibles).
+- **Windows data** — no invented numbers
+- **Real temperatures** — CPU/GPU thermal sensors use Windows standard WMI/ACPI classes (`MSAcpi_ThermalZoneTemperature`). If your motherboard (especially AMD) or BIOS doesn't expose those sensors, the badge stays hidden. **Koi never fakes or simulates data.**
+- **Gaming latency ≠ DNS** — your router ping isn't a Cloudflare test; we don't mix the two
+- **Drivers without drama** — “Installed”, “Check recommended”, “Update available”; no “your PC is obsolete”
+- **Driver updates** — Windows Update first; NVIDIA / AMD / Intel links as backup
+- **Alerts** — off by default; if enabled: discreet toast, zero Windows popups
 
-### 🌐 Meilleur DNS
+A test fails? **Clear message at the bottom of the screen**, not a cryptic error. If a driver scan takes a while, the app still starts (up to ~90 s worst case).
 
-Compare Google, Cloudflare, Quad9, OpenDNS. Cochez les serveurs, lancez le test. Ajoutez **votre** serveur (box, Pi-hole…) avec un surnom. Le plus rapide prend la couronne ⚜️.
+---
 
-### 🎮 Prêt pour le jeu ?
+## 🧩 What you can do
 
-Badge simple : *Prêt pour le jeu*, *Limite ranked*, *Problème box / Wi‑Fi*… Mesure native Windows pour un ping plus juste. Un clic pour le détail : box, internet, jitter. Visible sur le dashboard et en mode Zen.
+### 📊 Live PC
 
-### 🔧 Pilotes
+CPU, RAM, GPU, network — history charts, CPU cores as an “equalizer”, Wi‑Fi or Ethernet shown clearly, CPU & GPU temperatures (on setups with compatible ACPI/WMI sensors).
 
-**Simplifié (défaut)** : 3 essentiels — GPU, réseau, Bluetooth.  
-**Étendu** : tout le matériel important (~1–2 min).  
-Versions comparées, bouton **Ouvrir Windows Update** quand une MàJ officielle existe. Pas de fausse promesse « installer en un clic ».
+### 🌐 Best DNS
 
-### 🔔 Alertes (optionnel)
+Compare Google, Cloudflare, Quad9, OpenDNS. Check the servers, run the test. Add **your** server (router, Pi-hole…) with a nickname. The fastest gets the crown ⚜️.
 
-Off par défaut. Au premier lancement, vous choisissez — **Échap** = pas maintenant.
+### 🎮 Ready to game?
 
-| Contexte | Koi vous prévient si… | Exemple |
-|----------|----------------------|---------|
-| **Bureau** | La machine force trop longtemps | *Bureau · La machine force · CPU 92 %* |
-| **Jeu** | Votre ping s’éloigne de son habitude | *Jeu · Ping qui monte · 60 ms · d’habitude ~10 ms* |
+Simple badge: *Ready to play*, *Ranked limit*, *Router / Wi‑Fi issue*… Native Windows measurement for a fairer ping. One click for details: router, internet, jitter. Visible on the dashboard and in Zen mode.
 
-Un message à la fois. Raté quelque chose ? La **cloche** garde le journal de la session. Réglages dans **Veille** : sensibilité **Discrète / Équilibrée / Attentive**, latence jeu on/off.
+### 🔧 Drivers
+
+**Simplified (default)**: 3 essentials — GPU, network, Bluetooth.  
+**Extended**: all important hardware (~1–2 min).  
+Compared versions, **Open Windows Update** when an official update exists. No fake “install in one click” promise.
+
+### 🔔 Alerts (optional)
+
+Off by default. On first launch, you choose — **Escape** = not now.
+
+| Context | Koi warns if… | Example |
+|---------|---------------|---------|
+| **Desktop** | The machine stays under heavy load | *Desktop · PC under pressure · CPU 92%* |
+| **Gaming** | Your ping drifts from its usual baseline | *Gaming · Ping rising · 60 ms · usually ~10 ms* |
+
+One message at a time. Missed something? The **bell** keeps the session log. Tune in **Watch**: **Quiet / Balanced / Attentive** sensitivity, gaming latency on/off.
 
 ---
 
 ## 🚀 Installation
 
-### Télécharger (recommandé)
+### Download (recommended)
 
-1. Ouvrez la **[dernière Release](https://github.com/KatanaCZ/Koi-Monitor/releases/latest)**
-2. Téléchargez **`koi-monitor.exe`**
-3. Copiez-le où vous voulez et double-cliquez
+1. Open the **[latest Release](https://github.com/KatanaCZ/Koi-Monitor/releases/latest)**
+2. Download **`koi-monitor.exe`**
+3. Copy it wherever you like and double-click
 
-Notes de version : onglet **Release** (texte simple, section *Pour vous*) ou [`CHANGELOG.md`](CHANGELOG.md) pour le détail complet.
+Release notes: **Release** tab (plain *For you* text) or [`CHANGELOG.md`](CHANGELOG.md) for the full history.
 
-**C’est tout.** Pas de Node, pas de Rust, pas d’installateur.
+**That's it.** No Node, no Rust, no installer.
 
 | | |
 |--|--|
-| **OS** | Windows 10 ou 11, 64 bits |
-| **WebView2** | Déjà là sur Windows 11 ; sur Windows 10, via Windows Update ou Edge si besoin |
-| **Internet** | Recommandé (DNS, latence, pilotes) |
-| **Compte** | Utilisateur standard suffit en général |
-| **Entreprise** | Certains PC verrouillés limitent les scans avancés |
+| **OS** | Windows 10 or 11, 64-bit |
+| **WebView2** | Already on Windows 11; on Windows 10, via Windows Update or Edge if needed |
+| **Internet** | Recommended (DNS, latency, drivers) |
+| **Account** | Standard user is usually enough |
+| **Enterprise** | Some locked-down PCs limit advanced scans |
 
 <details>
-<summary><strong>Développeurs — compiler depuis les sources</strong></summary>
+<summary><strong>Developers — build from source</strong></summary>
 
 ```powershell
 git clone https://github.com/KatanaCZ/Koi-Monitor.git
 cd koi-monitor
-.\koi.bat setup    # Admin — première installation
+.\koi.bat setup    # Admin — first install
 .\koi.bat dev      # Tauri + Vite (port 1420)
-.\koi.bat devfast  # Frontend seul + exe debug
-.\koi.bat build    # Exe dans %LOCALAPPDATA%\koi-monitor\
+.\koi.bat devfast  # Frontend only + debug exe
+.\koi.bat build    # Exe in %LOCALAPPDATA%\koi-monitor\
 ```
 
-Prérequis : Node.js 20+, Rust, WebView2. Doc technique : [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md).
+Requirements: Node.js 20+, Rust, WebView2. Technical docs: [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md).
 
 </details>
 
 ---
 
-## 🔒 Vie privée & sécurité
+## 🔒 Privacy & security
 
-**100 % local.** Pas de compte. Pas de cloud. Vos métriques restent sur votre machine.
+**100% local.** No account. No cloud. Your metrics stay on your machine.
 
-| Quoi | Où | Quand |
-|------|-----|--------|
-| **L’exe** | Là où *vous* l’avez copié | Vous le gardez / supprimez |
-| **Profil app** (WebView2) | `%LOCALAPPDATA%\com.koi.monitor\` | Premier lancement |
-| **Réglages** (thème, DNS, alertes…) | Dans ce profil, quelques Ko | Quand vous changez une option |
-| **Graphiques, journal, cache** | RAM seulement | Effacés à la fermeture |
+| What | Where | When |
+|------|-------|------|
+| **The exe** | Where *you* copied it | You keep / delete it |
+| **App profile** (WebView2) | `%LOCALAPPDATA%\com.koi.monitor\` | First launch |
+| **Settings** (theme, DNS, alerts…) | In that profile, a few KB | When you change an option |
+| **Charts, log, cache** | RAM only | Cleared on exit |
 
-**Éveil avec Windows** (off par défaut) : une entrée au démarrage — sans copier l’exe ailleurs.
+**Start with Windows** (off by default): one startup entry — without copying the exe elsewhere.
 
-**Tout retirer :** fermez l’app → désactivez l’autostart si besoin → supprimez l’exe → optionnel : dossier `%LOCALAPPDATA%\com.koi.monitor\`.
+**Remove everything:** close the app → disable autostart if needed → delete the exe → optional: folder `%LOCALAPPDATA%\com.koi.monitor\`.
 
-Tests réseau et scans pilotes passent par Windows (`ping`, WMI…). Koi n’installe rien à votre place. Code **open source** (MIT).
+Network tests and driver scans go through Windows (`ping`, WMI…). Koi installs nothing for you. **Open source** code (MIT).
 
 ---
 
-## 📄 Licence
+## 📄 License
 
 **MIT** — Katana © 2026  
-Libre d’utilisation, modification et partage. Voir [`LICENSE`](LICENSE).
+Free to use, modify, and share. See [`LICENSE`](LICENSE).
 
 ---
 
@@ -225,11 +227,11 @@ Libre d’utilisation, modification et partage. Voir [`LICENSE`](LICENSE).
 
 ### 🌸 Koi Monitor
 
-*Comprendre son PC ne devrait pas être une corvée.*  
-*Léger. Beau. Fiable.*
+*Understanding your PC shouldn't be a chore.*  
+*Light. Beautiful. Reliable.*
 
 <br />
 
-**[⬆ Retour en haut](#-koi-monitor)**
+**[⬆ Back to top](#-koi-monitor)**
 
 </div>

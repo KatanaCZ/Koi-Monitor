@@ -4,16 +4,16 @@ import { useAppStore } from '../store';
 import { crossfadeTo, pauseAll } from '../utils/ambientMusic';
 import {
   createEasterClickTracker,
-  EASTER_HINT_TOASTS,
-  EASTER_REWARD_TOAST,
   hasSeenEaster,
   markEasterSeen,
   mountEasterDevCommands,
 } from '../utils/easterEggMusic';
+import { useTranslation } from './useTranslation';
 
 export function useEasterEggMusic(showSplash: boolean): {
   registerEasterClick: () => void;
 } {
+  const { t } = useTranslation();
   const easterMusicActive = useAppStore((s) => s.easterMusicActive);
   const setEasterMusicActive = useAppStore((s) => s.setEasterMusicActive);
   const ambientMusicMuted = useAppStore((s) => s.settings.ambientMusicMuted);
@@ -26,7 +26,7 @@ export function useEasterEggMusic(showSplash: boolean): {
 
   const activateEasterMusic = useCallback(async () => {
     if (ambientMusicMuted) {
-      pushStatusToast('Activez le volume pour entendre la mélodie.');
+      pushStatusToast(t('easter_mute_warning'));
       return;
     }
 
@@ -34,8 +34,8 @@ export function useEasterEggMusic(showSplash: boolean): {
     await crossfadeTo('easter');
     setEasterMusicActive(true);
     markEasterSeen();
-    pushStatusToast(EASTER_REWARD_TOAST, 'success', { skipLog: true });
-  }, [ambientMusicMuted, pushStatusToast, setEasterMusicActive]);
+    pushStatusToast(t('easter_reward'), 'success', { skipLog: true });
+  }, [ambientMusicMuted, pushStatusToast, setEasterMusicActive, t]);
 
   const deactivateEasterMusic = useCallback(async () => {
     if (ambientMusicMuted) {
@@ -74,11 +74,11 @@ export function useEasterEggMusic(showSplash: boolean): {
         toggleEasterMusic,
         (clickIndex) => {
           if (easterMusicActive || hasSeenEaster()) return;
-          const message = EASTER_HINT_TOASTS[clickIndex - 1];
+          const message = t(`easter_hint_${clickIndex}` as any);
           pushStatusToast(message, 'success', { skipLog: true });
         },
       ),
-    [toggleEasterMusic, easterMusicActive, pushStatusToast],
+    [toggleEasterMusic, easterMusicActive, pushStatusToast, t],
   );
 
   useEffect(() => {

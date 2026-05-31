@@ -5,8 +5,10 @@ import {
   formatJitterReading,
   formatLatencyReading,
   getGamingMetricTone,
+  translateVerdictLabel,
 } from "../../utils/gamingLatency";
 import { getNeonTextShadow } from "../../utils/neonEffects";
+import { useTranslation } from "../../hooks/useTranslation";
 
 interface GamingLatencyBreakdownProps {
   snapshot: GamingLatencySnapshot;
@@ -80,8 +82,10 @@ export const GamingLatencyBreakdown = memo(function GamingLatencyBreakdown({
   verdictLabel,
   onClose,
 }: GamingLatencyBreakdownProps) {
+  const { t } = useTranslation();
+  const localizedVerdict = translateVerdictLabel(verdictLabel, t);
   const gatewayTarget =
-    snapshot.gateway_ip.trim().length > 0 ? snapshot.gateway_ip : "Auto-détection";
+    snapshot.gateway_ip.trim().length > 0 ? snapshot.gateway_ip : t("gaming_auto_detect");
   const internetTarget = snapshot.internet_host || "1.1.1.1";
   const gatewayValue = formatLatencyReading(snapshot.gateway_ms);
   const internetValue = formatLatencyReading(snapshot.internet_ms);
@@ -96,7 +100,7 @@ export const GamingLatencyBreakdown = memo(function GamingLatencyBreakdown({
     <div
       id="gaming-latency-details"
       role="region"
-      aria-label={`Détail test latence jeu : ${verdictLabel}`}
+      aria-label={t("gaming_breakdown_aria", { label: localizedVerdict })}
       className={`w-full rounded-2xl border bg-[var(--surface-inset)] overflow-hidden ${
         compact ? "p-2" : "p-3 sm:p-4"
       }`}
@@ -113,24 +117,24 @@ export const GamingLatencyBreakdown = memo(function GamingLatencyBreakdown({
               compact ? "text-[8px]" : "text-[10px]"
             }`}
           >
-            Test latence jeu
+            {t("gaming_test_title")}
           </p>
           <p
             className={`font-semibold text-[var(--foreground)] truncate ${
               compact ? "text-xs" : "text-sm"
             }`}
           >
-            {verdictLabel}
+            {localizedVerdict}
           </p>
         </div>
         <button
           type="button"
           onClick={onClose}
-          aria-label="Fermer le détail latence jeu"
+          aria-label={t("gaming_close_aria")}
           className="shrink-0 inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 text-[10px] sm:text-xs font-semibold text-[var(--text-muted)] hover:text-[var(--foreground)] hover:border-[var(--neon-green)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--neon-green)] transition-colors"
         >
           <X size={compact ? 12 : 14} aria-hidden="true" />
-          Fermer
+          {t("gaming_close")}
         </button>
       </div>
 
@@ -139,33 +143,33 @@ export const GamingLatencyBreakdown = memo(function GamingLatencyBreakdown({
           compact ? "p-2 gap-1" : "p-3 sm:p-4 gap-2 sm:gap-4"
         }`}
       >
-      <MetricColumn
-        icon={<Router size={iconSize} aria-hidden="true" />}
-        label="Passerelle"
-        target={gatewayTarget}
-        value={gatewayValue}
-        tone={getGamingMetricTone(snapshot.gateway_ms, "gateway")}
-        compact={compact}
-        isDark={isDark}
-      />
-      <MetricColumn
-        icon={<Globe size={iconSize} aria-hidden="true" />}
-        label="Internet"
-        target={internetTarget}
-        value={internetValue}
-        tone={getGamingMetricTone(snapshot.internet_ms, "internet")}
-        compact={compact}
-        isDark={isDark}
-      />
-      <MetricColumn
-        icon={<Activity size={iconSize} aria-hidden="true" />}
-        label="Jitter"
-        target="15 échantillons"
-        value={jitterValue}
-        tone={getGamingMetricTone(snapshot.jitter_ms, "jitter", snapshot.sample_count)}
-        compact={compact}
-        isDark={isDark}
-      />
+        <MetricColumn
+          icon={<Router size={iconSize} aria-hidden="true" />}
+          label={t("gaming_gateway")}
+          target={gatewayTarget}
+          value={gatewayValue}
+          tone={getGamingMetricTone(snapshot.gateway_ms, "gateway")}
+          compact={compact}
+          isDark={isDark}
+        />
+        <MetricColumn
+          icon={<Globe size={iconSize} aria-hidden="true" />}
+          label={t("gaming_internet")}
+          target={internetTarget}
+          value={internetValue}
+          tone={getGamingMetricTone(snapshot.internet_ms, "internet")}
+          compact={compact}
+          isDark={isDark}
+        />
+        <MetricColumn
+          icon={<Activity size={iconSize} aria-hidden="true" />}
+          label={t("gaming_jitter")}
+          target={t("gaming_samples", { count: 15 })}
+          value={jitterValue}
+          tone={getGamingMetricTone(snapshot.jitter_ms, "jitter", snapshot.sample_count)}
+          compact={compact}
+          isDark={isDark}
+        />
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useAppStore } from '../../store';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -33,6 +34,11 @@ export class ErrorBoundary extends React.Component<
         return this.props.fallback;
       }
 
+      const language = useAppStore.getState().settings.language || 'en';
+      const errorTitle = language === 'fr' ? "Une erreur a interrompu l'interface" : "An error interrupted the interface";
+      const errorDesc = language === 'fr' ? "Rechargez l'application pour reprendre le monitoring." : "Reload the application to resume monitoring.";
+      const errorBtn = language === 'fr' ? "Recharger" : "Reload";
+
       return (
         <div
           className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[var(--background)] px-6 text-center"
@@ -40,17 +46,17 @@ export class ErrorBoundary extends React.Component<
           aria-live="assertive"
         >
           <p className="text-lg font-semibold text-[var(--foreground)]">
-            Une erreur a interrompu l&apos;interface
+            {errorTitle}
           </p>
           <p className="max-w-md text-sm text-[var(--text-muted)]">
-            Rechargez l&apos;application pour reprendre le monitoring.
+            {errorDesc}
           </p>
           <button
             type="button"
             onClick={this.handleReload}
             className="rounded-2xl bg-[var(--neon-pink)] px-5 py-2.5 text-sm font-semibold text-white"
           >
-            Recharger
+            {errorBtn}
           </button>
         </div>
       );

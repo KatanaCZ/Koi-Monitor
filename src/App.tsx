@@ -20,6 +20,7 @@ import {
   SPLASH_DASHBOARD_WARMUP_MS,
 } from './utils/splashReadiness';
 import { markDevSessionBooted, shouldSkipDevSplash } from './utils/devSession';
+import { useTranslation } from './hooks/useTranslation';
 import './styles/globals.css';
 
 // Layout Views
@@ -45,6 +46,7 @@ const DriversWidget = lazy(() =>
 
 const App: React.FC = () => {
   const theme = useAppStore((s) => s.theme);
+  const { t, language } = useTranslation();
   const isSystemReady = useAppStore((s) => s.systemInfo !== null);
   const isDnsReady = useAppStore(
     (s) => s.dnsResults.length > 0 || s.dnsFetchAttempted,
@@ -128,8 +130,13 @@ const App: React.FC = () => {
       },
     });
     setShowAlertOnboarding(false);
-    pushStatusToast('Veille activée — Koi a l’œil sur votre machine.', 'success');
-  }, [updateSettings, pushStatusToast]);
+    pushStatusToast(
+      language === 'fr'
+        ? 'Veille activée — Koi a l’œil sur votre machine.'
+        : 'Alerts enabled — Koi has an eye on your machine.',
+      'success'
+    );
+  }, [updateSettings, pushStatusToast, language]);
 
   const handleDeclineAlerts = useCallback(() => {
     markAlertsOnboardingDone();
@@ -163,10 +170,11 @@ const App: React.FC = () => {
   const runDnsPing = useCallback(
     async (checklist: string[]) => {
       const customDns = useAppStore.getState().settings.customDns;
+      const currentLanguage = useAppStore.getState().settings.language || 'en';
       await runDnsPingSession(checklist, customDns, {
         onSuccess: setDnsResults,
         toast: (message) => pushStatusToast(message, 'warning'),
-      }, { errorMessage: 'Test DNS indisponible' });
+      }, { errorMessage: currentLanguage === 'fr' ? 'Test DNS indisponible' : 'DNS test unavailable' });
     },
     [setDnsResults, pushStatusToast],
   );
@@ -204,7 +212,7 @@ const App: React.FC = () => {
   return (
     <div className="min-h-[100dvh] flex flex-col relative w-full overflow-hidden bg-[var(--background)]">
       <a href="#main" className="skip-link">
-        Aller au contenu principal
+        {t('skip_to_content')}
       </a>
 
       <AnimatePresence>
@@ -262,7 +270,7 @@ const App: React.FC = () => {
         )}
 
         <main id="main" className={`flex-1 flex flex-col min-h-0 w-full ${zenMode ? 'items-stretch' : 'space-y-6'}`}>
-          <h1 className="sr-only">Koi Monitor — Tableau de bord système</h1>
+          <h1 className="sr-only">{t('app_title')}</h1>
 
           <AnimatePresence mode="wait">
             {!zenMode ? (

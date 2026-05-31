@@ -7,10 +7,12 @@ import {
   formatGamingLatencyValue,
   getGamingLatencyRingPercent,
   getGamingVerdictStyle,
+  translateVerdictLabel,
 } from "../../utils/gamingLatency";
 import type { GamingVerdict } from "../../types";
 import { GamingLatencyBreakdown } from "../common/GamingLatencyBreakdown";
 import { formatUptimeShort, useLiveUptime } from "../../hooks/useLiveUptime";
+import { useTranslation } from "../../hooks/useTranslation";
 
 interface LargeMetricProps {
   label: string;
@@ -107,6 +109,7 @@ function LargeMetric({
 }
 
 export const ZenMetricsDock = memo(function ZenMetricsDock() {
+  const { t, language } = useTranslation();
   const cpu = useAppStore((s) => s.systemInfo?.cpu.usage ?? 0);
   const cpuTemp = useAppStore((s) => s.systemInfo?.cpu.temperature ?? null);
   const activeGpuIndex = useAppStore((s) => {
@@ -128,7 +131,7 @@ export const ZenMetricsDock = memo(function ZenMetricsDock() {
   const theme = useAppStore((s) => s.theme);
   const isDark = theme === "dark";
   const liveUptime = useLiveUptime();
-  const uptimeLabel = formatUptimeShort(liveUptime);
+  const uptimeLabel = formatUptimeShort(liveUptime, language);
 
   const [gamingDetailsOpen, setGamingDetailsOpen] = useState(false);
 
@@ -172,13 +175,13 @@ export const ZenMetricsDock = memo(function ZenMetricsDock() {
         border: `1px solid ${gamingStyle.badgeBorder}`,
       }}
     >
-      {gamingLatency.verdict_label}
+      {translateVerdictLabel(gamingLatency.verdict_label, t)}
     </span>
   );
 
   return (
     <section
-      aria-label="Métriques en mode Zen"
+      aria-label={t("zen_metrics_dock_title")}
       className="zen-metrics-wallpaper w-full max-w-4xl mx-auto px-4 sm:px-6 flex flex-col items-center"
     >
       <div className="grid grid-cols-3 gap-8 sm:gap-12 lg:gap-16 w-full max-w-3xl mx-auto justify-items-center">
@@ -189,7 +192,7 @@ export const ZenMetricsDock = memo(function ZenMetricsDock() {
           textColor="var(--neon-pink-text)"
           percent={cpu}
           isDark={isDark}
-          ariaLabel="Processeur"
+          ariaLabel={t("zen_metric_cpu_aria")}
           temp={cpuTemp}
         />
         <LargeMetric
@@ -199,11 +202,11 @@ export const ZenMetricsDock = memo(function ZenMetricsDock() {
           textColor="var(--neon-purple-text)"
           percent={gpu}
           isDark={isDark}
-          ariaLabel="Carte graphique"
+          ariaLabel={t("zen_metric_gpu_aria")}
           temp={gpuTemp}
         />
         <LargeMetric
-          label="Jeu"
+          label={t("zen_metric_game")}
           value={gamingValue}
           color={gamingStyle.color}
           textColor={gamingStyle.textColor}
@@ -219,7 +222,7 @@ export const ZenMetricsDock = memo(function ZenMetricsDock() {
 
       <p
         role="group"
-        aria-label={`Mémoire ${ram.toFixed(0)} pour cent, système actif ${uptimeLabel}`}
+        aria-label={t("zen_metrics_dock_aria", { ram: ram.toFixed(0), uptime: uptimeLabel })}
         className="flex flex-wrap items-center justify-center gap-x-6 sm:gap-x-10 gap-y-2 mt-8 sm:mt-10 text-xl sm:text-2xl lg:text-3xl text-[var(--text-muted)]"
       >
         <span className="inline-flex items-baseline gap-2 sm:gap-3">
@@ -233,7 +236,7 @@ export const ZenMetricsDock = memo(function ZenMetricsDock() {
         </span>
         <span className="inline-flex items-baseline gap-2 sm:gap-3">
           <span className="text-xs sm:text-sm uppercase font-bold tracking-[0.18em] text-[var(--text-subtle)]">
-            Actif
+            {t("uptime_label")}
           </span>
           <span className="mono-text font-semibold tabular-nums">{uptimeLabel}</span>
         </span>

@@ -4,8 +4,10 @@ import { useAppStore } from "../../store";
 import { ringToArray } from "../../store/historyRing";
 import { NeonBentoCard, ChartSrTable, WidgetMetricHeader, MetricPercentBadge } from "../common";
 import { SingleAreaChart } from "../charts";
+import { useTranslation } from "../../hooks/useTranslation";
 
 export const GpuWidget = memo(function GpuWidget() {
+  const { t, language } = useTranslation();
   const gpuRing = useAppStore((s) => s.gpuHistoryRing);
   const gpuHistory = useMemo(() => ringToArray(gpuRing), [gpuRing.seq]);
   const activeGpuIndex = useAppStore((s) => {
@@ -20,8 +22,9 @@ export const GpuWidget = memo(function GpuWidget() {
     });
     return maxIdx;
   });
-  const gpu = useAppStore((s) => s.systemInfo?.gpu?.[activeGpuIndex]) ?? {
-    name: "GPU Info Unavailable",
+  const storeGpu = useAppStore((s) => s.systemInfo?.gpu?.[activeGpuIndex]);
+  const gpu = storeGpu ?? {
+    name: t("gpu_info_unavailable"),
     usage: 0,
     memory_used: 0,
     memory_total: 0,
@@ -55,7 +58,7 @@ export const GpuWidget = memo(function GpuWidget() {
   );
 
   const formatTime = (ts: number) =>
-    new Date(ts).toLocaleTimeString("fr-FR", {
+    new Date(ts).toLocaleTimeString(language === "fr" ? "fr-FR" : "en-US", {
       hour: "2-digit",
       minute: "2-digit",
       second: "2-digit",
@@ -107,10 +110,10 @@ export const GpuWidget = memo(function GpuWidget() {
         />
       </div>
       <ChartSrTable
-        caption={`Historique charge GPU — actuel ${gpu.usage.toFixed(0)} %`}
+        caption={t("gpu_sr_caption", { usage: gpu.usage.toFixed(0) })}
         columns={[
-          { key: "time", label: "Heure", format: formatTime },
-          { key: "value", label: "Charge", format: (v) => `${v.toFixed(1)} %` },
+          { key: "time", label: t("cpu_sr_hour"), format: formatTime },
+          { key: "value", label: t("gpu_sr_charge_label"), format: (v) => `${v.toFixed(1)} %` },
         ]}
         rows={srChartRows}
       />
@@ -119,7 +122,7 @@ export const GpuWidget = memo(function GpuWidget() {
       <div className="grid grid-cols-2 gap-4 mt-auto shrink-0 z-10 relative">
         <div className="p-4 rounded-2xl bg-[var(--surface-inset)] border border-[var(--border)] backdrop-blur-sm">
           <p className="text-[10px] uppercase font-bold tracking-widest text-[var(--text-subtle)] mb-2">
-            VRAM disponible
+            {t("gpu_vram_available")}
           </p>
           <p
             className="text-sm font-semibold mono-text"
@@ -130,7 +133,7 @@ export const GpuWidget = memo(function GpuWidget() {
         </div>
         <div className="p-4 rounded-2xl bg-[var(--surface-inset)] border border-[var(--border)] backdrop-blur-sm">
           <p className="text-[10px] uppercase font-bold tracking-widest text-[var(--text-subtle)] mb-2">
-            VRAM utilisée
+            {t("gpu_vram_used")}
           </p>
           <p
             className="text-sm font-semibold mono-text"

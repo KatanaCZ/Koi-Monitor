@@ -107,3 +107,17 @@ export function buildGamingAriaLabel(
   }
   return parts.join(', ');
 }
+
+export function translateVerdictLabel(label: string, t: any): string {
+  if (!label) return label;
+  const cleanLabel = label.trim();
+  if (cleanLabel.startsWith('Mesure')) return t('verdict_measuring');
+  if (cleanLabel === 'Hors ligne') return t('verdict_offline');
+  if (cleanLabel.includes('Wi-Fi') || cleanLabel.includes('Wi\u2011Fi') || cleanLabel.includes('box')) return t('verdict_local_issue');
+  if (cleanLabel === 'Réseau local') return t('verdict_local_network');
+  if (cleanLabel.startsWith('Internet')) return t('verdict_internet_unreachable');
+  if (cleanLabel === 'Latence élevée') return t('verdict_high_latency');
+  if (cleanLabel === 'Limite ranked') return t('verdict_marginal');
+  if (cleanLabel === 'Prêt pour le jeu') return t('verdict_ready');
+  return label;
+}

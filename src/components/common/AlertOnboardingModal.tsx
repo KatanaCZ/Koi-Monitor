@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, X } from 'lucide-react';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface AlertOnboardingModalProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ export const AlertOnboardingModal: React.FC<AlertOnboardingModalProps> = ({
   onDecline,
 }) => {
   const dialogRef = useFocusTrap(isOpen);
+  const { t, language } = useTranslation();
 
   useEffect(() => {
     if (!isOpen) return;
@@ -59,7 +61,7 @@ export const AlertOnboardingModal: React.FC<AlertOnboardingModalProps> = ({
               type="button"
               onClick={onDecline}
               className="absolute top-4 right-4 w-11 h-11 rounded-xl flex items-center justify-center text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)] transition-colors"
-              aria-label="Fermer"
+              aria-label={language === 'fr' ? 'Fermer' : 'Close'}
             >
               <X size={16} />
             </button>
@@ -70,13 +72,13 @@ export const AlertOnboardingModal: React.FC<AlertOnboardingModalProps> = ({
               </div>
               <div>
                 <p className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--neon-green-text)]">
-                  Optionnel
+                  {t('onboarding_badge')}
                 </p>
                 <h2
                   id="alert-onboarding-title"
                   className="text-xl font-semibold text-[var(--foreground)]"
                 >
-                  Koi peut veiller pour vous
+                  {t('onboarding_title')}
                 </h2>
               </div>
             </div>
@@ -85,10 +87,7 @@ export const AlertOnboardingModal: React.FC<AlertOnboardingModalProps> = ({
               id="alert-onboarding-desc"
               className="text-sm leading-relaxed text-[var(--text-muted)] mb-8"
             >
-              Comme une brise sur l&apos;eau, au bureau un mot si la machine force, en session un
-              murmure si le ping s&apos;éloigne de son rythme. Discret en bas de l&apos;écran,
-              jamais de popup Windows. La veille s&apos;active ou se repose dans Paramètres, onglet
-              Veille, vous gardez la main.
+              {t('onboarding_desc')}
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3">
@@ -97,14 +96,14 @@ export const AlertOnboardingModal: React.FC<AlertOnboardingModalProps> = ({
                 onClick={onEnable}
                 className="flex-1 rounded-2xl bg-[var(--neon-green)] px-5 py-3 text-sm font-semibold text-[#04140e] shadow-lg shadow-[var(--neon-green)]/25 hover:opacity-95 transition-opacity"
               >
-                Activer la veille
+                {t('onboarding_enable')}
               </button>
               <button
                 type="button"
                 onClick={onDecline}
                 className="flex-1 rounded-2xl border border-[var(--border-strong)] px-5 py-3 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--surface-muted)] transition-colors"
               >
-                Pas maintenant
+                {t('onboarding_decline')}
               </button>
             </div>
           </motion.div>

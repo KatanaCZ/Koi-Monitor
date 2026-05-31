@@ -138,6 +138,10 @@ function sanitizeAlertThresholds(
   };
 }
 
+function sanitizeLanguage(value: unknown): AppSettings['language'] {
+  return value === 'fr' || value === 'en' ? value : 'en';
+}
+
 function sanitizeBackgroundAura(value: unknown): AppSettings['backgroundAura'] {
   return value === 'off' || value === 'soft' || value === 'full' ? value : 'full';
 }
@@ -158,6 +162,7 @@ function sanitizeCustomDns(value: unknown): CustomDnsServer | null {
 export function sanitizeAppSettings(settings: AppSettings): AppSettings {
   return {
     ...settings,
+    language: sanitizeLanguage(settings.language),
     refreshInterval: clampToAllowed(
       settings.refreshInterval,
       REFRESH_INTERVAL_MS,

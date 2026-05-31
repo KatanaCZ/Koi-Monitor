@@ -10,6 +10,7 @@ import {
   hasDriverUpdate,
 } from '../../utils/driverFormat';
 import { normalizeDriverName } from '../../utils/driverCopy';
+import { useTranslation } from '../../hooks/useTranslation';
 
 export type DriverTileDensity = 'default' | 'compact' | 'ultra';
 
@@ -69,6 +70,7 @@ export const DriverTile = memo(function DriverTile({
   instant = false,
   essentialOnly = false,
 }: DriverTileProps) {
+  const { t } = useTranslation();
   const hasUpdate = hasDriverUpdate(driver);
   const isCompact = density !== 'default';
   const isUltra = density === 'ultra';
@@ -182,7 +184,7 @@ export const DriverTile = memo(function DriverTile({
   } bg-[var(--surface-inset)]`;
 
   const ariaLabel = hasUpdate
-    ? `${displayName}, version installée, nouveauté disponible`
+    ? t('driver_aria_has_update', { name: displayName })
     : `${displayName}, ${getDriverStatusLabel(driver.status, driver)}`;
 
   if (selectable) {

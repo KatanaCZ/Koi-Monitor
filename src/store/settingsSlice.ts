@@ -1,6 +1,6 @@
 import { StateCreator } from 'zustand';
 import { AppState } from './types';
-import { ThemeMode, AppSettings, DEFAULT_DNS_CHECKLIST, DEFAULT_ALERT_THRESHOLDS } from '../types';
+import { ThemeMode, AppSettings, DEFAULT_DNS_CHECKLIST, DEFAULT_ALERT_THRESHOLDS, LanguageMode } from '../types';
 import { sanitizeAppSettings } from '../utils/settingsOptions';
 
 export interface SettingsSlice {
@@ -10,7 +10,14 @@ export interface SettingsSlice {
   updateSettings: (settings: Partial<AppSettings>) => void;
 }
 
+export const detectSystemLanguage = (): LanguageMode => {
+  if (typeof navigator === 'undefined') return 'en';
+  const lang = (navigator.language || '').toLowerCase();
+  return lang.startsWith('fr') ? 'fr' : 'en';
+};
+
 export const DEFAULT_SETTINGS: AppSettings = {
+  language: 'en', // Will be overridden dynamically on load if no saved settings
   refreshInterval: 2000,
   dnsInterval: 15000,
   sakuraIntensity: 'medium',
@@ -32,18 +39,26 @@ export const DEFAULT_SETTINGS: AppSettings = {
 export const loadSettings = (): AppSettings => {
   try {
     const saved = localStorage.getItem('koi_settings');
+    const detectedLang = detectSystemLanguage();
+    const defaultWithDetected: AppSettings = {
+      ...DEFAULT_SETTINGS,
+      language: detectedLang,
+    };
     if (saved) {
       const parsed = JSON.parse(saved);
-      const sanitized = sanitizeAppSettings({ ...DEFAULT_SETTINGS, ...parsed });
-      if (JSON.stringify(sanitized) !== JSON.stringify({ ...DEFAULT_SETTINGS, ...parsed })) {
+      const sanitized = sanitizeAppSettings({ ...defaultWithDetected, ...parsed });
+      if (JSON.stringify(sanitized) !== JSON.stringify({ ...defaultWithDetected, ...parsed })) {
         localStorage.setItem('koi_settings', JSON.stringify(sanitized));
       }
       return sanitized;
+    } else {
+      localStorage.setItem('koi_settings', JSON.stringify(defaultWithDetected));
+      return defaultWithDetected;
     }
   } catch (e) {
     console.error('Failed to load settings:', e);
   }
-  return DEFAULT_SETTINGS;
+  return { ...DEFAULT_SETTINGS, language: detectSystemLanguage() };
 };
 
 export const createSettingsSlice: StateCreator<

@@ -13,6 +13,7 @@ export function useThresholdAlerts(): void {
   const gamingLatency = useAppStore((s) => s.gamingLatency);
   const pushStatusToast = useAppStore((s) => s.pushStatusToast);
   const setActivityProfile = useAppStore((s) => s.setActivityProfile);
+  const language = useAppStore((s) => s.settings.language);
 
   const stateRef = useRef(createThresholdAlertState());
 
@@ -39,6 +40,7 @@ export function useThresholdAlerts(): void {
       gamingLatency,
       alertThresholds,
       now,
+      language,
     );
 
     stateRef.current = result.state;
