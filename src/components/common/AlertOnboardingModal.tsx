@@ -16,7 +16,7 @@ export const AlertOnboardingModal: React.FC<AlertOnboardingModalProps> = ({
   onDecline,
 }) => {
   const dialogRef = useFocusTrap(isOpen);
-  const { t, language } = useTranslation();
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!isOpen) return;
@@ -61,7 +61,7 @@ export const AlertOnboardingModal: React.FC<AlertOnboardingModalProps> = ({
               type="button"
               onClick={onDecline}
               className="absolute top-4 right-4 w-11 h-11 rounded-xl flex items-center justify-center text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)] transition-colors"
-              aria-label={language === 'fr' ? 'Fermer' : 'Close'}
+              aria-label={t('gaming_close')}
             >
               <X size={16} />
             </button>

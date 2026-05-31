@@ -3,8 +3,10 @@ import {
   POPULAR_DNS_SERVERS,
   normalizeDnsChecklist,
   CUSTOM_DNS_DEFAULT_LABEL,
+  isAutoDnsChecklist,
 } from '../types';
 import type { CustomDnsServer, DnsResult, DnsServerItem } from '../types';
+import type { TranslateFn } from './translations';
 
 const IPV4_RE =
   /^(?:(?:25[0-5]|2[0-4]\d|[01]?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d?\d)$/;
@@ -19,6 +21,20 @@ export function isValidCustomDnsIpv4(ip: string): boolean {
   if (a >= 224) return false;
   if (a === 169 && b === 254) return false;
   return true;
+}
+
+export function getDnsTestModeLabel(checklist: string[], t: TranslateFn): string {
+  const active = normalizeDnsChecklist(checklist);
+
+  if (isAutoDnsChecklist(checklist)) return t('dns_mode_auto');
+
+  if (active.length === POPULAR_DNS_SERVERS.length) {
+    return t('dns_mode_all');
+  }
+
+  if (active.length === 1) return t('dns_mode_one');
+
+  return t('dns_mode_count', { count: active.length });
 }
 
 export function buildActiveDnsServers(

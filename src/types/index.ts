@@ -1,3 +1,7 @@
+import type { DriverStatus } from '../constants/driverStatus';
+
+export type { DriverStatus };
+
 export interface CpuInfo {
   name: string;
   cores: number;
@@ -64,16 +68,18 @@ export interface DnsResult {
   server_name: string;
   ip: string;
   latency_ms: number;
-  status: string;
   is_best: boolean;
 }
 
 export type GamingVerdict =
   | 'ready'
   | 'marginal'
-  | 'poor'
+  | 'measuring'
   | 'local_issue'
-  | 'measuring';
+  | 'local_network'
+  | 'offline'
+  | 'internet_unreachable'
+  | 'high_latency';
 
 export interface GamingLatencySnapshot {
   gateway_ip: string;
@@ -93,7 +99,7 @@ export const DEFAULT_GAMING_LATENCY: GamingLatencySnapshot = {
   jitter_ms: 0,
   sample_count: 0,
   verdict: 'measuring',
-  verdict_label: 'Mesure…',
+  verdict_label: 'measuring',
   internet_host: '1.1.1.1',
 };
 
@@ -103,7 +109,7 @@ export interface DriverInfo {
   latest_version: string;
   date: string;
   provider: string;
-  status: string;
+  status: DriverStatus;
   category: string;
   hardware_id: string;
   hardware_ids?: string[];
@@ -170,20 +176,6 @@ export const isAutoDnsChecklist = (checklist: string[]): boolean => {
     active.length === DEFAULT_DNS_CHECKLIST.length &&
     DEFAULT_DNS_CHECKLIST.every((name) => active.includes(name))
   );
-};
-
-export const getDnsTestModeLabel = (checklist: string[], language: LanguageMode = 'fr'): string => {
-  const active = normalizeDnsChecklist(checklist);
-
-  if (isAutoDnsChecklist(checklist)) return language === 'fr' ? "Test auto" : "Auto test";
-
-  if (active.length === POPULAR_DNS_SERVERS.length) {
-    return language === 'fr' ? "Tous les serveurs" : "All servers";
-  }
-
-  if (active.length === 1) return language === 'fr' ? "1 serveur" : "1 server";
-
-  return language === 'fr' ? `${active.length} serveurs` : `${active.length} servers`;
 };
 
 export type LanguageMode = 'fr' | 'en';

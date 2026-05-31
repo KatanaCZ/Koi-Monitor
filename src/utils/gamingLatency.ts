@@ -1,4 +1,7 @@
 import type { GamingVerdict } from '../types';
+import type { TranslationKey } from './translations';
+
+type TranslateFn = (key: TranslationKey, params?: Record<string, string | number>) => string;
 
 export function getGamingVerdictStyle(verdict: GamingVerdict): {
   color: string;
@@ -22,13 +25,16 @@ export function getGamingVerdictStyle(verdict: GamingVerdict): {
         badgeBorder: 'color-mix(in srgb, #fbbf24 50%, transparent)',
       };
     case 'local_issue':
+    case 'local_network':
       return {
         color: '#fb923c',
         textColor: '#fdba74',
         badgeBg: 'color-mix(in srgb, #fb923c 20%, transparent)',
         badgeBorder: 'color-mix(in srgb, #fb923c 50%, transparent)',
       };
-    case 'poor':
+    case 'offline':
+    case 'internet_unreachable':
+    case 'high_latency':
       return {
         color: '#f87171',
         textColor: '#fca5a5',
@@ -42,6 +48,29 @@ export function getGamingVerdictStyle(verdict: GamingVerdict): {
         badgeBg: 'color-mix(in srgb, var(--neon-green) 12%, transparent)',
         badgeBorder: 'color-mix(in srgb, var(--neon-green) 30%, transparent)',
       };
+  }
+}
+
+export function getVerdictLabel(verdict: GamingVerdict, t: TranslateFn): string {
+  switch (verdict) {
+    case 'ready':
+      return t('verdict_ready');
+    case 'marginal':
+      return t('verdict_marginal');
+    case 'measuring':
+      return t('verdict_measuring');
+    case 'local_issue':
+      return t('verdict_local_issue');
+    case 'local_network':
+      return t('verdict_local_network');
+    case 'offline':
+      return t('verdict_offline');
+    case 'internet_unreachable':
+      return t('verdict_internet_unreachable');
+    case 'high_latency':
+      return t('verdict_high_latency');
+    default:
+      return verdict;
   }
 }
 
@@ -92,32 +121,20 @@ export function buildGamingAriaLabel(
     internet_ms: number;
     jitter_ms: number;
     gateway_ms: number;
-    verdict_label: string;
+    verdict: GamingVerdict;
   },
+  t: TranslateFn,
 ): string {
-  const parts = [`Latence jeu : ${snapshot.verdict_label}`];
+  const verdict = getVerdictLabel(snapshot.verdict, t);
+  const parts = [t('gaming_aria_prefix', { verdict })];
   if (snapshot.internet_ms >= 0) {
-    parts.push(`Internet ${snapshot.internet_ms.toFixed(0)} ms`);
+    parts.push(t('gaming_aria_internet', { ms: snapshot.internet_ms.toFixed(0) }));
   }
   if (snapshot.jitter_ms > 0) {
-    parts.push(`jitter ${snapshot.jitter_ms.toFixed(1)} ms`);
+    parts.push(t('gaming_aria_jitter', { ms: snapshot.jitter_ms.toFixed(1) }));
   }
   if (snapshot.gateway_ms >= 0) {
-    parts.push(`passerelle ${snapshot.gateway_ms.toFixed(0)} ms`);
+    parts.push(t('gaming_aria_gateway', { ms: snapshot.gateway_ms.toFixed(0) }));
   }
   return parts.join(', ');
-}
-
-export function translateVerdictLabel(label: string, t: any): string {
-  if (!label) return label;
-  const cleanLabel = label.trim();
-  if (cleanLabel.startsWith('Mesure')) return t('verdict_measuring');
-  if (cleanLabel === 'Hors ligne') return t('verdict_offline');
-  if (cleanLabel.includes('Wi-Fi') || cleanLabel.includes('Wi\u2011Fi') || cleanLabel.includes('box')) return t('verdict_local_issue');
-  if (cleanLabel === 'Réseau local') return t('verdict_local_network');
-  if (cleanLabel.startsWith('Internet')) return t('verdict_internet_unreachable');
-  if (cleanLabel === 'Latence élevée') return t('verdict_high_latency');
-  if (cleanLabel === 'Limite ranked') return t('verdict_marginal');
-  if (cleanLabel === 'Prêt pour le jeu') return t('verdict_ready');
-  return label;
 }

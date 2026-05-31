@@ -4,6 +4,7 @@ import { HardDrive, RefreshCw, Maximize2, Minimize2, Signal, Settings2 } from 'l
 import { useAppStore } from '../../store';
 import { NeonBentoCard } from '../common';
 import { collapseEssentialDrivers, hasDriverUpdate } from '../../utils/driverFormat';
+import { DRIVER_STATUS } from '../../constants/driverStatus';
 import {
   getDriversHeaderSubtitle,
   getSummaryBandTitle,
@@ -32,7 +33,7 @@ export const DriversWidget = memo(function DriversWidget({
   onToggleExpand,
   onCustomize,
 }: DriversWidgetProps) {
-  const { t, language } = useTranslation();
+  const { t } = useTranslation();
   const drivers = useAppStore((s) => s.drivers);
   const isLoading = useAppStore((s) => s.isLoading);
   const setDrivers = useAppStore((s) => s.setDrivers);
@@ -78,9 +79,9 @@ export const DriversWidget = memo(function DriversWidget({
     ? 'flex flex-wrap justify-center gap-2 w-full shrink-0'
     : 'flex-1 flex flex-col justify-center min-h-0 w-full py-1';
 
-  const installedCount = filteredDrivers.filter((d) => d.status === 'Installed').length;
+  const installedCount = filteredDrivers.filter((d) => d.status === DRIVER_STATUS.INSTALLED).length;
   const updateCount = filteredDrivers.filter((d) => hasDriverUpdate(d)).length;
-  const verifyCount = filteredDrivers.filter((d) => d.status === 'Verify Online').length;
+  const verifyCount = filteredDrivers.filter((d) => d.status === DRIVER_STATUS.VERIFY_ONLINE).length;
 
   const selectedDriverKey = useMemo(() => {
     if (!isExpanded) return null;
@@ -110,7 +111,7 @@ export const DriversWidget = memo(function DriversWidget({
       const result = await driverService.getDrivers(simplifiedMode, true, true);
       setDrivers(result);
       if (isEmptyDriversList(result)) {
-        pushStatusToast(getEmptyDriversToast(), 'warning');
+        pushStatusToast(getEmptyDriversToast(t), 'warning');
       }
     } catch (error) {
       console.error('Failed to refresh drivers:', error);
@@ -166,7 +167,7 @@ export const DriversWidget = memo(function DriversWidget({
   const renderSummaryBand = () => {
     if (isEmptyDriversList(filteredDrivers)) return null;
 
-    const badge = getSummaryBandBadge(updateCount, verifyCount);
+    const badge = getSummaryBandBadge(updateCount, verifyCount, t);
     const badgeColor =
       badge.tone === 'update'
         ? 'var(--neon-purple-text)'
@@ -203,13 +204,13 @@ export const DriversWidget = memo(function DriversWidget({
                 useCompact ? 'text-[10px] mb-0.5' : 'text-xs mb-1'
               } uppercase font-bold tracking-widest text-[var(--text-subtle)] truncate`}
             >
-              {getSummaryBandTitle(filteredDrivers.length)}
+              {getSummaryBandTitle(filteredDrivers.length, t)}
             </p>
             <p
               className={`${useCompact ? 'text-xs' : 'text-sm'} font-semibold leading-tight`}
               style={{ color: badgeColor }}
             >
-              {getSummaryBandSubtitle(installedCount, updateCount, verifyCount)}
+              {getSummaryBandSubtitle(installedCount, updateCount, verifyCount, t)}
             </p>
           </div>
         </div>
@@ -254,7 +255,7 @@ export const DriversWidget = memo(function DriversWidget({
               {t('drivers_widget_title')}
             </h3>
             <p className="text-xs text-[var(--text-muted)] leading-snug">
-              {getDriversHeaderSubtitle(filteredDrivers, simplifiedMode)}
+              {getDriversHeaderSubtitle(filteredDrivers, simplifiedMode, t)}
             </p>
           </div>
         </div>
@@ -267,7 +268,7 @@ export const DriversWidget = memo(function DriversWidget({
             onClick={handleRefresh}
             disabled={isLoading}
             aria-busy={isLoading}
-            aria-label={isLoading ? (language === 'fr' ? 'Scan des pilotes en cours' : 'Scanning drivers...') : getScanButtonIdle()}
+            aria-label={isLoading ? t('drivers_scan_aria_loading') : getScanButtonIdle(t)}
             className={`px-4 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface-inset)] hover:bg-[var(--surface-muted)] hover:border-[var(--neon-purple)]/30 text-[var(--foreground)] text-sm font-semibold flex items-center gap-2 transition-colors min-h-[44px] ${
               isLoading ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'
             }`}
@@ -278,7 +279,7 @@ export const DriversWidget = memo(function DriversWidget({
             >
               <RefreshCw size={16} className="text-[var(--text-muted)]" aria-hidden="true" />
             </motion.div>
-            {isLoading ? getScanButtonLoading() : getScanButtonIdle()}
+            {isLoading ? getScanButtonLoading(t) : getScanButtonIdle(t)}
           </motion.button>
 
           {onCustomize && (

@@ -9,6 +9,7 @@ import {
   isWindowsUpdateSource,
   getVendorUpdateLinkLabel,
 } from '../../utils/driverFormat';
+import { DRIVER_STATUS } from '../../constants/driverStatus';
 import {
   getDriverStoreWarningLines,
   normalizeDriverName,
@@ -27,15 +28,15 @@ export const DriverDetailPanel = memo(function DriverDetailPanel({
   onOpenWindowsUpdate,
   onOpenUrl,
 }: DriverDetailPanelProps) {
-  const { t, language } = useTranslation();
-  const displayName = normalizeDriverName(driver.name);
-  const warningLines = getDriverStoreWarningLines();
+  const { t } = useTranslation();
+  const displayName = normalizeDriverName(driver.name, t);
+  const warningLines = getDriverStoreWarningLines(t);
 
   return (
     <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-inset)] p-4 space-y-4 shrink-0">
       <div>
         <p className="text-[10px] uppercase font-bold tracking-widest text-[var(--text-subtle)] mb-1">
-          {language === 'fr' ? 'Détail pilote' : 'Driver Detail'}
+          {t('drivers_detail_title')}
         </p>
         <h4 className="text-base font-semibold text-[var(--foreground)] truncate" title={displayName}>
           {displayName}
@@ -59,7 +60,7 @@ export const DriverDetailPanel = memo(function DriverDetailPanel({
         {!hasDriverUpdate(driver) ? (
           <div>
             <p className="text-[10px] text-[var(--text-subtle)] uppercase font-semibold tracking-wider mb-2">
-              {language === 'fr' ? 'Version installée' : 'Installed Version'}
+              {t('drivers_detail_installed_version')}
             </p>
             <p className="text-sm font-bold mono-text text-[var(--neon-purple-text)]">
               {formatInstalledDriverLabel(driver.version)}
@@ -68,10 +69,10 @@ export const DriverDetailPanel = memo(function DriverDetailPanel({
         ) : null}
         <div>
           <p className="text-[10px] text-[var(--text-subtle)] uppercase font-semibold tracking-wider mb-2">
-            {language === 'fr' ? 'Date installée' : 'Installed Date'}
+            {t('drivers_detail_installed_date')}
           </p>
           <p className="text-sm font-medium mono-text text-[var(--foreground)]">
-            {driver.date !== 'N/A' ? driver.date : (language === 'fr' ? 'Non renseignée' : 'Not specified')}
+            {driver.date !== 'N/A' ? driver.date : t('drivers_date_unspecified')}
           </p>
         </div>
         <div>
@@ -79,7 +80,7 @@ export const DriverDetailPanel = memo(function DriverDetailPanel({
             {t('drivers_category')}
           </p>
           <p className="text-sm font-medium text-[var(--foreground)]">
-            {getDriverCategoryLabel(driver.category)}
+            {getDriverCategoryLabel(driver.category, t)}
           </p>
         </div>
         <div>
@@ -120,7 +121,7 @@ export const DriverDetailPanel = memo(function DriverDetailPanel({
               className="w-full min-h-[44px] py-2 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer bg-sky-100 hover:bg-sky-200 text-sky-700 dark:bg-sky-500/20 dark:hover:bg-sky-500/30 dark:text-sky-400"
             >
               <ExternalLink size={16} aria-hidden="true" />
-              {language === 'fr' ? 'Ouvrir Windows Update' : 'Open Windows Update'}
+              {t('drivers_btn_open_wu')}
             </button>
           ) : null}
           {driver.update_url &&
@@ -135,7 +136,7 @@ export const DriverDetailPanel = memo(function DriverDetailPanel({
               }`}
             >
               <ExternalLink size={16} aria-hidden="true" />
-              {getVendorUpdateLinkLabel(driver)}
+              {getVendorUpdateLinkLabel(driver, t)}
             </button>
           ) : null}
           {isDriverStoreOnlySource(driver) ? (
@@ -144,7 +145,7 @@ export const DriverDetailPanel = memo(function DriverDetailPanel({
               onClick={() => onOpenWindowsUpdate()}
               className="w-full min-h-[44px] py-2 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer bg-[var(--surface-inset)] hover:bg-[var(--surface-muted)] text-[var(--foreground)] border border-[var(--border)]"
             >
-              {language === 'fr' ? 'Vérifier Windows Update' : 'Check Windows Update'}
+              {t('drivers_btn_check_wu')}
             </button>
           ) : null}
         </div>
@@ -153,15 +154,15 @@ export const DriverDetailPanel = memo(function DriverDetailPanel({
           type="button"
           onClick={() => onOpenUrl(driver.update_url)}
           className={`w-full min-h-[44px] py-2 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer ${
-            driver.status === 'Verify Online'
+            driver.status === DRIVER_STATUS.VERIFY_ONLINE
               ? 'bg-amber-100 hover:bg-amber-200 text-amber-700 dark:bg-amber-500/20 dark:hover:bg-amber-500/30 dark:text-amber-400'
               : 'bg-[var(--surface-inset)] hover:bg-[var(--surface-muted)] text-[var(--foreground)]'
           }`}
         >
           <ExternalLink size={16} aria-hidden="true" />
-          {driver.status === 'Verify Online'
-            ? (language === 'fr' ? 'Confirmer en ligne' : 'Confirm Online')
-            : (language === 'fr' ? 'Page constructeur' : 'Manufacturer Page')}
+          {driver.status === DRIVER_STATUS.VERIFY_ONLINE
+            ? t('drivers_btn_confirm_online')
+            : t('drivers_btn_manufacturer_page')}
         </button>
       ) : null}
     </div>

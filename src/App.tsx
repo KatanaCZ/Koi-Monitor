@@ -46,7 +46,7 @@ const DriversWidget = lazy(() =>
 
 const App: React.FC = () => {
   const theme = useAppStore((s) => s.theme);
-  const { t, language } = useTranslation();
+  const { t } = useTranslation();
   const isSystemReady = useAppStore((s) => s.systemInfo !== null);
   const isDnsReady = useAppStore(
     (s) => s.dnsResults.length > 0 || s.dnsFetchAttempted,
@@ -130,13 +130,8 @@ const App: React.FC = () => {
       },
     });
     setShowAlertOnboarding(false);
-    pushStatusToast(
-      language === 'fr'
-        ? 'Veille activée — Koi a l’œil sur votre machine.'
-        : 'Alerts enabled — Koi has an eye on your machine.',
-      'success'
-    );
-  }, [updateSettings, pushStatusToast, language]);
+    pushStatusToast(t('alerts_enabled_toast'), 'success');
+  }, [updateSettings, pushStatusToast, t]);
 
   const handleDeclineAlerts = useCallback(() => {
     markAlertsOnboardingDone();

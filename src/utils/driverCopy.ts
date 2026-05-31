@@ -1,21 +1,17 @@
-import { useAppStore } from '../store';
+import type { TranslateFn } from './translations';
 
 export const EMPTY_DRIVERS_BACKEND_NAME = 'No hardware drivers detected';
 
-export function getEmptyDriversUserLabel(): string {
-  const language = useAppStore.getState().settings.language || 'en';
-  return language === 'fr' ? "Rien pour l'instant, lancez un scan" : "Nothing yet, run a scan";
+export function getEmptyDriversUserLabel(t: TranslateFn): string {
+  return t('drivers_empty_label');
 }
 
-export function getEmptyDriversToast(): string {
-  const language = useAppStore.getState().settings.language || 'en';
-  return language === 'fr'
-    ? "Calme plat côté pilotes, Koi n'a rien trouvé, un scan suffit"
-    : "Calm waters on the drivers side, Koi found nothing, a scan is enough";
+export function getEmptyDriversToast(t: TranslateFn): string {
+  return t('drivers_empty_toast');
 }
 
-export function normalizeDriverName(name: string): string {
-  if (name === EMPTY_DRIVERS_BACKEND_NAME) return getEmptyDriversUserLabel();
+export function normalizeDriverName(name: string, t: TranslateFn): string {
+  if (name === EMPTY_DRIVERS_BACKEND_NAME) return getEmptyDriversUserLabel(t);
   return name;
 }
 
@@ -29,114 +25,99 @@ export function isEmptyDriversList(drivers: { name: string }[]): boolean {
 export function getDriversHeaderSubtitle(
   drivers: { name: string }[],
   simplified: boolean,
+  t: TranslateFn,
 ): string {
-  const language = useAppStore.getState().settings.language || 'en';
   if (isEmptyDriversList(drivers)) {
-    return language === 'fr'
-      ? "Koi écoute, rien en vue pour l'instant, lancez un scan"
-      : "Koi is listening, nothing in sight yet, run a scan";
+    return t('drivers_header_empty');
   }
   const count = drivers.length;
   if (count === 0) {
-    return language === 'fr'
-      ? "Scannez pour découvrir les pilotes de votre machine"
-      : "Scan to discover your machine's drivers";
+    return t('drivers_header_scan_hint');
   }
   if (count === 1 && simplified) {
-    return language === 'fr'
-      ? "1 essentiel, graphique, réseau ou Bluetooth, version sous les yeux"
-      : "1 essential (graphics, network, or Bluetooth), version under your eyes";
+    return t('drivers_header_one_essential');
   }
   if (simplified) {
-    return language === 'fr'
-      ? `${count} essentiels, graphique, réseau et Bluetooth, versions sous les yeux`
-      : `${count} essentials (graphics, network, and Bluetooth), versions under your eyes`;
+    return t('drivers_header_essentials', { count });
   }
-  return language === 'fr'
-    ? `${count} pilotes, graphique, réseau, audio et stockage, versions sous les yeux`
-    : `${count} drivers (graphics, network, audio, and storage), versions under your eyes`;
+  return t('drivers_header_full', { count });
 }
 
-export function getSummaryBandTitle(count: number): string {
-  const language = useAppStore.getState().settings.language || 'en';
-  if (count <= 0) return language === 'fr' ? 'Pilotes en attente' : 'Drivers pending';
-  return language === 'fr'
-    ? `${count} pilote${count !== 1 ? 's' : ''} sous surveillance`
-    : `${count} driver${count !== 1 ? 's' : ''} under observation`;
+export function getSummaryBandTitle(count: number, t: TranslateFn): string {
+  if (count <= 0) return t('drivers_summary_pending');
+  if (count === 1) return t('drivers_summary_one_observing');
+  return t('drivers_summary_many_observing', { count });
 }
 
 export function getSummaryBandSubtitle(
   installedCount: number,
   updateCount: number,
   verifyCount: number,
+  t: TranslateFn,
 ): string {
-  const language = useAppStore.getState().settings.language || 'en';
   const parts: string[] = [];
   if (installedCount > 0) {
-    if (language === 'fr') {
-      parts.push(`${installedCount} serein${installedCount !== 1 ? 's' : ''}`);
-    } else {
-      parts.push(`${installedCount} stable`);
-    }
+    parts.push(
+      installedCount === 1
+        ? t('drivers_summary_stable_one')
+        : t('drivers_summary_stable_many', { count: installedCount }),
+    );
   }
   if (updateCount > 0) {
-    if (language === 'fr') {
-      parts.push(`${updateCount} nouveauté${updateCount !== 1 ? 's' : ''}`);
-    } else {
-      parts.push(`${updateCount} update${updateCount !== 1 ? 's' : ''}`);
-    }
+    parts.push(
+      updateCount === 1
+        ? t('drivers_summary_update_one')
+        : t('drivers_summary_update_many', { count: updateCount }),
+    );
   }
   if (verifyCount > 0) {
-    if (language === 'fr') {
-      parts.push(`${verifyCount} à confirmer`);
-    } else {
-      parts.push(`${verifyCount} to confirm`);
-    }
+    parts.push(
+      verifyCount === 1
+        ? t('drivers_summary_verify_one')
+        : t('drivers_summary_verify_many', { count: verifyCount }),
+    );
   }
-  if (parts.length === 0) return language === 'fr' ? 'Lancez un scan pour commencer' : 'Run a scan to start';
+  if (parts.length === 0) return t('drivers_summary_scan_start');
   return parts.join(', ');
 }
 
 export function getSummaryBandBadge(
   updateCount: number,
   verifyCount: number,
+  t: TranslateFn,
 ): { label: string; tone: 'ok' | 'update' | 'verify' } {
-  const language = useAppStore.getState().settings.language || 'en';
   if (updateCount > 0) {
     return {
-      label: language === 'fr'
-        ? `${updateCount} nouveauté${updateCount !== 1 ? 's' : ''}`
-        : `${updateCount} update${updateCount !== 1 ? 's' : ''}`,
+      label:
+        updateCount === 1
+          ? t('drivers_badge_update_one')
+          : t('drivers_badge_update_many', { count: updateCount }),
       tone: 'update',
     };
   }
   if (verifyCount > 0) {
     return {
-      label: language === 'fr'
-        ? `${verifyCount} à confirmer`
-        : `${verifyCount} to confirm`,
+      label:
+        verifyCount === 1
+          ? t('drivers_badge_verify_one')
+          : t('drivers_badge_verify_many', { count: verifyCount }),
       tone: 'verify',
     };
   }
   return {
-    label: language === 'fr' ? 'Tout est à jour' : 'All up to date',
+    label: t('drivers_badge_all_ok'),
     tone: 'ok',
   };
 }
 
-export function getDriverStoreWarningLines(): string[] {
-  const language = useAppStore.getState().settings.language || 'en';
-  return language === 'fr'
-    ? ['Version repérée dans le magasin de pilotes.', 'Windows Update ne la propose pas encore sur ce PC.']
-    : ['Version found in the driver store.', 'Windows Update does not offer it on this PC yet.'];
+export function getDriverStoreWarningLines(t: TranslateFn): string[] {
+  return [t('drivers_store_warning_1'), t('drivers_store_warning_2')];
 }
 
-export function getScanButtonIdle(): string {
-  const language = useAppStore.getState().settings.language || 'en';
-  return language === 'fr' ? 'Scanner les pilotes' : 'Scan drivers';
+export function getScanButtonIdle(t: TranslateFn): string {
+  return t('drivers_scan_idle');
 }
 
-export function getScanButtonLoading(): string {
-  const language = useAppStore.getState().settings.language || 'en';
-  return language === 'fr' ? 'Scan en cours' : 'Scanning';
+export function getScanButtonLoading(t: TranslateFn): string {
+  return t('drivers_scan_loading');
 }

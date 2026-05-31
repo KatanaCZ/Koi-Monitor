@@ -1,5 +1,6 @@
 use crate::driver_store::{fetch_driver_store_packages, find_latest_store_version_for_driver};
 use crate::driver_version::{extract_version_from_text, is_update_available};
+use crate::driver_status::{UPDATE_AVAILABLE, UPDATE_SOURCE_DRIVER_STORE, UPDATE_SOURCE_WINDOWS};
 use crate::drivers::DriverInfo;
 use serde::Deserialize;
 use crate::subprocess::run_powershell_with_timeout;
@@ -87,7 +88,7 @@ pub fn enrich_drivers_with_updates(drivers: &mut [DriverInfo]) {
         };
 
         driver.latest_version = latest;
-        driver.status = "Update Available".to_string();
+        driver.status = UPDATE_AVAILABLE.to_string();
         driver.update_source = source.to_string();
     }
 }
@@ -103,13 +104,13 @@ fn resolve_update_candidate(
     match (wu_newer, store_newer) {
         (Some(wu_version), Some(store_version)) => {
             if is_update_available(&wu_version, &store_version) {
-                Some((store_version, "driver_store"))
+                Some((store_version, UPDATE_SOURCE_DRIVER_STORE))
             } else {
-                Some((wu_version, "windows_update"))
+                Some((wu_version, UPDATE_SOURCE_WINDOWS))
             }
         }
-        (Some(wu_version), None) => Some((wu_version, "windows_update")),
-        (None, Some(store_version)) => Some((store_version, "driver_store")),
+        (Some(wu_version), None) => Some((wu_version, UPDATE_SOURCE_WINDOWS)),
+        (None, Some(store_version)) => Some((store_version, UPDATE_SOURCE_DRIVER_STORE)),
         (None, None) => None,
     }
 }

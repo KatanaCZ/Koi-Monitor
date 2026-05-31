@@ -1,4 +1,5 @@
 import React from 'react';
+import { createTranslator } from '../../utils/translations';
 import { useAppStore } from '../../store';
 
 interface ErrorBoundaryProps {
@@ -34,10 +35,7 @@ export class ErrorBoundary extends React.Component<
         return this.props.fallback;
       }
 
-      const language = useAppStore.getState().settings.language || 'en';
-      const errorTitle = language === 'fr' ? "Une erreur a interrompu l'interface" : "An error interrupted the interface";
-      const errorDesc = language === 'fr' ? "Rechargez l'application pour reprendre le monitoring." : "Reload the application to resume monitoring.";
-      const errorBtn = language === 'fr' ? "Recharger" : "Reload";
+      const t = createTranslator(useAppStore.getState().settings.language || 'en');
 
       return (
         <div
@@ -46,17 +44,17 @@ export class ErrorBoundary extends React.Component<
           aria-live="assertive"
         >
           <p className="text-lg font-semibold text-[var(--foreground)]">
-            {errorTitle}
+            {t('error_boundary_title')}
           </p>
           <p className="max-w-md text-sm text-[var(--text-muted)]">
-            {errorDesc}
+            {t('error_boundary_desc')}
           </p>
           <button
             type="button"
             onClick={this.handleReload}
             className="rounded-2xl bg-[var(--neon-pink)] px-5 py-2.5 text-sm font-semibold text-white"
           >
-            {errorBtn}
+            {t('error_boundary_reload')}
           </button>
         </div>
       );

@@ -7,7 +7,7 @@ import {
   formatGamingLatencyValue,
   getGamingLatencyRingPercent,
   getGamingVerdictStyle,
-  translateVerdictLabel,
+  getVerdictLabel,
 } from '../../utils/gamingLatency';
 import { getNeonTextShadow } from '../../utils/neonEffects';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -129,7 +129,7 @@ export const DnsViaBand = memo(function DnsViaBand({
     gamingVerdict,
   );
   const gamingRingPercent = getGamingLatencyRingPercent(gamingLatency.internet_ms);
-  const gamingAriaLabel = buildGamingAriaLabel(gamingLatency);
+  const gamingAriaLabel = buildGamingAriaLabel(gamingLatency, t);
   const isMeasuring = gamingVerdict === 'measuring';
   const gamingSubtitle = isMeasuring ? t('gaming_listening_line') : t('gaming_ping_direct');
 
@@ -262,7 +262,7 @@ export const DnsViaBand = memo(function DnsViaBand({
                     : undefined,
                 }}
               >
-                {translateVerdictLabel(gamingLatency.verdict_label, t)}
+                {getVerdictLabel(gamingVerdict, t)}
               </button>
             </div>
           </div>

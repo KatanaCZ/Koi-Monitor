@@ -101,14 +101,6 @@ const GAMING_SIM = {
   },
 } as const;
 
-function dnsStatusFromLatency(latencyMs: number): string {
-  if (latencyMs < 0) return 'Timeout';
-  if (latencyMs < 50) return 'Excellent';
-  if (latencyMs < 100) return 'Good';
-  if (latencyMs < 200) return 'Fair';
-  return 'Poor';
-}
-
 function buildSimulatedDnsResults(
   checklist: string[],
   customDns: CustomDnsServer | null,
@@ -123,7 +115,6 @@ function buildSimulatedDnsResults(
       server_name: s.name,
       ip: s.ip,
       latency_ms: latency,
-      status: dnsStatusFromLatency(latency),
       is_best: false,
     };
   });
@@ -307,7 +298,7 @@ export function simulateGamingLoad(): void {
       jitter_ms: 8,
       sample_count: 15,
       verdict: isSpike ? 'marginal' : 'ready',
-      verdict_label: isSpike ? 'Limite ranked' : 'Prêt pour le jeu',
+      verdict_label: isSpike ? 'marginal' : 'ready',
     });
 
     s.setDnsResults(buildSimulatedDnsResults(s.settings.dnsChecklist, s.settings.customDns));
@@ -373,8 +364,8 @@ export function simulateLatency200(): void {
       gateway_ip: s.gamingLatency.gateway_ip || '192.168.1.1',
       jitter_ms: 10,
       sample_count: 15,
-      verdict: latencyMs >= 200 ? 'poor' : 'ready',
-      verdict_label: latencyMs >= 200 ? 'Latence élevée' : 'Prêt pour le jeu',
+      verdict: latencyMs >= 200 ? 'high_latency' : 'ready',
+      verdict_label: latencyMs >= 200 ? 'high_latency' : 'ready',
     });
   };
 

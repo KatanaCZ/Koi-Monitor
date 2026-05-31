@@ -163,7 +163,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({
                             className="text-[10px] text-[var(--text-subtle)]"
                             dateTime={new Date(entry.createdAt).toISOString()}
                           >
-                            {formatNotificationTime(entry.createdAt, Date.now(), language)}
+                            {formatNotificationTime(entry.createdAt, t, language)}
                           </time>
                         </div>
                         <p className="text-sm font-medium leading-snug break-words">

@@ -86,7 +86,6 @@ pub struct DnsResult {
     pub server_name: String,
     pub ip: String,
     pub latency_ms: f64,
-    pub status: String,
     pub is_best: bool,
 }
 
@@ -162,23 +161,10 @@ pub async fn ping_all_dns_servers(
     let mut results = Vec::with_capacity(handles.len());
     for task in handles {
         if let Ok((name, ip, latency)) = task.await {
-            let status = if latency < 0.0 {
-                "Timeout".to_string()
-            } else if latency < 50.0 {
-                "Excellent".to_string()
-            } else if latency < 100.0 {
-                "Good".to_string()
-            } else if latency < 200.0 {
-                "Fair".to_string()
-            } else {
-                "Poor".to_string()
-            };
-
             results.push(DnsResult {
                 server_name: name,
                 ip,
                 latency_ms: latency,
-                status,
                 is_best: false,
             });
         }

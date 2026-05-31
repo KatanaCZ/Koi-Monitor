@@ -7,7 +7,7 @@ import {
   formatGamingLatencyValue,
   getGamingLatencyRingPercent,
   getGamingVerdictStyle,
-  translateVerdictLabel,
+  getVerdictLabel,
 } from "../../utils/gamingLatency";
 import type { GamingVerdict } from "../../types";
 import { GamingLatencyBreakdown } from "../common/GamingLatencyBreakdown";
@@ -164,7 +164,7 @@ export const ZenMetricsDock = memo(function ZenMetricsDock() {
   const gamingRingPercent = getGamingLatencyRingPercent(
     gamingLatency.internet_ms,
   );
-  const gamingAriaLabel = buildGamingAriaLabel(gamingLatency);
+  const gamingAriaLabel = buildGamingAriaLabel(gamingLatency, t);
 
   const gamingDetail = (
     <span
@@ -175,7 +175,7 @@ export const ZenMetricsDock = memo(function ZenMetricsDock() {
         border: `1px solid ${gamingStyle.badgeBorder}`,
       }}
     >
-      {translateVerdictLabel(gamingLatency.verdict_label, t)}
+      {getVerdictLabel(gamingVerdict, t)}
     </span>
   );
 
@@ -257,7 +257,6 @@ export const ZenMetricsDock = memo(function ZenMetricsDock() {
               snapshot={gamingLatency}
               compact
               isDark={isDark}
-              verdictLabel={gamingLatency.verdict_label}
               onClose={closeGamingDetails}
             />
           </motion.div>

@@ -28,14 +28,14 @@ const WidgetFallback = () => (
 );
 
 const LocalWidgetError = ({ name }: { name: string }) => {
-  const { language } = useTranslation();
+  const { t } = useTranslation();
   return (
     <div className="bento-card h-[380px] flex flex-col items-center justify-center gap-2 bg-[var(--surface-inset)] border border-red-500/20 text-center p-6">
       <p className="text-sm font-semibold text-red-400">
-        {language === 'fr' ? `Erreur dans le widget ${name}` : `Error in widget ${name}`}
+        {t('error_widget_title', { name })}
       </p>
       <p className="text-xs text-[var(--text-muted)]">
-        {language === 'fr' ? "Impossible de charger les données." : "Unable to load data."}
+        {t('error_widget_load_data')}
       </p>
     </div>
   );
@@ -62,7 +62,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onToggleDriversExpand,
   onCustomizeDrivers,
 }) => {
-  const { language } = useTranslation();
+  const { t } = useTranslation();
 
   return (
     <motion.div
@@ -103,7 +103,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
             <div className="flex flex-col min-h-0 h-full">
-              <ErrorBoundary fallback={<LocalWidgetError name={language === 'fr' ? "Réseau" : "Network"} />}>
+              <ErrorBoundary fallback={<LocalWidgetError name={t('widget_name_network')} />}>
                 <NetworkWidget layoutHeight={dnsRowHeight} />
               </ErrorBoundary>
             </div>
@@ -128,7 +128,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           {expandedWidget === 'drivers' ? (
             <WidgetFallback />
           ) : (
-            <ErrorBoundary fallback={<LocalWidgetError name={language === 'fr' ? "Pilotes" : "Drivers"} />}>
+            <ErrorBoundary fallback={<LocalWidgetError name={t('widget_name_drivers')} />}>
               <DriversWidget
                 onToggleExpand={onToggleDriversExpand}
                 onCustomize={onCustomizeDrivers}

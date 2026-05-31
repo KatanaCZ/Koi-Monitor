@@ -140,6 +140,7 @@ mod driver_version;
 mod driver_store;
 #[cfg(target_os = "windows")]
 mod driver_updates;
+mod driver_status;
 mod drivers;
 mod gaming_latency;
 mod memory;
