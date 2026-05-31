@@ -8,6 +8,7 @@ import { Cpu, Globe, Disc, Check } from "lucide-react";
 import { SplashSlashTitle, getSlashTitleIntroDurationMs } from "./SplashSlashTitle";
 import { getNeonTextShadow } from "../../utils/neonEffects";
 import { useAppStore } from "../../store";
+import { useTranslation } from "../../hooks/useTranslation";
 
 interface SplashScreenProps {
   isSystemReady: boolean;
@@ -47,18 +48,6 @@ const STEPS = [
   },
 ] as const;
 
-const STEP_STATUS = [
-  { loading: "Scan du matériel en cours", done: "Scan du matériel" },
-  { loading: "Test du réseau et du DNS en cours", done: "Connexion au clair, DNS testés" },
-  { loading: "Inventaire des pilotes en cours", done: "Pilotes rangés, on peut continuer" },
-] as const;
-
-const PHASE_STATUS = {
-  init: "Koi s'éveille",
-  dashboardLoading: "On peaufine le tableau de bord",
-  dashboardDone: "Tout est prêt, bienvenue sur Koi",
-} as const;
-
 function isScanStepReady(
   stepIndex: number,
   flags: { system: boolean; dns: boolean; drivers: boolean },
@@ -74,12 +63,13 @@ function resolveSplashUi(
   inPhaseMs: number,
   minMs: number,
   flags: { system: boolean; dns: boolean; drivers: boolean; dashboard: boolean },
+  t: (key: any) => string,
 ): { message: string; targetPercent: number } {
   if (phase === 0) {
     const intro = easeOutQuad(Math.min(1, inPhaseMs / Math.max(minMs, 1)));
     const { floor, ceiling } = PHASE_PROGRESS[0];
     return {
-      message: PHASE_STATUS.init,
+      message: t('splash_init'),
       targetPercent: floor + (ceiling - floor) * intro,
     };
   }
@@ -88,16 +78,18 @@ function resolveSplashUi(
     const stepIndex = phase - 1;
     const { floor, ceiling } = PHASE_PROGRESS[phase];
     const stepReady = isScanStepReady(stepIndex, flags);
-    const copy = STEP_STATUS[stepIndex];
+    
+    const loadingKey = stepIndex === 0 ? 'splash_status_system_loading' : stepIndex === 1 ? 'splash_status_dns_loading' : 'splash_status_drivers_loading';
+    const doneKey = stepIndex === 0 ? 'splash_status_system_done' : stepIndex === 1 ? 'splash_status_dns_done' : 'splash_status_drivers_done';
 
     if (stepReady) {
-      return { message: copy.done, targetPercent: ceiling };
+      return { message: t(doneKey), targetPercent: ceiling };
     }
 
     const crawlTau = Math.max(minMs * 0.95, 1_000);
     const crawl = 1 - Math.exp(-inPhaseMs / crawlTau);
     return {
-      message: copy.loading,
+      message: t(loadingKey),
       targetPercent: floor + (ceiling - floor - 3) * crawl,
     };
   }
@@ -107,14 +99,14 @@ function resolveSplashUi(
     const waitTau = Math.max(minMs * 0.85, 1_400);
     const waitProgress = 1 - Math.exp(-inPhaseMs / waitTau);
     return {
-      message: PHASE_STATUS.dashboardLoading,
+      message: t('splash_dashboard_loading'),
       targetPercent: floor + (ceiling - floor - 3) * waitProgress,
     };
   }
 
   const settle = easeOutQuad(Math.min(1, inPhaseMs / 750));
   return {
-    message: PHASE_STATUS.dashboardDone,
+    message: t('splash_dashboard_done'),
     targetPercent: floor + (ceiling - floor) * settle,
   };
 }
@@ -257,6 +249,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
   isDashboardReady,
   onComplete,
 }) => {
+  const { t } = useTranslation();
   const prefersReducedMotion = useReducedMotion();
   const reduced = prefersReducedMotion ?? false;
   const theme = useAppStore((s) => s.theme);
@@ -268,7 +261,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
 
   const [phase, setPhase] = useState<SplashPhase>(0);
   const [percent, setPercent] = useState(0);
-  const [statusMessage, setStatusMessage] = useState<string>(PHASE_STATUS.init);
+  const [statusMessage, setStatusMessage] = useState<string>(() => t('splash_init'));
   const [titleIntroDone, setTitleIntroDone] = useState(reduced);
   const phaseStartRef = useRef(Date.now());
   const phaseBackendReadyAtRef = useRef<number | null>(null);
@@ -345,7 +338,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
     const interval = setInterval(() => {
       const inPhaseMs = Date.now() - phaseStartRef.current;
       const minMs = phaseMinDuration(phase, reduced, titleIntroMs);
-      const ui = resolveSplashUi(phase, inPhaseMs, minMs, backendFlags);
+      const ui = resolveSplashUi(phase, inPhaseMs, minMs, backendFlags, t);
       const scanStepReady =
         phase >= 1 && phase <= 3 && backendReadyForPhase(phase, backendFlags);
 
@@ -353,7 +346,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
       setPercent((prev) => {
         const factor = scanStepReady
           ? reduced
-            ? 0.24
+             ? 0.24
             : 0.18
           : reduced
             ? 0.18
@@ -364,7 +357,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
     }, 32);
 
     return () => clearInterval(interval);
-  }, [phase, reduced, backendFlags, titleIntroMs]);
+  }, [phase, reduced, backendFlags, titleIntroMs, t]);
 
   useEffect(() => {
     if (phase !== 4 || !isDashboardReady) return;
@@ -373,9 +366,10 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
       Date.now() - phaseStartRef.current,
       phaseMinDuration(phase, reduced, titleIntroMs),
       backendFlags,
+      t,
     );
     setStatusMessage(ui.message);
-  }, [phase, isDashboardReady, reduced, backendFlags, titleIntroMs]);
+  }, [phase, isDashboardReady, reduced, backendFlags, titleIntroMs, t]);
 
   const finishSplash = useCallback(() => {
     if (completedRef.current) return;
@@ -506,11 +500,17 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
               const stepReady = stepReadyFlags[index];
               const stepStarted = phase >= stepPhase;
               const stepPassed = phase > stepPhase;
+              
+              const localizedStep = {
+                ...step,
+                label: index === 0 ? t('splash_step_system') : index === 1 ? t('splash_step_dns') : t('splash_step_drivers'),
+                detail: index === 0 ? t('splash_step_system_detail') : index === 1 ? t('splash_step_dns_detail') : t('splash_step_drivers_detail')
+              };
 
               return (
               <LoadingRow
                 key={step.id}
-                step={step}
+                step={localizedStep}
                 index={index}
                 isReady={stepPassed || (stepStarted && stepReady)}
                 isActive={phase === stepPhase && !stepReady}
@@ -563,7 +563,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
               aria-valuenow={Math.round(percent)}
               aria-valuemin={0}
               aria-valuemax={100}
-              aria-label="Progression du diagnostic système"
+              aria-label={t('splash_progress_aria')}
               className="h-2 w-full rounded-full overflow-hidden border border-[var(--border)] bg-[var(--surface-inset)] relative"
             >
               <motion.div
@@ -582,7 +582,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
             </div>
 
             <p className="sr-only" aria-live="polite" aria-atomic="true">
-              {statusMessage} {Math.round(percent)} pour cent
+              {t('splash_progress_detail', { message: statusMessage, percent: Math.round(percent) })}
             </p>
           </motion.div>
         </div>
@@ -592,7 +592,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
 };
 
 interface LoadingRowProps {
-  step: (typeof STEPS)[number];
+  step: Omit<(typeof STEPS)[number], 'label' | 'detail'> & { label: string; detail: string };
   index: number;
   isReady: boolean;
   isActive: boolean;

@@ -1,6 +1,7 @@
 import type { DriverInfo } from '../types';
+import { useAppStore } from '../store';
 
-const CATEGORY_LABELS: Record<string, string> = {
+const CATEGORY_LABELS_FR: Record<string, string> = {
   Graphics: 'Carte graphique',
   Network: 'Réseau',
   Bluetooth: 'Bluetooth',
@@ -9,14 +10,26 @@ const CATEGORY_LABELS: Record<string, string> = {
   Firmware: 'Firmware',
 };
 
+const CATEGORY_LABELS_EN: Record<string, string> = {
+  Graphics: 'Graphics Card',
+  Network: 'Network',
+  Bluetooth: 'Bluetooth',
+  Audio: 'Audio',
+  Storage: 'Storage',
+  Firmware: 'Firmware',
+};
+
 export function getDriverCategoryLabel(category: string): string {
-  return CATEGORY_LABELS[category] ?? category;
+  const language = useAppStore.getState().settings.language || 'en';
+  const labels = language === 'fr' ? CATEGORY_LABELS_FR : CATEGORY_LABELS_EN;
+  return labels[category] ?? category;
 }
 
 /** Affichage lisible d'une version pilote WMI. */
 export function formatDriverVersion(raw: string | undefined | null): string {
+  const language = useAppStore.getState().settings.language || 'en';
   if (!raw || raw === 'N/A' || raw.trim() === '') {
-    return 'Non détectée';
+    return language === 'fr' ? 'Non détectée' : 'Not detected';
   }
 
   const trimmed = raw.trim();
@@ -37,8 +50,10 @@ export function formatDriverVersion(raw: string | undefined | null): string {
 }
 
 export function formatInstalledDriverLabel(version: string | undefined | null): string {
+  const language = useAppStore.getState().settings.language || 'en';
   const formatted = formatDriverVersion(version);
-  return formatted === 'Non détectée' ? formatted : `v${formatted}`;
+  const notDet = language === 'fr' ? 'Non détectée' : 'Not detected';
+  return formatted === notDet ? formatted : `v${formatted}`;
 }
 
 export function formatDriverVersionRange(
@@ -49,8 +64,10 @@ export function formatDriverVersionRange(
 }
 
 export function parseVersionDisplaySegments(raw: string | undefined | null): string[] {
+  const language = useAppStore.getState().settings.language || 'en';
   const formatted = formatDriverVersion(raw);
-  if (formatted === 'Non détectée') return [];
+  const notDet = language === 'fr' ? 'Non détectée' : 'Not detected';
+  if (formatted === notDet) return [];
   return formatted.split('.');
 }
 
@@ -91,23 +108,25 @@ export function isDriverStoreOnlySource(driver: DriverInfo): boolean {
 }
 
 export function getVendorUpdateLinkLabel(driver: DriverInfo): string {
+  const language = useAppStore.getState().settings.language || 'en';
   if (driver.update_url.includes('catalog.update.microsoft.com')) {
-    return 'Catalogue Microsoft Update';
+    return language === 'fr' ? 'Catalogue Microsoft Update' : 'Microsoft Update Catalog';
   }
-  return 'Page constructeur';
+  return language === 'fr' ? 'Page constructeur' : 'Manufacturer page';
 }
 
 export function getDriverStatusLabel(status: string, driver?: DriverInfo): string {
+  const language = useAppStore.getState().settings.language || 'en';
   if (driver && hasDriverUpdate(driver)) {
-    return 'Nouveauté';
+    return language === 'fr' ? 'Nouveauté' : 'Update';
   }
   switch (status) {
     case 'Installed':
-      return 'Installé';
+      return language === 'fr' ? 'Installé' : 'Installed';
     case 'Update Available':
-      return 'Nouveauté';
+      return language === 'fr' ? 'Nouveauté' : 'Update';
     case 'Verify Online':
-      return 'À confirmer';
+      return language === 'fr' ? 'À confirmer' : 'To confirm';
     default:
       return status;
   }
@@ -183,11 +202,13 @@ export function getWidgetDriverLine(
   drivers: DriverInfo[],
   category: string,
 ): string | null {
+  const language = useAppStore.getState().settings.language || 'en';
   const driver = drivers.find((d) => d.category === category);
   if (!driver) return null;
   const version = formatInstalledDriverLabel(driver.version);
-  if (version === 'Non détectée') return null;
+  const notDet = language === 'fr' ? 'Non détectée' : 'Not detected';
+  if (version === notDet) return null;
   const shortLabel =
-    category === 'Graphics' ? 'GPU' : category === 'Network' ? 'Réseau' : 'BT';
-  return `Pilote ${shortLabel} · ${version}`;
+    category === 'Graphics' ? 'GPU' : category === 'Network' ? (language === 'fr' ? 'Réseau' : 'Net') : 'BT';
+  return language === 'fr' ? `Pilote ${shortLabel} · ${version}` : `${shortLabel} Driver · ${version}`;
 }

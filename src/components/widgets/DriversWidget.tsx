@@ -10,15 +10,16 @@ import {
   getSummaryBandSubtitle,
   getSummaryBandBadge,
   isEmptyDriversList,
-  EMPTY_DRIVERS_TOAST,
-  SCAN_BUTTON_IDLE,
-  SCAN_BUTTON_LOADING,
+  getEmptyDriversToast,
+  getScanButtonIdle,
+  getScanButtonLoading,
 } from '../../utils/driverCopy';
 import { driverService } from '../../services/api';
 import { isSafeExternalUrl } from '../../utils/safeUrl';
 import { DriverTile, getDriverTileDensity } from './DriverTile';
 import { DriverDetailPanel } from './DriverDetailPanel';
 import type { DriverInfo } from '../../types';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface DriversWidgetProps {
   isExpanded?: boolean;
@@ -31,6 +32,7 @@ export const DriversWidget = memo(function DriversWidget({
   onToggleExpand,
   onCustomize,
 }: DriversWidgetProps) {
+  const { t, language } = useTranslation();
   const drivers = useAppStore((s) => s.drivers);
   const isLoading = useAppStore((s) => s.isLoading);
   const setDrivers = useAppStore((s) => s.setDrivers);
@@ -108,11 +110,11 @@ export const DriversWidget = memo(function DriversWidget({
       const result = await driverService.getDrivers(simplifiedMode, true, true);
       setDrivers(result);
       if (isEmptyDriversList(result)) {
-        pushStatusToast(EMPTY_DRIVERS_TOAST, 'warning');
+        pushStatusToast(getEmptyDriversToast(), 'warning');
       }
     } catch (error) {
       console.error('Failed to refresh drivers:', error);
-      pushStatusToast('Échec du scan des pilotes', 'error');
+      pushStatusToast(t('drivers_scan_toast_error'), 'error');
     } finally {
       setLoading(false);
     }
@@ -123,7 +125,7 @@ export const DriversWidget = memo(function DriversWidget({
       await driverService.openWindowsUpdate();
     } catch (error) {
       console.error('Failed to open Windows Update:', error);
-      pushStatusToast('Impossible d\'ouvrir Windows Update', 'error');
+      pushStatusToast(t('drivers_windows_update_error'), 'error');
     }
   };
 
@@ -249,7 +251,7 @@ export const DriversWidget = memo(function DriversWidget({
           </div>
           <div>
             <h3 className="text-base font-semibold tracking-tight text-[var(--foreground)] mb-1">
-              Analyse des pilotes
+              {t('drivers_widget_title')}
             </h3>
             <p className="text-xs text-[var(--text-muted)] leading-snug">
               {getDriversHeaderSubtitle(filteredDrivers, simplifiedMode)}
@@ -265,7 +267,7 @@ export const DriversWidget = memo(function DriversWidget({
             onClick={handleRefresh}
             disabled={isLoading}
             aria-busy={isLoading}
-            aria-label={isLoading ? 'Scan des pilotes en cours' : SCAN_BUTTON_IDLE}
+            aria-label={isLoading ? (language === 'fr' ? 'Scan des pilotes en cours' : 'Scanning drivers...') : getScanButtonIdle()}
             className={`px-4 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface-inset)] hover:bg-[var(--surface-muted)] hover:border-[var(--neon-purple)]/30 text-[var(--foreground)] text-sm font-semibold flex items-center gap-2 transition-colors min-h-[44px] ${
               isLoading ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'
             }`}
@@ -276,7 +278,7 @@ export const DriversWidget = memo(function DriversWidget({
             >
               <RefreshCw size={16} className="text-[var(--text-muted)]" aria-hidden="true" />
             </motion.div>
-            {isLoading ? SCAN_BUTTON_LOADING : SCAN_BUTTON_IDLE}
+            {isLoading ? getScanButtonLoading() : getScanButtonIdle()}
           </motion.button>
 
           {onCustomize && (
@@ -284,11 +286,11 @@ export const DriversWidget = memo(function DriversWidget({
               type="button"
               onClick={onCustomize}
               className="px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface-inset)] hover:bg-[var(--surface-muted)] hover:border-[var(--neon-purple)]/30 text-[var(--foreground)] text-xs font-semibold flex items-center gap-2 min-h-[44px] transition-colors cursor-pointer"
-              aria-label="Personnaliser le mode pilotes dans les paramètres"
-              title="Basculer entre pilotes essentiels et analyse complète"
+              aria-label={t('drivers_btn_customize_aria')}
+              title={t('drivers_btn_customize_title')}
             >
               <Settings2 size={14} aria-hidden="true" />
-              <span className="hidden sm:inline">Personnaliser</span>
+              <span className="hidden sm:inline">{t('dns_customize')}</span>
             </button>
           )}
 
@@ -300,7 +302,7 @@ export const DriversWidget = memo(function DriversWidget({
                 onToggleExpand();
               }}
               className="w-11 h-11 rounded-xl border flex items-center justify-center cursor-pointer transition-colors bg-[var(--surface-inset)] hover:bg-[var(--surface-muted)] border-[var(--border)] hover:border-[var(--neon-purple)]/30 text-[var(--foreground)]"
-              aria-label={isExpanded ? 'Réduire le widget' : 'Agrandir le widget'}
+              aria-label={isExpanded ? t('dns_widget_minimize') : t('dns_widget_maximize')}
             >
               {isExpanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
             </button>

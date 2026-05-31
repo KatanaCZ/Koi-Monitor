@@ -17,13 +17,13 @@ if (-not $match.Success) {
 }
 
 $section = $match.Groups[1].Value.Trim()
-$pourVousPattern = '(?ms)^### Pour vous\s*\r?\n(.*?)(?=^### |\z)'
-$pourVousMatch = [regex]::Match($section, $pourVousPattern)
+$forYouPattern = '(?ms)^### (?:For you|Pour vous)\s*\r?\n(.*?)(?=^### |\z)'
+$forYouMatch = [regex]::Match($section, $forYouPattern)
 
-if ($pourVousMatch.Success) {
-    $body = $pourVousMatch.Groups[1].Value.Trim()
+if ($forYouMatch.Success) {
+    $body = $forYouMatch.Groups[1].Value.Trim()
 } else {
-    Write-Warning "CHANGELOG.md: pas de ### Pour vous pour [$version] - export de la section complete (legacy)."
+    Write-Warning "CHANGELOG.md: no ### For you / ### Pour vous for [$version] - exporting full section (legacy)."
     $body = $section
 }
 
@@ -36,7 +36,7 @@ $title = "Koi Monitor v$version"
     ''
     '---'
     ''
-    '**Telechargement :** fichier **`koi-monitor.exe`** ci-dessous - Windows 10/11, portable, sans installateur.'
+    '**Download:** **`koi-monitor.exe`** below — Windows 10/11, portable, no installer.'
     ''
-    "[Changelog complet (technique)](https://github.com/KatanaCZ/Koi-Monitor/blob/master/CHANGELOG.md)"
+    "[Full changelog (technical)](https://github.com/KatanaCZ/Koi-Monitor/blob/master/CHANGELOG.md)"
 ) -join "`n"

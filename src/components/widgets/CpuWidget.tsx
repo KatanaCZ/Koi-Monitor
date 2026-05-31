@@ -5,15 +5,17 @@ import { ringToArray } from "../../store/historyRing";
 import { NeonBentoCard, ChartSrTable, WidgetMetricHeader, MetricPercentBadge } from "../common";
 import { SingleAreaChart } from "../charts";
 import { normalizeCpuDisplayName } from "../../utils/cpuFormat";
+import { useTranslation } from "../../hooks/useTranslation";
 
 export const CpuWidget = memo(function CpuWidget() {
+  const { t, language } = useTranslation();
   const cpuRing = useAppStore((s) => s.cpuHistoryRing);
   const cpuHistory = useMemo(() => ringToArray(cpuRing), [cpuRing.seq]);
   const cpuUsage = useAppStore((s) => s.systemInfo?.cpu.usage ?? 0);
   const cpuTemp = useAppStore((s) => s.systemInfo?.cpu.temperature ?? null);
   const cores = useAppStore((s) => s.systemInfo?.cpu.cores ?? 0);
   const perCoreUsage = useAppStore((s) => s.systemInfo?.cpu.per_core_usage ?? []);
-  const name = useAppStore((s) => s.systemInfo?.cpu.name ?? "Chargement...");
+  const name = useAppStore((s) => s.systemInfo?.cpu.name ?? (language === "fr" ? "Chargement..." : "Loading..."));
   const displayName = normalizeCpuDisplayName(name);
   const theme = useAppStore((s) => s.theme);
 
@@ -39,7 +41,7 @@ export const CpuWidget = memo(function CpuWidget() {
   );
 
   const formatTime = (ts: number) =>
-    new Date(ts).toLocaleTimeString("fr-FR", {
+    new Date(ts).toLocaleTimeString(language === "fr" ? "fr-FR" : "en-US", {
       hour: "2-digit",
       minute: "2-digit",
       second: "2-digit",
@@ -86,10 +88,10 @@ export const CpuWidget = memo(function CpuWidget() {
         />
       </div>
       <ChartSrTable
-        caption={`Historique d'utilisation CPU — actuel ${usage.toFixed(1)} pour cent`}
+        caption={t("cpu_sr_caption", { usage: usage.toFixed(1) })}
         columns={[
-          { key: "time", label: "Heure", format: formatTime },
-          { key: "value", label: "Usage", format: (v) => `${v.toFixed(1)} %` },
+          { key: "time", label: t("cpu_sr_hour"), format: formatTime },
+          { key: "value", label: t("cpu_sr_usage"), format: (v) => `${v.toFixed(1)} %` },
         ]}
         rows={srChartRows}
       />
@@ -97,7 +99,7 @@ export const CpuWidget = memo(function CpuWidget() {
       {/* Core Usage */}
       <div className="mt-auto shrink-0 z-10 relative">
         <p className="text-[10px] uppercase font-bold tracking-widest text-[var(--text-subtle)] mb-2">
-          Cœurs ({cores})
+          {t("cpu_cores", { count: cores })}
         </p>
         <div className="flex items-end gap-1 h-20 px-3 py-2 rounded-2xl border border-[var(--border)] overflow-hidden w-full bg-[var(--spectrum-trough)]">
           {perCoreUsage.slice(0, 32).map((coreUsage, index) => {
@@ -105,7 +107,7 @@ export const CpuWidget = memo(function CpuWidget() {
             return (
               <div
                 key={index}
-                title={`Cœur ${index + 1} : ${coreUsage.toFixed(0)} %`}
+                title={t("cpu_core_title", { index: index + 1, value: coreUsage.toFixed(0) })}
                 className="flex-1 min-w-0 rounded-sm"
                 style={{
                   height: barHeight,

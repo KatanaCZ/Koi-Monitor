@@ -172,19 +172,21 @@ export const isAutoDnsChecklist = (checklist: string[]): boolean => {
   );
 };
 
-export const getDnsTestModeLabel = (checklist: string[]): string => {
+export const getDnsTestModeLabel = (checklist: string[], language: LanguageMode = 'fr'): string => {
   const active = normalizeDnsChecklist(checklist);
 
-  if (isAutoDnsChecklist(checklist)) return "Test auto";
+  if (isAutoDnsChecklist(checklist)) return language === 'fr' ? "Test auto" : "Auto test";
 
   if (active.length === POPULAR_DNS_SERVERS.length) {
-    return "Tous les serveurs";
+    return language === 'fr' ? "Tous les serveurs" : "All servers";
   }
 
-  if (active.length === 1) return "1 serveur";
+  if (active.length === 1) return language === 'fr' ? "1 serveur" : "1 server";
 
-  return `${active.length} serveurs`;
+  return language === 'fr' ? `${active.length} serveurs` : `${active.length} servers`;
 };
+
+export type LanguageMode = 'fr' | 'en';
 
 export type ActivityProfile = 'desktop' | 'gaming';
 
@@ -226,6 +228,7 @@ export type BackgroundAura = 'off' | 'soft' | 'full';
 export type NeonGlow = 'soft' | 'balanced' | 'vivid';
 
 export interface AppSettings {
+  language: LanguageMode;
   refreshInterval: number;
   dnsInterval: number;
   sakuraIntensity: 'off' | 'low' | 'medium' | 'high';

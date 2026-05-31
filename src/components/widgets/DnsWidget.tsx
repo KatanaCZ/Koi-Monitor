@@ -10,6 +10,7 @@ import {
   getDnsWidgetCardHeight,
   getDnsWidgetCardStyle,
 } from '../../utils/dnsWidgetLayout';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface DnsWidgetProps {
   isExpanded?: boolean;
@@ -26,6 +27,7 @@ export const DnsWidget = memo(function DnsWidget({
   onCustomize,
   onLayoutHeightChange,
 }: DnsWidgetProps) {
+  const { t } = useTranslation();
   const dnsResults = useAppStore((s) => s.dnsResults);
   const gamingLatency = useAppStore((s) => s.gamingLatency);
   const theme = useAppStore((s) => s.theme);
@@ -86,34 +88,34 @@ export const DnsWidget = memo(function DnsWidget({
   const getLatencyMetrics = (latency: number) => {
     if (latency < 0) {
       return {
-        text: 'Expiré',
+        text: t('dns_status_expired'),
         color: 'var(--text-muted)',
         bg: isDark ? 'rgba(100, 116, 139, 0.15)' : 'rgba(100, 116, 139, 0.1)',
       };
     }
     if (latency < 50) {
       return {
-        text: 'Excellente',
+        text: t('dns_status_excellent'),
         color: 'var(--neon-green-text)',
         bg: isDark ? 'rgba(0, 255, 157, 0.15)' : 'rgba(0, 128, 76, 0.1)',
       };
     }
     if (latency < 100) {
       return {
-        text: 'Bonne',
+        text: t('dns_status_good'),
         color: isDark ? '#d4ff66' : '#5f7000',
         bg: isDark ? 'rgba(191, 255, 0, 0.15)' : 'rgba(95, 112, 0, 0.1)',
       };
     }
     if (latency < 200) {
       return {
-        text: 'Moyenne',
+        text: t('dns_status_fair'),
         color: isDark ? '#ff9a76' : '#c2410c',
         bg: isDark ? 'rgba(255, 107, 53, 0.15)' : 'rgba(194, 65, 12, 0.1)',
       };
     }
     return {
-      text: 'Critique',
+      text: t('dns_status_critical'),
       color: isDark ? '#ff6b6b' : '#dc2626',
       bg: isDark ? 'rgba(255, 51, 51, 0.15)' : 'rgba(220, 38, 38, 0.1)',
     };
@@ -157,8 +159,8 @@ export const DnsWidget = memo(function DnsWidget({
     'min-h-full w-full flex flex-col justify-center py-0.5';
 
   const headerSubtitle = isAutoTest
-    ? 'Résolveurs comparés · ping jeu en direct · test automatique'
-    : `${testModeLabel} actif · ping jeu en direct · Test auto pour revenir au défaut`;
+    ? t('dns_widget_subtitle_auto')
+    : t('dns_widget_subtitle_custom', { label: testModeLabel });
 
   const renderDnsList = () => (
     <div className={listClassName}>
@@ -263,7 +265,7 @@ export const DnsWidget = memo(function DnsWidget({
             <Wifi size={20} />
           </div>
           <div>
-            <h3 className="text-base font-semibold tracking-tight text-[var(--foreground)] mb-1">Moniteur DNS & Ping</h3>
+            <h3 className="text-base font-semibold tracking-tight text-[var(--foreground)] mb-1">{t('dns_widget_title')}</h3>
             <p className="text-xs text-[var(--text-muted)] leading-snug">{headerSubtitle}</p>
           </div>
         </div>
@@ -276,8 +278,8 @@ export const DnsWidget = memo(function DnsWidget({
             aria-busy={isPinging}
             title={
               isAutoTest
-                ? 'Relancer le test sur les 4 serveurs recommandés'
-                : 'Revenir aux 4 serveurs recommandés et lancer un test'
+                ? t('dns_btn_auto_test_title_auto')
+                : t('dns_btn_auto_test_title_custom')
             }
             className={`px-4 py-2 rounded-xl border flex items-center gap-2 min-h-[44px] text-sm font-semibold transition-colors cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed ${
               isAutoTest
@@ -290,17 +292,17 @@ export const DnsWidget = memo(function DnsWidget({
             ) : (
               <Signal size={16} aria-hidden="true" />
             )}
-            Test auto
+            {t('dns_btn_auto_test')}
           </button>
           <button
             type="button"
             onClick={onCustomize}
             className="px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface-inset)] hover:bg-[var(--surface-muted)] hover:border-[var(--neon-green)]/30 text-[var(--foreground)] text-xs font-semibold flex items-center gap-2 min-h-[44px] transition-colors cursor-pointer"
-            aria-label="Personnaliser les serveurs DNS dans les paramètres"
-            title="Choisir manuellement les serveurs à tester"
+            aria-label={t('dns_btn_customize_aria')}
+            title={t('dns_btn_customize_title')}
           >
             <Settings2 size={14} aria-hidden="true" />
-            <span className="hidden sm:inline">Personnaliser</span>
+            <span className="hidden sm:inline">{t('dns_customize')}</span>
           </button>
           {onToggleExpand && (
             <button
@@ -309,7 +311,7 @@ export const DnsWidget = memo(function DnsWidget({
                 onToggleExpand();
               }}
               className="w-11 h-11 rounded-xl border flex items-center justify-center cursor-pointer transition-colors bg-[var(--surface-inset)] hover:bg-[var(--surface-muted)] border-[var(--border)] hover:border-[var(--neon-green)]/30 text-[var(--foreground)]"
-              aria-label={isExpanded ? 'Réduire le widget' : 'Agrandir le widget'}
+              aria-label={isExpanded ? t('dns_widget_minimize') : t('dns_widget_maximize')}
             >
               {isExpanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
             </button>

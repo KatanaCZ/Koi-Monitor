@@ -1,17 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import { useAppStore } from "../store";
 
-export function formatUptimeShort(totalSeconds: number): string {
-  if (totalSeconds <= 0) return "Calcul…";
+import { LanguageMode } from "../types";
+
+export function formatUptimeShort(totalSeconds: number, language: LanguageMode = "fr"): string {
+  if (totalSeconds <= 0) return language === "fr" ? "Calcul…" : "Measuring…";
   const days = Math.floor(totalSeconds / (3600 * 24));
   const hours = Math.floor((totalSeconds % (3600 * 24)) / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
 
-  const dStr = days > 0 ? `${days} j ` : "";
-  const hStr = hours > 0 || days > 0 ? `${hours} h ` : "";
-  const mStr = days > 0 ? "" : `${minutes} m`;
+  const dStr = days > 0 ? `${days}${language === "fr" ? " j" : "d"} ` : "";
+  const hStr = hours > 0 || days > 0 ? `${hours}h ` : "";
+  const mStr = days > 0 ? "" : `${minutes}m`;
 
-  return `${dStr}${hStr}${mStr}`.trim() || "0 m";
+  return `${dStr}${hStr}${mStr}`.trim() || (language === "fr" ? "0 m" : "0m");
 }
 
 /** Uptime système interpolé à la seconde (chip TitleBar + ZenMetricsDock). */

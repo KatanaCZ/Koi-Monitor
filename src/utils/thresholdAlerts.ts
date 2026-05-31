@@ -90,9 +90,11 @@ export function isGamingLatencySpike(
   return currentMs >= baselineMs + GAMING_SPIKE_DELTA_MS[sensitivity];
 }
 
-export function formatSpikeDuration(durationMs: number): string {
+import { LanguageMode } from '../types';
+
+export function formatSpikeDuration(durationMs: number, _language: LanguageMode = 'fr'): string {
   const seconds = Math.max(1, Math.round(durationMs / 1000));
-  if (seconds < 60) return `~${seconds} s`;
+  if (seconds < 60) return `~${seconds}s`;
   const minutes = Math.round(seconds / 60);
   return minutes <= 1 ? '~1 min' : `~${minutes} min`;
 }
@@ -101,12 +103,17 @@ export function formatGamingLatencyAlert(
   currentMs: number,
   baselineMs: number | null,
   spikeDurationMs: number,
+  language: LanguageMode = 'fr',
 ): string {
-  const duration = formatSpikeDuration(spikeDurationMs);
+  const duration = formatSpikeDuration(spikeDurationMs, language);
   if (baselineMs !== null) {
-    return `Jeu · Ping qui monte · ${currentMs.toFixed(0)} ms · ${duration} · d'habitude ~${baselineMs.toFixed(0)} ms`;
+    return language === 'fr'
+      ? `Jeu · Ping qui monte · ${currentMs.toFixed(0)} ms · ${duration} · d'habitude ~${baselineMs.toFixed(0)} ms`
+      : `Game · Ping rising · ${currentMs.toFixed(0)} ms · ${duration} · usually ~${baselineMs.toFixed(0)} ms`;
   }
-  return `Jeu · Ping qui monte · ${currentMs.toFixed(0)} ms · ${duration}`;
+  return language === 'fr'
+    ? `Jeu · Ping qui monte · ${currentMs.toFixed(0)} ms · ${duration}`
+    : `Game · Ping rising · ${currentMs.toFixed(0)} ms · ${duration}`;
 }
 
 export function updateActivityProfile(
@@ -213,6 +220,7 @@ export function evaluateThresholdAlerts(
   gamingLatency: GamingLatencySnapshot,
   settings: AlertThresholdSettings,
   now: number,
+  language: LanguageMode = 'fr',
 ): ThresholdAlertResult {
   if (!settings.enabled || !systemInfo) {
     return { state, alerts: [] };
@@ -288,7 +296,9 @@ export function evaluateThresholdAlerts(
 
       alerts.push({
         kind: 'desktop-load',
-        message: `Bureau · La machine force · ${worst.label} ${worst.value.toFixed(0)} %`,
+        message: language === 'fr'
+          ? `Bureau · La machine force · ${worst.label} ${worst.value.toFixed(0)} %`
+          : `Desktop · High system load · ${worst.label} ${worst.value.toFixed(0)} %`,
         type: worst.value > worst.threshold + 5 ? 'error' : 'warning',
       });
       nextState = markCooldown(
@@ -347,6 +357,7 @@ export function evaluateThresholdAlerts(
             gamingLatency.internet_ms,
             baselineMs,
             spikeDurationMs,
+            language,
           ),
           type:
             spikeOverBaseline >= 25 ||
@@ -367,6 +378,9 @@ export function evaluateThresholdAlerts(
   return { state: nextState, alerts };
 }
 
-export function getActivityProfileLabel(mode: ActivityProfile): string {
-  return mode === 'gaming' ? 'Session de jeu' : 'Sur le bureau';
+export function getActivityProfileLabel(mode: ActivityProfile, language: LanguageMode = 'fr'): string {
+  if (mode === 'gaming') {
+    return language === 'fr' ? 'Session de jeu' : 'In-game session';
+  }
+  return language === 'fr' ? 'Sur le bureau' : 'On desktop';
 }

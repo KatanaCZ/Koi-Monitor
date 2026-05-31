@@ -9,8 +9,10 @@ import {
   getZenLoadStatePresentation,
   getZenStateChipStyle,
 } from "../../utils/zenLoadState";
+import { useTranslation } from "../../hooks/useTranslation";
 
 export const ZenClockWidget = memo(function ZenClockWidget() {
+  const { t, language } = useTranslation();
   const sakuraColor = useAppStore((s) => s.settings.sakuraColor);
   const zenMetricsVisible = useAppStore((s) => s.settings.zenMetricsVisible);
   const updateSettings = useAppStore((s) => s.updateSettings);
@@ -43,10 +45,12 @@ export const ZenClockWidget = memo(function ZenClockWidget() {
   };
 
   const colorClass = getSakuraColorClass(sakuraColor || "pink");
-  const loadPresentation = getZenLoadStatePresentation(loadState);
+  const loadPresentation = getZenLoadStatePresentation(loadState, t);
   const stateChipStyle = getZenStateChipStyle(loadState);
 
-  const formattedDate = time.toLocaleDateString("fr-FR", {
+  const locale = language === "fr" ? "fr-FR" : "en-US";
+
+  const formattedDate = time.toLocaleDateString(locale, {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -55,15 +59,15 @@ export const ZenClockWidget = memo(function ZenClockWidget() {
   const capitalizedDate =
     formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
 
-  const hours = time.toLocaleTimeString("fr-FR", {
+  const hours = time.toLocaleTimeString(locale, {
     hour: "2-digit",
     hour12: false,
   });
-  const minutes = time.toLocaleTimeString("fr-FR", {
+  const minutes = time.toLocaleTimeString(locale, {
     minute: "2-digit",
     hour12: false,
   });
-  const seconds = time.toLocaleTimeString("fr-FR", {
+  const seconds = time.toLocaleTimeString(locale, {
     second: "2-digit",
     hour12: false,
   });
@@ -81,7 +85,7 @@ export const ZenClockWidget = memo(function ZenClockWidget() {
       {/* Bloc principal — centré au milieu de l'écran */}
       <div className="zen-wallpaper-core flex-1 flex flex-col items-center justify-center w-full max-w-5xl mx-auto px-4 sm:px-8 gap-8 sm:gap-12 lg:gap-14 min-h-0">
         <motion.header
-          aria-label="Horloge mode Zen"
+          aria-label={t("zen_clock_aria")}
           initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: fade, ease: [0.16, 1, 0.3, 1] }}
@@ -160,10 +164,10 @@ export const ZenClockWidget = memo(function ZenClockWidget() {
             type="button"
             onClick={() => setNotificationPanelOpen(true)}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-[var(--neon-green-text)] opacity-80 hover:opacity-100 transition-opacity min-h-[44px]"
-            aria-label={`${unreadAlertCount} signaux manqués, ouvrir le journal de veille`}
+            aria-label={t("notifications_unread_aria", { count: unreadAlertCount })}
           >
             <Bell size={14} aria-hidden="true" />
-            {unreadAlertCount} signaux manqués
+            {t("zen_unread_count", { count: unreadAlertCount })}
           </button>
         )}
 
@@ -175,13 +179,13 @@ export const ZenClockWidget = memo(function ZenClockWidget() {
             aria-pressed={zenMetricsVisible}
             aria-label={
               zenMetricsVisible
-                ? "Masquer les métriques en mode Zen"
-                : "Afficher les métriques en mode Zen"
+                ? t("zen_metrics_hide")
+                : t("zen_metrics_show")
             }
           >
             {zenMetricsVisible ? <Eye size={15} aria-hidden="true" /> : <EyeOff size={15} aria-hidden="true" />}
           </button>
-          <span className="text-xs sm:text-sm tracking-wide opacity-60">Échap · Tableau de bord</span>
+          <span className="text-xs sm:text-sm tracking-wide opacity-60">{t("zen_footer_back")}</span>
         </div>
       </footer>
     </motion.div>

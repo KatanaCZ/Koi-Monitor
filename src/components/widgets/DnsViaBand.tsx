@@ -7,8 +7,10 @@ import {
   formatGamingLatencyValue,
   getGamingLatencyRingPercent,
   getGamingVerdictStyle,
+  translateVerdictLabel,
 } from '../../utils/gamingLatency';
 import { getNeonTextShadow } from '../../utils/neonEffects';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface DnsViaBandProps {
   useCompact: boolean;
@@ -19,48 +21,48 @@ interface DnsViaBandProps {
   theme: ThemeMode;
 }
 
-function getDnsLatencyMetrics(latency: number, isDark: boolean) {
+function getDnsLatencyMetrics(latency: number, isDark: boolean, t: any) {
   if (latency < 0) {
     return {
-      text: 'Expiré',
+      text: t('dns_status_expired'),
       color: 'var(--text-muted)',
       bg: isDark ? 'rgba(100, 116, 139, 0.15)' : 'rgba(100, 116, 139, 0.1)',
     };
   }
   if (latency < 50) {
     return {
-      text: 'Excellente',
+      text: t('dns_status_excellent'),
       color: 'var(--neon-green-text)',
       bg: isDark ? 'rgba(0, 255, 157, 0.15)' : 'rgba(0, 128, 76, 0.1)',
     };
   }
   if (latency < 100) {
     return {
-      text: 'Bonne',
+      text: t('dns_status_good'),
       color: isDark ? '#d4ff66' : '#5f7000',
       bg: isDark ? 'rgba(191, 255, 0, 0.15)' : 'rgba(95, 112, 0, 0.1)',
     };
   }
   if (latency < 200) {
     return {
-      text: 'Moyenne',
+      text: t('dns_status_fair'),
       color: isDark ? '#ff9a76' : '#c2410c',
       bg: isDark ? 'rgba(255, 107, 53, 0.15)' : 'rgba(194, 65, 12, 0.1)',
     };
   }
   return {
-    text: 'Critique',
+    text: t('dns_status_critical'),
     color: isDark ? '#ff6b6b' : '#dc2626',
     bg: isDark ? 'rgba(255, 51, 51, 0.15)' : 'rgba(220, 38, 38, 0.1)',
   };
 }
 
-function getDnsStatusTitle(latency: number): string {
-  if (latency < 0) return 'Connexion perdue';
-  if (latency < 50) return 'Latence excellente';
-  if (latency < 100) return 'Latence bonne';
-  if (latency < 200) return 'Latence moyenne';
-  return 'Latence critique';
+function getDnsStatusTitle(latency: number, t: any): string {
+  if (latency < 0) return t('dns_status_lost');
+  if (latency < 50) return t('dns_status_excellent_title');
+  if (latency < 100) return t('dns_status_good_title');
+  if (latency < 200) return t('dns_status_fair_title');
+  return t('dns_status_critical_title');
 }
 
 interface InlineSignalBarsProps {
@@ -117,6 +119,7 @@ export const DnsViaBand = memo(function DnsViaBand({
   onToggleGamingDetails,
   theme,
 }: DnsViaBandProps) {
+  const { t } = useTranslation();
   const isDark = theme === 'dark';
 
   const gamingVerdict = gamingLatency.verdict as GamingVerdict;
@@ -128,7 +131,7 @@ export const DnsViaBand = memo(function DnsViaBand({
   const gamingRingPercent = getGamingLatencyRingPercent(gamingLatency.internet_ms);
   const gamingAriaLabel = buildGamingAriaLabel(gamingLatency);
   const isMeasuring = gamingVerdict === 'measuring';
-  const gamingSubtitle = isMeasuring ? 'On écoute la ligne…' : 'Ping direct';
+  const gamingSubtitle = isMeasuring ? t('gaming_listening_line') : t('gaming_ping_direct');
 
   const panelClass = `${
     useCompact ? 'px-3 py-2.5 rounded-xl' : 'p-4 rounded-2xl'
@@ -146,16 +149,16 @@ export const DnsViaBand = memo(function DnsViaBand({
   const iconSize = useCompact ? 16 : 20;
 
   const dnsMetrics = bestDns
-    ? getDnsLatencyMetrics(bestDns.latency_ms, isDark)
+    ? getDnsLatencyMetrics(bestDns.latency_ms, isDark, t)
     : {
-        text: 'En attente',
+        text: t('dns_status_pending'),
         color: 'var(--text-muted)',
         bg: isDark ? 'rgba(100, 116, 139, 0.15)' : 'rgba(100, 116, 139, 0.1)',
       };
 
   const dnsStatusTitle = bestDns
-    ? getDnsStatusTitle(bestDns.latency_ms)
-    : 'Patience — le test DNS arrive';
+    ? getDnsStatusTitle(bestDns.latency_ms, t)
+    : t('dns_status_waiting');
 
   return (
     <motion.div
@@ -163,7 +166,7 @@ export const DnsViaBand = memo(function DnsViaBand({
       animate={{ opacity: 1 }}
       transition={{ delay: 0.6 }}
       className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full shrink-0"
-      aria-label="Qualité réseau — résolveur DNS et latence jeu"
+      aria-label={t('dns_via_band_title')}
     >
       <div
         className={panelClass}
@@ -179,7 +182,7 @@ export const DnsViaBand = memo(function DnsViaBand({
             <p
               className={`${labelClass} uppercase font-bold tracking-widest text-[var(--text-subtle)] truncate`}
             >
-              {bestDns ? `Via ${bestDns.server_name}` : 'Résolveur DNS'}
+              {bestDns ? `Via ${bestDns.server_name}` : t('dns_resolver_label')}
             </p>
             <p
               className={`${subtitleClass} font-semibold leading-tight truncate`}
@@ -235,7 +238,7 @@ export const DnsViaBand = memo(function DnsViaBand({
             <p
               className={`${labelClass} uppercase font-bold tracking-widest text-[var(--text-subtle)] truncate`}
             >
-              En jeu
+              {t('gaming_label')}
             </p>
             <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0">
               <p
@@ -259,7 +262,7 @@ export const DnsViaBand = memo(function DnsViaBand({
                     : undefined,
                 }}
               >
-                {gamingLatency.verdict_label}
+                {translateVerdictLabel(gamingLatency.verdict_label, t)}
               </button>
             </div>
           </div>

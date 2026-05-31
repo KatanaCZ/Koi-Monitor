@@ -296,28 +296,29 @@ export function getZenStateChipStyle(state: ZenLoadState): {
   };
 }
 
-export function getZenLoadStatePresentation(state: ZenLoadState): ZenLoadStatePresentation {
+export function getZenLoadStatePresentation(state: ZenLoadState, t?: any): ZenLoadStatePresentation {
+  const safeT = typeof t === "function" ? t : (k: string) => k;
   switch (state) {
     case 'intense':
       return {
-        labelFr: 'Boost',
-        labelAria: 'Mode Boost',
-        quote: 'La mer se déchaîne — votre machine aussi.',
+        labelFr: safeT('zen_mode_boost'),
+        labelAria: safeT('zen_mode_boost_aria'),
+        quote: safeT('zen_mode_boost_quote'),
         breathDuration: 1.4,
       };
     case 'moderate':
       return {
-        labelFr: 'Flow',
-        labelAria: 'Mode Flow',
-        quote: "Comme l'eau qui coule — l'activité est fluide.",
+        labelFr: safeT('zen_mode_flow'),
+        labelAria: safeT('zen_mode_flow_aria'),
+        quote: safeT('zen_mode_flow_quote'),
         breathDuration: 2.5,
       };
     case 'rest':
     default:
       return {
-        labelFr: 'Zen',
-        labelAria: 'Mode Zen',
-        quote: 'Le système respire calmement.',
+        labelFr: safeT('zen_mode_zen'),
+        labelAria: safeT('zen_mode_zen_aria'),
+        quote: safeT('zen_mode_zen_quote'),
         breathDuration: 4.0,
       };
   }

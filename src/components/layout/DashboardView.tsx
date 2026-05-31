@@ -2,6 +2,8 @@ import React, { lazy, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { ErrorBoundary } from '../common/ErrorBoundary';
 
+import { useTranslation } from '../../hooks/useTranslation';
+
 const CpuWidget = lazy(() =>
   import('../widgets/CpuWidget').then((m) => ({ default: m.CpuWidget })),
 );
@@ -25,12 +27,19 @@ const WidgetFallback = () => (
   <div className="bento-card h-[380px] animate-pulse bg-[var(--surface-inset)]" aria-hidden="true" />
 );
 
-const LocalWidgetError = ({ name }: { name: string }) => (
-  <div className="bento-card h-[380px] flex flex-col items-center justify-center gap-2 bg-[var(--surface-inset)] border border-red-500/20 text-center p-6">
-    <p className="text-sm font-semibold text-red-400">Erreur dans le widget {name}</p>
-    <p className="text-xs text-[var(--text-muted)]">Impossible de charger les données.</p>
-  </div>
-);
+const LocalWidgetError = ({ name }: { name: string }) => {
+  const { language } = useTranslation();
+  return (
+    <div className="bento-card h-[380px] flex flex-col items-center justify-center gap-2 bg-[var(--surface-inset)] border border-red-500/20 text-center p-6">
+      <p className="text-sm font-semibold text-red-400">
+        {language === 'fr' ? `Erreur dans le widget ${name}` : `Error in widget ${name}`}
+      </p>
+      <p className="text-xs text-[var(--text-muted)]">
+        {language === 'fr' ? "Impossible de charger les données." : "Unable to load data."}
+      </p>
+    </div>
+  );
+};
 
 interface DashboardViewProps {
   expandedWidget: 'dns' | 'drivers' | null;
@@ -53,6 +62,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onToggleDriversExpand,
   onCustomizeDrivers,
 }) => {
+  const { language } = useTranslation();
+
   return (
     <motion.div
       key="dashboard"
@@ -92,7 +103,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
             <div className="flex flex-col min-h-0 h-full">
-              <ErrorBoundary fallback={<LocalWidgetError name="Réseau" />}>
+              <ErrorBoundary fallback={<LocalWidgetError name={language === 'fr' ? "Réseau" : "Network"} />}>
                 <NetworkWidget layoutHeight={dnsRowHeight} />
               </ErrorBoundary>
             </div>
@@ -117,7 +128,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           {expandedWidget === 'drivers' ? (
             <WidgetFallback />
           ) : (
-            <ErrorBoundary fallback={<LocalWidgetError name="Pilotes" />}>
+            <ErrorBoundary fallback={<LocalWidgetError name={language === 'fr' ? "Pilotes" : "Drivers"} />}>
               <DriversWidget
                 onToggleExpand={onToggleDriversExpand}
                 onCustomize={onCustomizeDrivers}
