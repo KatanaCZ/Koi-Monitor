@@ -38,18 +38,18 @@ Open a PR on GitHub → wait for **Audit & Build** green → merge. Solo maintai
 
 ### Releases
 
-Patchnotes : **[`CHANGELOG.md`](CHANGELOG.md)** (français, [Keep a Changelog](https://keepachangelog.com/fr/)).
+Patch notes live in **[`CHANGELOG.md`](CHANGELOG.md)** ([Keep a Changelog](https://keepachangelog.com/en/1.1.0/), English).
 
-- **`### Pour vous`** — texte publié sur la **Release GitHub** (utilisateurs, sans jargon dev). Guide de ton : [`docs/marketing-context.md`](docs/marketing-context.md).
-- **`### Détail technique`** — Ajouté / Modifié / Corrigé pour les contributeurs.
+- **`### For you`** — text published on the **GitHub Release** (end users, no dev jargon). Tone guide: [`docs/marketing-context.md`](docs/marketing-context.md).
+- **`### Technical details`** — Added / Changed / Fixed for contributors.
 
-**Avant chaque version :**
+**Before each version:**
 
-1. Remplir **`## [Unreleased]`** : d’abord **Pour vous** (3–5 puces, bénéfices), puis **Détail technique** (Ajouté / Modifié / Corrigé). Ne pas mettre CI/infra dans **Pour vous**.
-2. Sur `master` vert :
+1. Fill **`## [Unreleased]`**: **For you** first (3–5 bullets, user benefits), then **Technical details** (Added / Changed / Fixed). Do not put CI/infra in **For you**.
+2. On green `master`:
 
 ```powershell
-.\scripts\prepare-release.ps1 -Version 1.0.1   # CHANGELOG + version app (À propos, npm, Tauri, Cargo, README)
+.\scripts\prepare-release.ps1 -Version 1.0.1   # CHANGELOG + app version (About, npm, Tauri, Cargo, README)
 git add CHANGELOG.md src/appVersion.ts package.json package-lock.json src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/Cargo.lock README.md
 git commit -m "chore(release): prepare v1.0.1"
 git push origin master
@@ -57,9 +57,9 @@ git tag v1.0.1
 git push origin v1.0.1
 ```
 
-3. Le workflow **Release** extrait la section du CHANGELOG et publie **`koi-monitor.exe`** + notes sur GitHub.
+3. The **Release** workflow extracts the changelog section and publishes **`koi-monitor.exe`** + notes on GitHub.
 
-**SemVer :** `1.0.x` correctifs · `1.x.0` features · `x.0.0` rupture majeure.
+**SemVer:** `1.0.x` fixes · `1.x.0` features · `x.0.0` breaking changes.
 
 ## Development setup
 
@@ -98,9 +98,9 @@ CI also runs `npm audit`, `cargo audit`, and a Recharts bundle budget (≤ 550 K
 - Target branch: **`master`** (protected — merge via PR only)
 - One logical change per PR when possible
 - Update user-visible behavior in `README.md` and technical details in `docs/DEVELOPMENT.md` when relevant
-- **Dependabot PRs:** merge **minor/patch** groupées quand CI `audit` est verte (hebdo, npm + cargo)
-- **Majors npm ignorées** dans `.github/dependabot.yml` : `react`, `react-dom`, `@types/react*`, `recharts`, `framer-motion`, `@vitejs/plugin-react`, `vite`, `typescript`, `zustand`, `lucide-react` — migrations manuelles via branche `chore/deps-*` ou `feat/*` + QA locale (`koi.bat dev`, `npm run build`, `tsc`)
-- Fermer sans merger les PR Dependabot major obsolètes plutôt que les laisser pourrir
+- **Dependabot PRs:** merge grouped **minor/patch** when CI `audit` is green (weekly, npm + cargo)
+- **Ignored npm majors** in `.github/dependabot.yml`: `react`, `react-dom`, `@types/react*`, `recharts`, `framer-motion`, `@vitejs/plugin-react`, `vite`, `typescript`, `zustand`, `lucide-react` — manual upgrades via `chore/deps-*` or `feat/*` + local QA (`koi.bat dev`, `npm run build`, `tsc`)
+- Close stale Dependabot major PRs instead of leaving them open
 
 ## Code conventions
 
