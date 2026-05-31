@@ -71,7 +71,7 @@ impl GamingLatencyTracker {
         let sample_count = self.internet_samples.len() as u32;
         let jitter_ms = std_dev(&self.internet_samples);
 
-        let (verdict, verdict_label) = compute_verdict(gateway_ms, internet_ms, jitter_ms, sample_count);
+        let verdict = compute_verdict(gateway_ms, internet_ms, jitter_ms, sample_count);
 
         GamingLatencySnapshot {
             gateway_ip,
@@ -80,7 +80,7 @@ impl GamingLatencyTracker {
             jitter_ms,
             sample_count,
             verdict: verdict.to_string(),
-            verdict_label: verdict_label.to_string(),
+            verdict_label: verdict.to_string(),
             internet_host: INTERNET_HOST.to_string(),
         }
     }
@@ -91,17 +91,17 @@ fn compute_verdict(
     internet_ms: f64,
     jitter_ms: f64,
     sample_count: u32,
-) -> (&'static str, &'static str) {
+) -> &'static str {
     if sample_count < 3 {
-        return ("measuring", "Mesure…");
+        return "measuring";
     }
 
     if internet_ms < 0.0 && gateway_ms < 0.0 {
-        return ("poor", "Hors ligne");
+        return "offline";
     }
 
     if gateway_ms > 25.0 {
-        return ("local_issue", "Wi‑Fi / box");
+        return "local_issue";
     }
 
     if gateway_ms >= 0.0
@@ -109,22 +109,22 @@ fn compute_verdict(
         && gateway_ms > 15.0
         && gateway_ms > internet_ms * 0.35
     {
-        return ("local_issue", "Réseau local");
+        return "local_network";
     }
 
     if internet_ms < 0.0 {
-        return ("poor", "Internet inj.");
+        return "internet_unreachable";
     }
 
     if internet_ms > 100.0 {
-        return ("poor", "Latence élevée");
+        return "high_latency";
     }
 
     if internet_ms > 60.0 || jitter_ms > 20.0 {
-        return ("marginal", "Limite ranked");
+        return "marginal";
     }
 
-    ("ready", "Prêt pour le jeu")
+    "ready"
 }
 
 fn std_dev(samples: &VecDeque<f64>) -> f64 {

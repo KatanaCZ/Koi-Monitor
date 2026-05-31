@@ -1,5 +1,10 @@
 use serde::{Deserialize, Serialize};
+use crate::driver_status::{
+    INSTALLED, UNKNOWN, VERIFY_ONLINE,
+};
 use crate::subprocess::run_powershell_with_timeout;
+
+const DRIVER_VERIFY_AGE_YEARS: i32 = 2;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DriverInfo {
@@ -242,7 +247,7 @@ pub fn get_driver_list(simplified: bool) -> Result<Vec<DriverInfo>, String> {
                             let hw_ids = extract_hardware_ids(&d["HardwareID"]);
                             let hw_id = hw_ids.first().cloned().unwrap_or_default();
 
-                            let status = eval_status(&version, &date);
+                            let status = eval_status(&version, &date, current_local_year());
                             let update_url = make_update_url(&provider, &name, &hw_id);
                             
                             let class_upper = class.to_uppercase();
@@ -302,7 +307,7 @@ pub fn get_driver_list(simplified: bool) -> Result<Vec<DriverInfo>, String> {
             latest_version: String::new(),
             date: "N/A".to_string(),
             provider: "System".to_string(),
-            status: "Unknown".to_string(),
+            status: UNKNOWN.to_string(),
             category: "System".to_string(),
             hardware_id: String::new(),
             hardware_ids: Vec::new(),
@@ -335,17 +340,32 @@ fn extract_hardware_ids(value: &serde_json::Value) -> Vec<String> {
     }
 }
 
-fn eval_status(version: &str, date: &str) -> String {
+fn current_local_year() -> i32 {
+    #[cfg(target_os = "windows")]
+    {
+        use windows::Win32::System::SystemInformation::GetLocalTime;
+
+        unsafe { GetLocalTime().wYear as i32 }
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        2026
+    }
+}
+
+fn eval_status(version: &str, date: &str, now_year: i32) -> String {
     if version == "N/A" || version.is_empty() {
-        return "Unknown".to_string();
+        return UNKNOWN.to_string();
     }
     if date.len() >= 4 {
         if let Ok(year) = date[..4].parse::<i32>() {
-            let age = 2026 - year;
-            if age > 2 { return "Verify Online".to_string(); }
+            let age = now_year - year;
+            if age > DRIVER_VERIFY_AGE_YEARS {
+                return VERIFY_ONLINE.to_string();
+            }
         }
     }
-    "Installed".to_string()
+    INSTALLED.to_string()
 }
 
 fn make_update_url(provider: &str, name: &str, hw_id: &str) -> String {
@@ -395,13 +415,28 @@ mod tests {
             latest_version: String::new(),
             date: "2026-01-01".into(),
             provider: "Test".into(),
-            status: "Installed".into(),
+            status: INSTALLED.into(),
             category: category.into(),
             hardware_id: String::new(),
             hardware_ids: vec![],
             update_url: String::new(),
             update_source: String::new(),
         }
+    }
+
+    #[test]
+    fn eval_status_marks_old_drivers_for_verify() {
+        assert_eq!(eval_status("1.0", "2020-01-01", 2026), VERIFY_ONLINE);
+    }
+
+    #[test]
+    fn eval_status_keeps_recent_drivers_installed() {
+        assert_eq!(eval_status("1.0", "2025-01-01", 2026), INSTALLED);
+    }
+
+    #[test]
+    fn eval_status_unknown_when_version_missing() {
+        assert_eq!(eval_status("N/A", "2020-01-01", 2026), UNKNOWN);
     }
 
     #[test]

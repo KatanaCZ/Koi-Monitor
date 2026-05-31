@@ -1,4 +1,6 @@
 import type { StatusToastType } from '../store';
+import type { LanguageMode } from '../types';
+import type { TranslateFn } from './translations';
 
 export type NotificationSource = 'alert' | 'system';
 
@@ -47,16 +49,19 @@ export function prependNotificationLog(
   return [entry, ...log].slice(0, NOTIFICATION_LOG_MAX);
 }
 
-import { LanguageMode } from '../types';
-
-export function formatNotificationTime(timestamp: number, now = Date.now(), language: LanguageMode = 'fr'): string {
+export function formatNotificationTime(
+  timestamp: number,
+  t: TranslateFn,
+  language: LanguageMode,
+  now = Date.now(),
+): string {
   const deltaSec = Math.max(0, Math.floor((now - timestamp) / 1000));
-  if (deltaSec < 10) return language === 'fr' ? "À l'instant" : "Just now";
-  if (deltaSec < 60) return language === 'fr' ? `Il y a ${deltaSec} s` : `${deltaSec}s ago`;
+  if (deltaSec < 10) return t('time_just_now');
+  if (deltaSec < 60) return t('time_seconds_ago', { seconds: deltaSec });
   const deltaMin = Math.floor(deltaSec / 60);
-  if (deltaMin < 60) return language === 'fr' ? `Il y a ${deltaMin} min` : `${deltaMin}m ago`;
+  if (deltaMin < 60) return t('time_minutes_ago', { minutes: deltaMin });
   const deltaHour = Math.floor(deltaMin / 60);
-  if (deltaHour < 24) return language === 'fr' ? `Il y a ${deltaHour} h` : `${deltaHour}h ago`;
+  if (deltaHour < 24) return t('time_hours_ago', { hours: deltaHour });
   return new Date(timestamp).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
     day: 'numeric',
     month: 'short',

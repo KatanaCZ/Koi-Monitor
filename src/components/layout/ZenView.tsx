@@ -12,14 +12,14 @@ const WidgetFallback = () => (
 );
 
 const LocalWidgetError = ({ name }: { name: string }) => {
-  const { language } = useTranslation();
+  const { t } = useTranslation();
   return (
     <div className="bento-card h-full flex flex-col items-center justify-center gap-2 bg-[var(--surface-inset)] border border-red-500/20 text-center p-6">
       <p className="text-sm font-semibold text-red-400">
-        {language === 'fr' ? `Erreur dans le widget ${name}` : `Error in widget ${name}`}
+        {t('error_widget_title', { name })}
       </p>
       <p className="text-xs text-[var(--text-muted)]">
-        {language === 'fr' ? "Impossible de charger l'horloge Zen." : "Unable to load Zen Clock."}
+        {t('error_widget_zen_clock')}
       </p>
     </div>
   );
@@ -27,7 +27,7 @@ const LocalWidgetError = ({ name }: { name: string }) => {
 
 export const ZenView: React.FC = () => {
   const prefersReducedMotion = useReducedMotion();
-  const { language } = useTranslation();
+  const { t } = useTranslation();
 
   return (
     <motion.div
@@ -43,7 +43,7 @@ export const ZenView: React.FC = () => {
     >
       <Suspense fallback={<WidgetFallback />}>
         <div className="flex-1 flex flex-col min-h-0 w-full h-full">
-          <ErrorBoundary fallback={<LocalWidgetError name={language === 'fr' ? "Horloge Zen" : "Zen Clock"} />}>
+          <ErrorBoundary fallback={<LocalWidgetError name={t('widget_name_zen_clock')} />}>
             <ZenClockWidget />
           </ErrorBoundary>
         </div>

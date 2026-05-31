@@ -1,35 +1,33 @@
 import type { DriverInfo } from '../types';
+import { DRIVER_STATUS, DRIVER_UPDATE_SOURCE } from '../constants/driverStatus';
+import type { TranslationKey, TranslateFn } from './translations';
+import { createTranslator } from './translations';
 import { useAppStore } from '../store';
 
-const CATEGORY_LABELS_FR: Record<string, string> = {
-  Graphics: 'Carte graphique',
-  Network: 'Réseau',
-  Bluetooth: 'Bluetooth',
-  Audio: 'Audio',
-  Storage: 'Stockage',
-  Firmware: 'Firmware',
+const CATEGORY_KEYS: Record<string, TranslationKey> = {
+  Graphics: 'drivers_category_graphics',
+  Network: 'drivers_category_network',
+  Bluetooth: 'drivers_category_bluetooth',
+  Audio: 'drivers_category_audio',
+  Storage: 'drivers_category_storage',
+  Firmware: 'drivers_category_firmware',
 };
 
-const CATEGORY_LABELS_EN: Record<string, string> = {
-  Graphics: 'Graphics Card',
-  Network: 'Network',
-  Bluetooth: 'Bluetooth',
-  Audio: 'Audio',
-  Storage: 'Storage',
-  Firmware: 'Firmware',
-};
-
-export function getDriverCategoryLabel(category: string): string {
-  const language = useAppStore.getState().settings.language || 'en';
-  const labels = language === 'fr' ? CATEGORY_LABELS_FR : CATEGORY_LABELS_EN;
-  return labels[category] ?? category;
+function appTranslate(): TranslateFn {
+  return createTranslator(useAppStore.getState().settings.language || 'en');
 }
 
-/** Affichage lisible d'une version pilote WMI. */
+export function getDriverCategoryLabel(category: string, t?: TranslateFn): string {
+  const translate = t ?? appTranslate();
+  const key = CATEGORY_KEYS[category];
+  return key ? translate(key) : category;
+}
+
+/** Human-readable display for a WMI driver version string. */
 export function formatDriverVersion(raw: string | undefined | null): string {
-  const language = useAppStore.getState().settings.language || 'en';
+  const t = appTranslate();
   if (!raw || raw === 'N/A' || raw.trim() === '') {
-    return language === 'fr' ? 'Non détectée' : 'Not detected';
+    return t('drivers_version_not_detected');
   }
 
   const trimmed = raw.trim();
@@ -50,9 +48,9 @@ export function formatDriverVersion(raw: string | undefined | null): string {
 }
 
 export function formatInstalledDriverLabel(version: string | undefined | null): string {
-  const language = useAppStore.getState().settings.language || 'en';
+  const t = appTranslate();
   const formatted = formatDriverVersion(version);
-  const notDet = language === 'fr' ? 'Non détectée' : 'Not detected';
+  const notDet = t('drivers_version_not_detected');
   return formatted === notDet ? formatted : `v${formatted}`;
 }
 
@@ -64,9 +62,9 @@ export function formatDriverVersionRange(
 }
 
 export function parseVersionDisplaySegments(raw: string | undefined | null): string[] {
-  const language = useAppStore.getState().settings.language || 'en';
+  const t = appTranslate();
   const formatted = formatDriverVersion(raw);
-  const notDet = language === 'fr' ? 'Non détectée' : 'Not detected';
+  const notDet = t('drivers_version_not_detected');
   if (formatted === notDet) return [];
   return formatted.split('.');
 }
@@ -100,33 +98,37 @@ export function hasDriverUpdate(driver: DriverInfo): boolean {
 }
 
 export function isWindowsUpdateSource(driver: DriverInfo): boolean {
-  return driver.update_source === 'windows_update';
+  return driver.update_source === DRIVER_UPDATE_SOURCE.WINDOWS_UPDATE;
 }
 
 export function isDriverStoreOnlySource(driver: DriverInfo): boolean {
-  return driver.update_source === 'driver_store';
+  return driver.update_source === DRIVER_UPDATE_SOURCE.DRIVER_STORE;
 }
 
-export function getVendorUpdateLinkLabel(driver: DriverInfo): string {
-  const language = useAppStore.getState().settings.language || 'en';
+export function getVendorUpdateLinkLabel(driver: DriverInfo, t: TranslateFn): string {
   if (driver.update_url.includes('catalog.update.microsoft.com')) {
-    return language === 'fr' ? 'Catalogue Microsoft Update' : 'Microsoft Update Catalog';
+    return t('drivers_vendor_catalog');
   }
-  return language === 'fr' ? 'Page constructeur' : 'Manufacturer page';
+  return t('drivers_vendor_manufacturer');
 }
 
-export function getDriverStatusLabel(status: string, driver?: DriverInfo): string {
-  const language = useAppStore.getState().settings.language || 'en';
+export function getDriverStatusLabel(
+  status: string,
+  t: TranslateFn,
+  driver?: DriverInfo,
+): string {
   if (driver && hasDriverUpdate(driver)) {
-    return language === 'fr' ? 'Nouveauté' : 'Update';
+    return t('drivers_status_update');
   }
   switch (status) {
-    case 'Installed':
-      return language === 'fr' ? 'Installé' : 'Installed';
-    case 'Update Available':
-      return language === 'fr' ? 'Nouveauté' : 'Update';
-    case 'Verify Online':
-      return language === 'fr' ? 'À confirmer' : 'To confirm';
+    case DRIVER_STATUS.INSTALLED:
+      return t('drivers_status_installed');
+    case DRIVER_STATUS.UPDATE_AVAILABLE:
+      return t('drivers_status_update');
+    case DRIVER_STATUS.VERIFY_ONLINE:
+      return t('drivers_status_verify');
+    case DRIVER_STATUS.UNKNOWN:
+      return t('drivers_status_unknown');
     default:
       return status;
   }
@@ -190,10 +192,11 @@ function isWifiAdapter(name: string): boolean {
 
 export function getEssentialDriverSummary(
   drivers: DriverInfo[],
+  t: TranslateFn,
 ): { category: string; label: string; driver: DriverInfo | undefined }[] {
   return (['Graphics', 'Network', 'Bluetooth'] as const).map((category) => ({
     category,
-    label: getDriverCategoryLabel(category),
+    label: getDriverCategoryLabel(category, t),
     driver: getPrimaryDriver(drivers, category),
   }));
 }
@@ -201,14 +204,18 @@ export function getEssentialDriverSummary(
 export function getWidgetDriverLine(
   drivers: DriverInfo[],
   category: string,
+  t: TranslateFn,
 ): string | null {
-  const language = useAppStore.getState().settings.language || 'en';
   const driver = drivers.find((d) => d.category === category);
   if (!driver) return null;
   const version = formatInstalledDriverLabel(driver.version);
-  const notDet = language === 'fr' ? 'Non détectée' : 'Not detected';
-  if (version === notDet) return null;
-  const shortLabel =
-    category === 'Graphics' ? 'GPU' : category === 'Network' ? (language === 'fr' ? 'Réseau' : 'Net') : 'BT';
-  return language === 'fr' ? `Pilote ${shortLabel} · ${version}` : `${shortLabel} Driver · ${version}`;
+  const notDet = t('drivers_version_not_detected');
+  if (version === notDet || version === `v${notDet}`) return null;
+  if (category === 'Graphics') {
+    return t('drivers_widget_line_gpu', { version });
+  }
+  if (category === 'Network') {
+    return t('drivers_widget_line_net', { version });
+  }
+  return t('drivers_widget_line_bt', { version });
 }

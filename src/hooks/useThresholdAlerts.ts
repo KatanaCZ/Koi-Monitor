@@ -1,10 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { useAppStore } from '../store';
-import {
-  createThresholdAlertState,
-  evaluateThresholdAlerts,
-} from '../utils/thresholdAlerts';
+import { createThresholdAlertState, evaluateThresholdAlerts } from '../utils/thresholdAlerts';
 import { isDevForceGamingProfile } from '../utils/alertDevSimulation';
+import { createTranslator } from '../utils/translations';
 
 export function useThresholdAlerts(): void {
   const enabled = useAppStore((s) => s.settings.alertThresholds.enabled);
@@ -34,13 +32,14 @@ export function useThresholdAlerts(): void {
     }
 
     const now = Date.now();
+    const t = createTranslator(language || 'en');
     const result = evaluateThresholdAlerts(
       stateRef.current,
       systemInfo,
       gamingLatency,
       alertThresholds,
       now,
-      language,
+      t,
     );
 
     stateRef.current = result.state;
@@ -57,5 +56,6 @@ export function useThresholdAlerts(): void {
     gamingLatency,
     pushStatusToast,
     setActivityProfile,
+    language,
   ]);
 }

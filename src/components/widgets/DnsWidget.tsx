@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '../../store';
 import { NeonBentoCard } from '../common';
 import { GamingLatencyBreakdown } from '../common/GamingLatencyBreakdown';
-import { getDnsTestModeLabel, isAutoDnsChecklist } from '../../types';
+import { getDnsTestModeLabel } from '../../utils/dnsPing';
+import { isAutoDnsChecklist } from '../../types';
 import { DnsViaBand } from './DnsViaBand';
 import {
   getDnsWidgetCardHeight,
@@ -44,8 +45,8 @@ export const DnsWidget = memo(function DnsWidget({
     [dnsChecklist],
   );
   const testModeLabel = useMemo(
-    () => getDnsTestModeLabel(dnsChecklist),
-    [dnsChecklist],
+    () => getDnsTestModeLabel(dnsChecklist, t),
+    [dnsChecklist, t],
   );
 
   const bestDns = useMemo(
@@ -350,7 +351,6 @@ export const DnsWidget = memo(function DnsWidget({
                   snapshot={gamingLatency}
                   compact={useCompact}
                   isDark={isDark}
-                  verdictLabel={gamingLatency.verdict_label}
                   onClose={closeGamingDetails}
                 />
               </motion.div>

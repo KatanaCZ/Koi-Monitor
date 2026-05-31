@@ -5,8 +5,9 @@ import {
   formatJitterReading,
   formatLatencyReading,
   getGamingMetricTone,
-  translateVerdictLabel,
+  getVerdictLabel,
 } from "../../utils/gamingLatency";
+import type { GamingVerdict } from "../../types";
 import { getNeonTextShadow } from "../../utils/neonEffects";
 import { useTranslation } from "../../hooks/useTranslation";
 
@@ -14,7 +15,6 @@ interface GamingLatencyBreakdownProps {
   snapshot: GamingLatencySnapshot;
   compact?: boolean;
   isDark: boolean;
-  verdictLabel: string;
   onClose: () => void;
 }
 
@@ -79,11 +79,10 @@ export const GamingLatencyBreakdown = memo(function GamingLatencyBreakdown({
   snapshot,
   compact = false,
   isDark,
-  verdictLabel,
   onClose,
 }: GamingLatencyBreakdownProps) {
   const { t } = useTranslation();
-  const localizedVerdict = translateVerdictLabel(verdictLabel, t);
+  const localizedVerdict = getVerdictLabel(snapshot.verdict as GamingVerdict, t);
   const gatewayTarget =
     snapshot.gateway_ip.trim().length > 0 ? snapshot.gateway_ip : t("gaming_auto_detect");
   const internetTarget = snapshot.internet_host || "1.1.1.1";

@@ -79,7 +79,7 @@ export const DriverTile = memo(function DriverTile({
   const useUltraDense = density === 'ultra';
 
   const iconSizeKey = isUltra ? 'sm' : minimal ? 'md' : 'lg';
-  const displayName = normalizeDriverName(driver.name);
+  const displayName = normalizeDriverName(driver.name, t);
 
   const widthClass = essentialOnly
     ? 'w-full'
@@ -162,7 +162,7 @@ export const DriverTile = memo(function DriverTile({
               isUltra ? 'text-[7px]' : 'text-[8px]'
             }`}
           >
-            {getDriverStatusLabel(driver.status, driver)}
+            {getDriverStatusLabel(driver.status, t, driver)}
           </span>
         </div>
       </div>
@@ -185,7 +185,7 @@ export const DriverTile = memo(function DriverTile({
 
   const ariaLabel = hasUpdate
     ? t('driver_aria_has_update', { name: displayName })
-    : `${displayName}, ${getDriverStatusLabel(driver.status, driver)}`;
+    : `${displayName}, ${getDriverStatusLabel(driver.status, t, driver)}`;
 
   if (selectable) {
     if (instant) {
@@ -240,7 +240,7 @@ export const DriverTile = memo(function DriverTile({
             />
             <div className={`rounded-full border inline-flex self-start ${getStatusColorClass(driver.status, hasUpdate)} px-2.5 py-1`}>
               <span className="text-[9px] font-bold uppercase tracking-wider">
-                {getDriverStatusLabel(driver.status, driver)}
+                {getDriverStatusLabel(driver.status, t, driver)}
               </span>
             </div>
           </>
@@ -278,7 +278,7 @@ export const DriverTile = memo(function DriverTile({
           />
           <div className={`rounded-full border inline-flex self-start ${getStatusColorClass(driver.status, hasUpdate)} px-2.5 py-1`}>
             <span className="text-[9px] font-bold uppercase tracking-wider">
-              {getDriverStatusLabel(driver.status, driver)}
+              {getDriverStatusLabel(driver.status, t, driver)}
             </span>
           </div>
         </>

@@ -200,7 +200,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   initialTab,
   onEasterSecretTap,
 }) => {
-  const { t, language } = useTranslation();
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabId>('general');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'warning' } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
@@ -255,7 +255,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const atmospherePresetSegment = [
     { value: 'zen' as const, label: 'Zen' },
-    { value: 'doux' as const, label: language === 'fr' ? 'Doux' : 'Soft' },
+    { value: 'doux' as const, label: t('atmosphere_preset_doux') },
     { value: 'aura' as const, label: 'Aura' },
   ];
 

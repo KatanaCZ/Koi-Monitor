@@ -10,5 +10,5 @@
 
 ## Docs
 
-- [ ] User-visible change → `README.md` + bullet under **`CHANGELOG.md`** → `[Unreleased]`
+- [ ] User-visible change → `README.md` + bullet under **`CHANGELOG.md`** → `[Unreleased]` (**For you** + **Technical details**)
 - [ ] Contributor / architecture → `docs/DEVELOPMENT.md`

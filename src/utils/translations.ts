@@ -1,3 +1,5 @@
+import type { LanguageMode } from '../types';
+
 export const TRANSLATIONS = {
   fr: {
     // Layout & App Frame
@@ -287,6 +289,10 @@ export const TRANSLATIONS = {
     verdict_high_latency: "Latence élevée",
     verdict_marginal: "Limite ranked",
     verdict_ready: "Prêt pour le jeu",
+    gaming_aria_prefix: "Latence jeu : {verdict}",
+    gaming_aria_internet: "Internet {ms} ms",
+    gaming_aria_jitter: "Jitter {ms} ms",
+    gaming_aria_gateway: "Passerelle {ms} ms",
     dns_ip: "IP",
     dns_sr_caption: "Historique des latences DNS",
     dns_eval_now: "Évaluer maintenant",
@@ -305,8 +311,10 @@ export const TRANSLATIONS = {
     drivers_up_to_date_title: "Pilotes à jour",
     drivers_recommend_full: "Analyse complète recommandée",
     drivers_recommend_full_desc: "Activez le monitoring complet pour scanner tous les périphériques connectés.",
-    drivers_status_ok: "Stable",
-    drivers_status_update: "Mise à jour disponible",
+    drivers_status_installed: "Installé",
+    drivers_status_update: "Nouveauté",
+    drivers_status_verify: "À confirmer",
+    drivers_status_unknown: "Inconnu",
     drivers_copy_hwid: "Copier l'identifiant matériel",
     drivers_toast_copied: "Identifiant copié !",
     drivers_btn_copy: "Copier",
@@ -333,6 +341,80 @@ export const TRANSLATIONS = {
     drivers_windows_update_error: "Impossible d'ouvrir Windows Update",
     drivers_btn_customize_aria: "Personnaliser le mode pilotes dans les paramètres",
     drivers_btn_customize_title: "Basculer entre pilotes essentiels et analyse complète",
+    drivers_empty_label: "Rien pour l'instant, lancez un scan",
+    drivers_empty_toast: "Calme plat côté pilotes, Koi n'a rien trouvé, un scan suffit",
+    drivers_header_empty: "Koi écoute, rien en vue pour l'instant, lancez un scan",
+    drivers_header_scan_hint: "Scannez pour découvrir les pilotes de votre machine",
+    drivers_header_one_essential: "1 essentiel, graphique, réseau ou Bluetooth, version sous les yeux",
+    drivers_header_essentials: "{count} essentiels, graphique, réseau et Bluetooth, versions sous les yeux",
+    drivers_header_full: "{count} pilotes, graphique, réseau, audio et stockage, versions sous les yeux",
+    drivers_summary_pending: "Pilotes en attente",
+    drivers_summary_one_observing: "1 pilote sous surveillance",
+    drivers_summary_many_observing: "{count} pilotes sous surveillance",
+    drivers_summary_scan_start: "Lancez un scan pour commencer",
+    drivers_summary_stable_one: "1 serein",
+    drivers_summary_stable_many: "{count} sereins",
+    drivers_summary_update_one: "1 nouveauté",
+    drivers_summary_update_many: "{count} nouveautés",
+    drivers_summary_verify_one: "1 à confirmer",
+    drivers_summary_verify_many: "{count} à confirmer",
+    drivers_badge_all_ok: "Tout est à jour",
+    drivers_badge_update_one: "1 nouveauté",
+    drivers_badge_update_many: "{count} nouveautés",
+    drivers_badge_verify_one: "1 à confirmer",
+    drivers_badge_verify_many: "{count} à confirmer",
+    drivers_store_warning_1: "Version repérée dans le magasin de pilotes.",
+    drivers_store_warning_2: "Windows Update ne la propose pas encore sur ce PC.",
+    drivers_scan_idle: "Scanner les pilotes",
+    drivers_scan_loading: "Scan en cours",
+    drivers_scan_aria_loading: "Scan des pilotes en cours",
+    drivers_detail_title: "Détail pilote",
+    drivers_detail_installed_version: "Version installée",
+    drivers_detail_installed_date: "Date installée",
+    drivers_date_unspecified: "Non renseignée",
+    drivers_btn_open_wu: "Ouvrir Windows Update",
+    drivers_btn_check_wu: "Vérifier Windows Update",
+    drivers_btn_confirm_online: "Confirmer en ligne",
+    drivers_btn_manufacturer_page: "Page constructeur",
+    drivers_vendor_catalog: "Catalogue Microsoft Update",
+    drivers_vendor_manufacturer: "Page constructeur",
+    drivers_version_not_detected: "Non détectée",
+    drivers_version_label_installed: "Installée",
+    drivers_version_label_available: "Disponible",
+    drivers_essential_not_detected: "Non détecté",
+    drivers_essential_aria: "Versions de pilotes essentiels installées",
+    drivers_category_graphics: "Carte graphique",
+    drivers_category_network: "Réseau",
+    drivers_category_bluetooth: "Bluetooth",
+    drivers_category_audio: "Audio",
+    drivers_category_storage: "Stockage",
+    drivers_category_firmware: "Firmware",
+    drivers_widget_line_gpu: "Pilote GPU · {version}",
+    drivers_widget_line_net: "Pilote Réseau · {version}",
+    drivers_widget_line_bt: "Pilote BT · {version}",
+
+    // DNS test mode labels
+    dns_mode_auto: "Test auto",
+    dns_mode_all: "Tous les serveurs",
+    dns_mode_one: "1 serveur",
+    dns_mode_count: "{count} serveurs",
+
+    // Error boundaries
+    error_boundary_title: "Une erreur a interrompu l'interface",
+    error_boundary_desc: "Rechargez l'application pour reprendre le monitoring.",
+    error_boundary_reload: "Recharger",
+    error_widget_title: "Erreur dans le widget {name}",
+    error_widget_load_data: "Impossible de charger les données.",
+    error_widget_zen_clock: "Impossible de charger l'horloge Zen.",
+    widget_name_network: "Réseau",
+    widget_name_drivers: "Pilotes",
+    widget_name_zen_clock: "Horloge Zen",
+
+    // App toasts
+    alerts_enabled_toast: "Veille activée — Koi a l'œil sur votre machine.",
+
+    // Atmosphere presets
+    atmosphere_preset_doux: "Doux",
 
     // Zen View
     zen_title: "Zen",
@@ -364,11 +446,12 @@ export const TRANSLATIONS = {
     time_minutes_ago: "Il y a {minutes} min",
     time_hours_ago: "Il y a {hours} h",
 
-    // Threshold alert strings
-    alert_cpu_overload: "CPU très sollicité ({value}%)",
-    alert_ram_saturated: "RAM presque saturée ({value}%)",
-    alert_gpu_overload: "GPU très sollicité ({value}%)",
-    alert_gaming_latency: "Ping élevé en jeu ({value} ms sur {host})",
+    // Threshold alerts
+    alert_desktop_load: "Bureau · La machine force · {metric} {value} %",
+    alert_gaming_ping_baseline: "Jeu · Ping qui monte · {ms} ms · {duration} · d'habitude ~{baseline} ms",
+    alert_gaming_ping: "Jeu · Ping qui monte · {ms} ms · {duration}",
+    alert_profile_gaming: "Session de jeu",
+    alert_profile_desktop: "Sur le bureau",
   },
   en: {
     // Layout & App Frame
@@ -658,6 +741,10 @@ export const TRANSLATIONS = {
     verdict_high_latency: "High latency",
     verdict_marginal: "Ranked limit",
     verdict_ready: "Ready for gaming",
+    gaming_aria_prefix: "Game latency: {verdict}",
+    gaming_aria_internet: "Internet {ms} ms",
+    gaming_aria_jitter: "Jitter {ms} ms",
+    gaming_aria_gateway: "Gateway {ms} ms",
     dns_ip: "IP",
     dns_sr_caption: "DNS Latency History",
     dns_eval_now: "Evaluate Now",
@@ -676,8 +763,10 @@ export const TRANSLATIONS = {
     drivers_up_to_date_title: "Drivers Up to Date",
     drivers_recommend_full: "Full Scan Recommended",
     drivers_recommend_full_desc: "Enable full monitoring to scan all connected hardware devices.",
-    drivers_status_ok: "Stable",
-    drivers_status_update: "Update Available",
+    drivers_status_installed: "Installed",
+    drivers_status_update: "Update",
+    drivers_status_verify: "To confirm",
+    drivers_status_unknown: "Unknown",
     drivers_copy_hwid: "Copy Hardware ID",
     drivers_toast_copied: "Hardware ID copied!",
     drivers_btn_copy: "Copy",
@@ -704,6 +793,80 @@ export const TRANSLATIONS = {
     drivers_windows_update_error: "Unable to open Windows Update",
     drivers_btn_customize_aria: "Customize drivers mode in settings",
     drivers_btn_customize_title: "Toggle between essential drivers and full analysis",
+    drivers_empty_label: "Nothing yet, run a scan",
+    drivers_empty_toast: "Calm waters on the drivers side, Koi found nothing, a scan is enough",
+    drivers_header_empty: "Koi is listening, nothing in sight yet, run a scan",
+    drivers_header_scan_hint: "Scan to discover your machine's drivers",
+    drivers_header_one_essential: "1 essential (graphics, network, or Bluetooth), version under your eyes",
+    drivers_header_essentials: "{count} essentials (graphics, network, and Bluetooth), versions under your eyes",
+    drivers_header_full: "{count} drivers (graphics, network, audio, and storage), versions under your eyes",
+    drivers_summary_pending: "Drivers pending",
+    drivers_summary_one_observing: "1 driver under observation",
+    drivers_summary_many_observing: "{count} drivers under observation",
+    drivers_summary_scan_start: "Run a scan to start",
+    drivers_summary_stable_one: "1 stable",
+    drivers_summary_stable_many: "{count} stable",
+    drivers_summary_update_one: "1 update",
+    drivers_summary_update_many: "{count} updates",
+    drivers_summary_verify_one: "1 to confirm",
+    drivers_summary_verify_many: "{count} to confirm",
+    drivers_badge_all_ok: "All up to date",
+    drivers_badge_update_one: "1 update",
+    drivers_badge_update_many: "{count} updates",
+    drivers_badge_verify_one: "1 to confirm",
+    drivers_badge_verify_many: "{count} to confirm",
+    drivers_store_warning_1: "Version found in the driver store.",
+    drivers_store_warning_2: "Windows Update does not offer it on this PC yet.",
+    drivers_scan_idle: "Scan drivers",
+    drivers_scan_loading: "Scanning",
+    drivers_scan_aria_loading: "Scanning drivers...",
+    drivers_detail_title: "Driver Detail",
+    drivers_detail_installed_version: "Installed Version",
+    drivers_detail_installed_date: "Installed Date",
+    drivers_date_unspecified: "Not specified",
+    drivers_btn_open_wu: "Open Windows Update",
+    drivers_btn_check_wu: "Check Windows Update",
+    drivers_btn_confirm_online: "Confirm Online",
+    drivers_btn_manufacturer_page: "Manufacturer Page",
+    drivers_vendor_catalog: "Microsoft Update Catalog",
+    drivers_vendor_manufacturer: "Manufacturer page",
+    drivers_version_not_detected: "Not detected",
+    drivers_version_label_installed: "Installed",
+    drivers_version_label_available: "Available",
+    drivers_essential_not_detected: "Not detected",
+    drivers_essential_aria: "Installed essential driver versions",
+    drivers_category_graphics: "Graphics Card",
+    drivers_category_network: "Network",
+    drivers_category_bluetooth: "Bluetooth",
+    drivers_category_audio: "Audio",
+    drivers_category_storage: "Storage",
+    drivers_category_firmware: "Firmware",
+    drivers_widget_line_gpu: "GPU Driver · {version}",
+    drivers_widget_line_net: "Net Driver · {version}",
+    drivers_widget_line_bt: "BT Driver · {version}",
+
+    // DNS test mode labels
+    dns_mode_auto: "Auto test",
+    dns_mode_all: "All servers",
+    dns_mode_one: "1 server",
+    dns_mode_count: "{count} servers",
+
+    // Error boundaries
+    error_boundary_title: "An error interrupted the interface",
+    error_boundary_desc: "Reload the application to resume monitoring.",
+    error_boundary_reload: "Reload",
+    error_widget_title: "Error in widget {name}",
+    error_widget_load_data: "Unable to load data.",
+    error_widget_zen_clock: "Unable to load Zen Clock.",
+    widget_name_network: "Network",
+    widget_name_drivers: "Drivers",
+    widget_name_zen_clock: "Zen Clock",
+
+    // App toasts
+    alerts_enabled_toast: "Alerts enabled — Koi has an eye on your machine.",
+
+    // Atmosphere presets
+    atmosphere_preset_doux: "Soft",
 
     // Zen View
     zen_title: "Zen",
@@ -735,12 +898,30 @@ export const TRANSLATIONS = {
     time_minutes_ago: "{minutes}m ago",
     time_hours_ago: "{hours}h ago",
 
-    // Threshold alert strings
-    alert_cpu_overload: "High CPU usage ({value}%)",
-    alert_ram_saturated: "RAM nearly full ({value}%)",
-    alert_gpu_overload: "High GPU usage ({value}%)",
-    alert_gaming_latency: "High latency in-game ({value} ms on {host})",
+    // Threshold alerts
+    alert_desktop_load: "Desktop · High system load · {metric} {value} %",
+    alert_gaming_ping_baseline: "Game · Ping rising · {ms} ms · {duration} · usually ~{baseline} ms",
+    alert_gaming_ping: "Game · Ping rising · {ms} ms · {duration}",
+    alert_profile_gaming: "In-game session",
+    alert_profile_desktop: "On desktop",
   },
 } as const;
 
 export type TranslationKey = keyof typeof TRANSLATIONS.fr;
+
+export type TranslateFn = (
+  key: TranslationKey,
+  params?: Record<string, string | number>,
+) => string;
+
+export function createTranslator(language: LanguageMode = 'en'): TranslateFn {
+  return (key, params) => {
+    let text = (TRANSLATIONS[language]?.[key] ?? TRANSLATIONS.en?.[key] ?? key) as string;
+    if (params) {
+      Object.entries(params).forEach(([k, v]) => {
+        text = text.replace(`{${k}}`, String(v));
+      });
+    }
+    return text;
+  };
+}

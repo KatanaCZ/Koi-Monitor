@@ -62,6 +62,7 @@ Public-facing version: **Data & privacy** section in [`README.md`](../README.md)
 - **Widget layout**: fixed height **400 px** (≤ 4 servers) or **460 px** (5+) — **aligned with Network card** via `dnsWidgetLayout.ts` + `onLayoutHeightChange`; **+184 px** when gaming detail panel is open · DNS list **vertically centered** between header and **Via / In-game** band (`min-h-full` + `justify-center`, internal scroll on overflow) · compact **flex wrap + justify-center** (2 col · 3 col from 5 on lg) — incomplete last row **centered horizontally**
 - **Dual footer band**: **Via {best DNS}** + **In-game** — **two separate twin cards** (DNS row style), colored verdict + clickable gaming latency badge
 - Automatic best DNS identification (crown)
+- **IPC contract** (`DnsResult`): `latency_ms` + `is_best` only — status labels computed in the UI from latency thresholds + i18n (`dns_status_*`)
 - Neon green theme (`#00ff9d`)
 
 ### Gaming latency — “Ready to play”
@@ -69,7 +70,7 @@ Public-facing version: **Data & privacy** section in [`README.md`](../README.md)
 - **Clickable badge** (`Ready to play`, `Ranked limit`, `Wi‑Fi / router`, etc.) → opens detail panel under the band
 - **Detail panel** (hidden by default): **Gateway** (auto-detected router IP) · **Internet** (`1.1.1.1`) · **Jitter** (15 samples, ~30 s)
 - Close: **Close** button, badge re-click, or **Escape**
-- Verdicts: `ready` / `marginal` / `poor` / `local_issue` / `measuring` — green / amber / orange / red
+- Verdicts: `ready` / `marginal` / `high_latency` / `local_issue` / `local_network` / `offline` / `internet_unreachable` / `measuring` — UI labels via `getVerdictLabel()`; screen-reader strings via `gaming_aria_*` i18n keys in `buildGamingAriaLabel()`
 - Rust measurement every **2 s** (dedicated thread, independent of DNS polling)
 - Dashboard: **DNS & Ping monitor** band · Zen mode: `ZenMetricsDock` (CPU · GPU · Game · RAM · Active at very large size, hideable)
 
@@ -85,6 +86,7 @@ At the desk, a quiet toast if the machine is under strain; in a gaming session, 
   - `Desktop · PC under pressure · CPU 92%` (most stressed component, **one alert only**)
   - `Gaming · Ping rising · 60 ms · ~4 s · usual ~10 ms` — adapted for fiber / competitive play
 - **Anti-spam**: **3 s** threshold · **one toast at a time** · cooldown (**45–90 s** desktop · **90 s** gaming) · no desktop alert while ramping to gaming profile.
+- **i18n**: alert copy via `translations.ts`; `useThresholdAlerts` uses `createTranslator(language)` inside the effect (stable `language` dep, not hook `t`).
 - **Log**: bell in title bar (`NotificationLayer`, z-index above dashboard) — session history (24 entries), clickable toast, Zen pill if missed alerts.
 - **Settings → Watch**: master on/off · **Sensitivity** (Quiet / Balanced / Attentive) · **In-game latency** on/off.
 - **No Windows popup** — in-app toasts only (`StatusToast` + `pushStatusToast(..., { source: 'alert' })`).
@@ -99,7 +101,8 @@ At the desk, a quiet toast if the machine is under strain; in a gaming session, 
 - **Version comparator**: installed vs available (WU + `pnputil` store), highlighted diff segments (`DriverVersionCompare`).
 - **Updates — Windows Update first**: **HWID/PCI matching only** (no fuzzy name); if WU offers an update → **“Open Windows Update”** (primary action); vendor/catalog link secondary. If version found **only** in driver store → warning + OEM/catalog link + **“Check Windows Update”**. Scan/WU timeout **90 s / 60 s**. No direct install from the app.
 - **Real hardware detection**: targeted WMI scan, physical filter, VM/VPN/interface device blacklist.
-- **Safe UX**: “Installed”, “To confirm”, “New” statuses — no false obsolete alerts.
+- **Safe UX**: “Installed”, “To confirm”, “New” statuses — no false obsolete alerts; age check uses **current local year** (`eval_status` + `GetLocalTime`, not a hardcoded year).
+- **Status contract**: Rust `driver_status.rs` ↔ TS `constants/driverStatus.ts` (shared literals for status + `update_source`).
 - **Vendor links**: NVIDIA, AMD, Intel, Realtek + Microsoft catalog when HW ID (`safeUrl.ts`).
 - **Copy**: Premium Zen tone centralized (`driverCopy.ts`) · separator ` · ` · no em dash in user-facing prose.
 
@@ -280,7 +283,7 @@ koi-monitor/
 │   │   ├── layout/
 │   │   └── widgets/          # Cpu/Ram/Gpu/Network/Dns/Drivers, DnsViaBand, ZenClockWidget…
 │   ├── hooks/                # useTelemetryPoller, useThresholdAlerts, useAmbientMusic, useEasterEggMusic…
-│   ├── utils/                # dnsWidgetLayout, thresholdAlerts, ambientMusic, easterEggMusic…
+│   ├── utils/                # translations, dnsPing, thresholdAlerts, driverCopy, driverFormat…
 │   ├── services/             # api.ts — Tauri IPC + events + appService.getIconPng()
 │   ├── store/
 │   │   ├── index.ts          # Zustand (+ gamingLatency)
@@ -291,7 +294,8 @@ koi-monitor/
 │   ├── icons/                # icon-source.png · icon.ico · PNGs (tauri icon CLI)
 │   ├── src/
 │   │   ├── lib.rs            # Telemetry + gaming threads, emit events
-│   │   ├── gaming_latency.rs # ICMP gateway/internet, jitter, verdicts
+│   │   ├── driver_status.rs  # Driver status + update_source constants
+│   │   ├── gaming_latency.rs # ICMP gateway/internet, jitter, machine verdict keys
 │   │   ├── dns.rs            # DNS ping TCP :53 (preset whitelist + custom IPv4 validation)
 │   │   ├── drivers.rs        # WMI driver scan + simplified collapse
 │   │   ├── driver_updates.rs # WU COM enrichment, resolve_update_candidate, open WU settings
@@ -350,12 +354,13 @@ koi.bat build   # embed new icon in exe
 | Flow | Description |
 |------|-------------|
 | **Telemetry** | Rust emits `telemetry-update` every second → React listens via `useTelemetryPoller` |
-| **Gaming latency** | Rust thread 2 s → ICMP gateway + `1.1.1.1` (+ TCP `:443` fallback) → jitter → `emit("gaming-latency-update")` + `get_gaming_latency` command |
+| **Gaming latency** | Rust thread 2 s → ICMP gateway + `1.1.1.1` (+ TCP `:443` fallback) → jitter → machine `verdict` keys → `emit("gaming-latency-update")` · UI labels via `getVerdictLabel()` · `get_gaming_latency` command |
 | **DNS** | Configurable interval polling (10 s – 1 min), anti-collision mutex — **separate** from gaming latency |
 | **History** | Ring buffer 288 points (CPU/RAM/GPU/network) — O(1) writes |
 | **Charts** | Recharts loaded on demand (~60 KB outside initial bundle) |
 | **Errors** | Global bottom toast (`StatusToast`) + bell log (`NotificationPanel`) |
 | **Alerts** | `useThresholdAlerts` → auto desktop/gaming profile → toast + session log (`notificationLog.ts`) |
+| **i18n** | `translations.ts` (FR/EN) + `useTranslation()` / `createTranslator()` · utils take `TranslateFn` — no inline `language === 'fr'` |
 | **Security** | WebView CSP (`media-src 'self'` for local track), filtered driver URLs (`safeUrl.ts`), whitelisted preset DNS IPs + custom IPv4 validation (TCP `:53` only) |
 | **Driver updates** | WU COM + `pnputil` store → `update_source`; WU-first UI (`open_windows_update`) |
 | **Splash** | Katana intro → synced steps/bar (`resolveSplashUi`); min 1.3–1.9 s/phase + 650 ms dwell; dashboard ready via `splashReadiness.ts`; 90 s timeout; **then** ambient music |

@@ -9,12 +9,14 @@ import {
   hasDriverUpdate,
   parseVersionDisplaySegments,
 } from '../../utils/driverFormat';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface VersionHighlightProps {
   version: string;
   diffIndexes: Set<number>;
   emphasis?: 'installed' | 'available';
   size?: 'compact' | 'default';
+  notDetectedLabel: string;
 }
 
 const VersionHighlight = memo(function VersionHighlight({
@@ -22,6 +24,7 @@ const VersionHighlight = memo(function VersionHighlight({
   diffIndexes,
   emphasis = 'installed',
   size = 'default',
+  notDetectedLabel,
 }: VersionHighlightProps) {
   const segments = parseVersionDisplaySegments(version);
   const textSize = size === 'compact' ? 'text-[10px]' : 'text-sm';
@@ -29,7 +32,7 @@ const VersionHighlight = memo(function VersionHighlight({
   if (segments.length === 0) {
     return (
       <span className={`mono-text ${textSize} text-[var(--text-muted)]`}>
-        Non détectée
+        {notDetectedLabel}
       </span>
     );
   }
@@ -86,13 +89,16 @@ export const DriverVersionCompare = memo(function DriverVersionCompare({
   layout = 'stack',
   className = '',
 }: DriverVersionCompareProps) {
+  const { t } = useTranslation();
   const diffIndexes = getVersionDiffIndexes(installed, latest);
+  const notDetectedLabel = t('drivers_version_not_detected');
   const labelClass =
     size === 'compact'
       ? 'text-[8px] tracking-[0.14em]'
       : 'text-[10px] tracking-widest';
   const gapClass = size === 'compact' ? 'gap-1.5' : 'gap-2';
   const padClass = size === 'compact' ? 'px-2 py-1' : 'px-3 py-2';
+  const compareTitle = `${t('drivers_version_label_installed')} ${formatDriverVersion(installed)} · ${t('drivers_version_label_available')} ${formatDriverVersion(latest)}`;
 
   const installedBlock = (
     <div
@@ -101,13 +107,14 @@ export const DriverVersionCompare = memo(function DriverVersionCompare({
       <p
         className={`${labelClass} uppercase font-bold text-[var(--text-subtle)] mb-1`}
       >
-        Installée
+        {t('drivers_version_label_installed')}
       </p>
       <VersionHighlight
         version={installed}
         diffIndexes={diffIndexes}
         emphasis="installed"
         size={size}
+        notDetectedLabel={notDetectedLabel}
       />
     </div>
   );
@@ -119,13 +126,14 @@ export const DriverVersionCompare = memo(function DriverVersionCompare({
       <p
         className={`${labelClass} uppercase font-bold text-sky-600 dark:text-sky-400 mb-1`}
       >
-        Disponible
+        {t('drivers_version_label_available')}
       </p>
       <VersionHighlight
         version={latest}
         diffIndexes={diffIndexes}
         emphasis="available"
         size={size}
+        notDetectedLabel={notDetectedLabel}
       />
     </div>
   );
@@ -134,7 +142,7 @@ export const DriverVersionCompare = memo(function DriverVersionCompare({
     return (
       <div
         className={`flex flex-wrap items-center justify-end gap-2 min-w-0 ${className}`}
-        title={`Installée ${formatDriverVersion(installed)} · Disponible ${formatDriverVersion(latest)}`}
+        title={compareTitle}
       >
         {installedBlock}
         <span className="text-[var(--text-subtle)] text-xs shrink-0" aria-hidden="true">
@@ -148,7 +156,7 @@ export const DriverVersionCompare = memo(function DriverVersionCompare({
   return (
     <div
       className={`flex flex-col items-stretch ${gapClass} min-w-0 ${className}`}
-      title={`Installée ${formatDriverVersion(installed)} · Disponible ${formatDriverVersion(latest)}`}
+      title={compareTitle}
     >
       {installedBlock}
       <div
@@ -171,13 +179,16 @@ export const EssentialVersionsSummary = memo(function EssentialVersionsSummary({
   drivers,
   compact = false,
 }: EssentialVersionsSummaryProps) {
-  const rows = getEssentialDriverSummary(drivers);
+  const { t } = useTranslation();
+  const rows = getEssentialDriverSummary(drivers, t);
+  const notDetectedLabel = t('drivers_version_not_detected');
+  const notDetectedDriver = t('drivers_essential_not_detected');
 
   return (
     <div
       className="grid grid-cols-1 sm:grid-cols-3 shrink-0 gap-4"
       role="region"
-      aria-label="Versions de pilotes essentiels installées"
+      aria-label={t('drivers_essential_aria')}
     >
       {rows.map(({ category, label, driver }) => (
         <div
@@ -197,7 +208,7 @@ export const EssentialVersionsSummary = memo(function EssentialVersionsSummary({
             }`}
             title={driver?.name}
           >
-            {driver?.name ? driver.name : 'Non détecté'}
+            {driver?.name ? driver.name : notDetectedDriver}
           </p>
           {driver && hasDriverUpdate(driver) ? (
             <DriverVersionCompare
@@ -212,7 +223,7 @@ export const EssentialVersionsSummary = memo(function EssentialVersionsSummary({
                 compact ? 'text-xs' : 'text-sm'
               }`}
             >
-              {driver ? formatInstalledDriverLabel(driver.version) : 'Non détectée'}
+              {driver ? formatInstalledDriverLabel(driver.version) : notDetectedLabel}
             </p>
           )}
           {driver?.date && driver.date !== 'N/A' ? (

@@ -17,6 +17,34 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · [Sem
 ### Changed
 
 ### Fixed
+## [1.1.6] - 2026-05-31
+
+### For you
+
+- **Drivers** — driver age now uses the current year, so **To confirm** badges stay accurate year after year.
+- **Language** — drivers, alerts, DNS labels, and error messages follow your **French or English** choice more consistently across the app.
+- **Accessibility** — game latency descriptions for screen readers match your selected language.
+
+### Technical details
+
+### Added
+
+- **`driver_status.rs`** + **`src/constants/driverStatus.ts`** — shared driver status and `update_source` constants (Rust ↔ TypeScript contract).
+- **`gaming_aria_*`** translation keys — localized screen-reader strings for game latency (DNS band + Zen dock).
+
+### Changed
+
+- **`eval_status`** — dynamic local year via `GetLocalTime()` instead of hardcoded `2026`; threshold `DRIVER_VERIFY_AGE_YEARS`; unit tests.
+- **Gaming latency** — Rust emits machine `verdict` keys only (`ready`, `high_latency`, `local_network`, …); UI labels via `getVerdictLabel()` in `gamingLatency.ts` (removed `translateVerdictLabel` French-string hack).
+- **DNS ping** — removed unused `status` field from `DnsResult`; labels come from `latency_ms` + `dns_status_*` i18n in `DnsWidget` / `DnsViaBand`.
+- **Driver badges** — `getDriverStatusLabel()` uses `drivers_status_*` i18n keys (removed inline FR/EN in `driverFormat.ts`).
+- **i18n cleanup** — alerts (`thresholdAlerts`), notification timestamps, driver copy/detail, DNS test mode labels, error boundaries, and `DriverVersionDisplay` use `translations.ts` + `TranslateFn` / `createTranslator()` (no remaining `language === 'fr'` in utils or layout widgets).
+- **`DriverStatus`** — single source in `constants/driverStatus.ts`; re-exported from `types/index.ts`.
+
+### Fixed
+
+- **Drivers** — **To confirm** status based on the PC’s current year, not a frozen constant.
+- **`useThresholdAlerts`** — stable effect deps (`language` + `createTranslator` inside effect, not unstable `t` from hook).
 
 ## [1.1.5] - 2026-05-31
 
@@ -181,7 +209,7 @@ First public release — local Windows monitor, open source.
 
 - n/a
 
-[Unreleased]: https://github.com/KatanaCZ/Koi-Monitor/compare/v1.1.5...HEAD
+[Unreleased]: https://github.com/KatanaCZ/Koi-Monitor/compare/v1.1.6...HEAD
 [1.0.0]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.0.0
 [1.1.0]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.0
 [1.1.1]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.1
@@ -189,3 +217,4 @@ First public release — local Windows monitor, open source.
 [1.1.3]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.3
 [1.1.4]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.4
 [1.1.5]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.5
+[1.1.6]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.6

@@ -1,4 +1,4 @@
-# Extract user-facing release notes for a tag (e.g. v1.1.2 -> ### Pour vous from ## [1.1.2]).
+# Extract user-facing release notes for a tag (e.g. v1.1.2 -> ### For you from ## [1.1.2]).
 param(
     [Parameter(Mandatory = $true)]
     [string]$Tag
@@ -17,13 +17,13 @@ if (-not $match.Success) {
 }
 
 $section = $match.Groups[1].Value.Trim()
-$forYouPattern = '(?ms)^### (?:For you|Pour vous)\s*\r?\n(.*?)(?=^### |\z)'
+$forYouPattern = '(?ms)^### For you\s*\r?\n(.*?)(?=^### |\z)'
 $forYouMatch = [regex]::Match($section, $forYouPattern)
 
 if ($forYouMatch.Success) {
     $body = $forYouMatch.Groups[1].Value.Trim()
 } else {
-    Write-Warning "CHANGELOG.md: no ### For you / ### Pour vous for [$version] - exporting full section (legacy)."
+    Write-Warning "CHANGELOG.md: no ### For you for [$version] - exporting full section (legacy)."
     $body = $section
 }
 
