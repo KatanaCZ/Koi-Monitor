@@ -18,6 +18,27 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · [Sem
 
 ### Fixed
 
+## [1.1.5] - 2026-05-31
+
+### For you
+
+- **Support Koi** — the **Support Koi** button in **Settings → About** opens the Ko-fi page in your browser; a short thank-you message appears after the click.
+
+### Technical details
+
+### Added
+
+- **`appService.openDonationPage()`** — Ko-fi URL in `koiLinks.ts`, `isSafeDonationUrl()` allowlist (`ko-fi.com` only).
+
+### Changed
+
+- **DonateButton** — opens Ko-fi via centralized IPC helper; success/error toasts (FR/EN).
+- **`koi.bat doctor` / Dev** — detects an incomplete MSVC Rust toolchain (folder present, missing `std` manifest) and reinstalls it automatically.
+
+### Fixed
+
+- **`koi.bat dev`** — `E0463` / « can't find crate for std » when `stable-x86_64-pc-windows-msvc` was corrupted on disk.
+
 ## [1.1.4] - 2026-05-31
 
 ### For you
@@ -160,10 +181,11 @@ First public release — local Windows monitor, open source.
 
 - n/a
 
-[Unreleased]: https://github.com/KatanaCZ/Koi-Monitor/compare/v1.1.4...HEAD
+[Unreleased]: https://github.com/KatanaCZ/Koi-Monitor/compare/v1.1.5...HEAD
 [1.0.0]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.0.0
 [1.1.0]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.0
 [1.1.1]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.1
 [1.1.2]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.2
 [1.1.3]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.3
 [1.1.4]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.4
+[1.1.5]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.5

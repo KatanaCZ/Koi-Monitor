@@ -1,24 +1,43 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Heart } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
+import { appService } from '../../services/api';
 
 interface DonateButtonProps {
-  onClick?: () => void;
   reducedMotion?: boolean;
+  onOpenSuccess?: () => void;
+  onOpenError?: () => void;
 }
 
 export const DonateButton: React.FC<DonateButtonProps> = ({
-  onClick,
   reducedMotion = false,
+  onOpenSuccess,
+  onOpenError,
 }) => {
   const { t } = useTranslation();
+  const [opening, setOpening] = useState(false);
+
+  const handleClick = useCallback(async () => {
+    if (opening) return;
+    setOpening(true);
+    try {
+      await appService.openDonationPage();
+      onOpenSuccess?.();
+    } catch {
+      onOpenError?.();
+    } finally {
+      setOpening(false);
+    }
+  }, [opening, onOpenSuccess, onOpenError]);
+
   return (
     <motion.button
       type="button"
-      onClick={onClick}
+      onClick={() => void handleClick()}
+      disabled={opening}
       aria-label={t('settings_about_donate_aria')}
-      className="koi-donate-btn group relative mt-1 cursor-pointer"
+      className="koi-donate-btn group relative mt-1 cursor-pointer disabled:cursor-wait disabled:opacity-90"
       whileHover={reducedMotion ? undefined : { scale: 1.04, y: -1 }}
       whileTap={reducedMotion ? undefined : { scale: 0.97 }}
       transition={{ type: 'spring', stiffness: 420, damping: 22 }}

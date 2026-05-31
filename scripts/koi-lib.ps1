@@ -271,12 +271,12 @@ function Ensure-KoiRustToolchainLayout {
     $srcRoot = Get-KoiToolchainRoot
     if (-not $srcRoot) { return $null }
 
-    Unblock-KoiRustTree -Root $srcBin
-    Unblock-KoiRustTree -Root (Join-Path $env:USERPROFILE '.cargo\bin')
-
     $dstRoot = Join-Path $env:TEMP 'koi-rust-toolchain'
     $dstBin = Join-Path $dstRoot 'bin'
     $srcBin = Join-Path $srcRoot 'bin'
+
+    Unblock-KoiRustTree -Root $srcBin
+    Unblock-KoiRustTree -Root (Join-Path $env:USERPROFILE '.cargo\bin')
 
     if (-not (Test-Path $dstBin) -or -not (Test-Path (Join-Path $dstBin 'cargo.exe'))) {
         if (Test-Path $dstRoot) {
@@ -335,6 +335,16 @@ function Test-KoiMsvcToolchainInstalled {
         Get-ChildItem $toolchainsDir -Directory -ErrorAction SilentlyContinue |
             Where-Object { $_.Name -match 'windows-msvc' }
     ).Count -gt 0
+}
+
+function Test-KoiMsvcToolchainHealthy {
+    if (-not (Test-KoiMsvcToolchainInstalled)) { return $false }
+    $root = Get-KoiToolchainRoot
+    if (-not $root) { return $false }
+    $manifest = Join-Path $root 'lib\rustlib\manifest-rust-std-x86_64-pc-windows-msvc'
+    if (-not (Test-Path $manifest)) { return $false }
+    $check = Invoke-KoiRustup @('run', $script:KoiMsvcToolchain, 'rustc', '--version')
+    return $check.ExitCode -eq 0
 }
 
 function Invoke-KoiRustup {
@@ -421,7 +431,7 @@ function Get-KoiEnvReport {
         NodeModules   = Test-Path (Join-Path $root 'node_modules')
         Esbuild       = $null
         EsbuildOk     = $false
-        MsvcToolchain = Test-KoiMsvcToolchainInstalled
+        MsvcToolchain = Test-KoiMsvcToolchainHealthy
         Rustup        = Test-Path (Join-Path $env:USERPROFILE '.cargo\bin\rustup.exe')
         Cargo         = $null
         LinkExe       = Test-KoiLinkExe
@@ -529,13 +539,25 @@ function Repair-KoiRustToolchain {
     Repair-KoiEnvVars | Out-Null
     Refresh-KoiPath
 
-    if (-not (Test-KoiMsvcToolchainInstalled)) {
+    if (-not (Test-KoiMsvcToolchainHealthy)) {
+        if (Test-KoiMsvcToolchainInstalled) {
+            Write-Host '  Toolchain MSVC incomplete (manifest missing) — reinstallation...'
+            $uninstall = Invoke-KoiRustup @('toolchain', 'uninstall', $script:KoiMsvcToolchain)
+            if ($uninstall.ExitCode -ne 0) {
+                Write-Host "  [INFO] rustup uninstall: $($uninstall.Output)"
+            }
+        }
         if (-not (Install-KoiMsvcToolchain)) { return $false }
     } else {
         $default = Invoke-KoiRustup @('default', $script:KoiMsvcToolchain)
         if ($default.ExitCode -ne 0) {
             Write-Host "  [INFO] rustup default: $($default.Output)"
         }
+    }
+
+    if (-not (Test-KoiMsvcToolchainHealthy)) {
+        Write-Host '  [ERREUR] Toolchain MSVC toujours invalide apres reparation'
+        return $false
     }
 
     $layoutRoot = Join-Path $env:TEMP 'koi-rust-toolchain'
@@ -606,9 +628,11 @@ function Initialize-KoiEnv {
 
     Import-VsDevShell | Out-Null
 
-    if (-not (Test-KoiMsvcToolchainInstalled)) {
-        Write-KoiError 'Toolchain MSVC absente (Tauri requiert msvc, pas gnu)' 'koi.bat doctor'
-        exit 1
+    if (-not (Test-KoiMsvcToolchainHealthy)) {
+        if (-not (Repair-KoiRustToolchain)) {
+            Write-KoiError 'Toolchain MSVC absente ou corrompue (Tauri requiert msvc, pas gnu)' 'koi.bat doctor'
+            exit 1
+        }
     }
 
     if (-not (Get-KoiRustupExe)) {
