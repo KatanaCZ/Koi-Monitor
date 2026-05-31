@@ -178,7 +178,7 @@ function Invoke-KoiDoctor {
     Repair-KoiRustToolchain | Out-Null
 
     if (-not $before.MsvcToolchain) {
-        Install-KoiMsvcToolchain | Out-Null
+        Repair-KoiRustToolchain | Out-Null
     }
 
     Write-Host ''

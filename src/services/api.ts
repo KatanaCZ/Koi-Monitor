@@ -1,5 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { SystemInfo, DnsResult, DriverInfo, GamingLatencySnapshot } from '../types';
+import { KOI_KOFI_URL } from '../utils/koiLinks';
+import { isSafeDonationUrl } from '../utils/safeUrl';
 
 export const GAMING_LATENCY_EVENT = 'gaming-latency-update';
 
@@ -63,5 +65,18 @@ export const gamingLatencyService = {
 export const appService = {
   async getIconPng(): Promise<number[]> {
     return invoke<number[]>('get_app_icon_png');
+  },
+
+  async openDonationPage(): Promise<void> {
+    if (!isSafeDonationUrl(KOI_KOFI_URL)) {
+      throw new Error('Unsafe donation URL');
+    }
+    try {
+      const { openUrl } = await import('@tauri-apps/plugin-opener');
+      await openUrl(KOI_KOFI_URL);
+    } catch (error) {
+      console.error('Failed to open donation page:', error);
+      throw error;
+    }
   },
 };

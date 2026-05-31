@@ -198,7 +198,7 @@ Side navigation without scroll: **Essential · Atmosphere · Connection · Watch
 - **Splash screen**: `SplashSlashTitle` intro → steps + bar reveal; phases 0→4 synced (`resolveSplashUi` — active line, phrase, and bar % share logic); readable durations (~8–10 s on fast machine); 650 ms dwell per completed step; **90 s** timeout; aurora, sakura; **ambient music** on `onComplete`.
 - Custom title bar (no Windows decorations) — permanent **`SlashTitle variant="static"`**
 - **Settings**: side nav without scroll (**Essential · Atmosphere · Connection · Watch · About**)
-- **Settings → About**: `SlashTitle md` (replays each visit) + thanks + Premium Zen pitch + **Support Koi** (`DonateButton`, animated highlights — link TBD; `html.calm-motion` hides external aura) + technical credit + version
+- **Settings → About**: `SlashTitle md` (replays each visit) + thanks + Premium Zen pitch + **Support Koi** (`DonateButton` → `https://ko-fi.com/katanacz`; `html.calm-motion` hides external aura) + technical credit + version
 
 ## Quick install (one-click)
 
@@ -399,6 +399,21 @@ koi.bat doctor
 Then install **Visual Studio Build Tools** (*Desktop development with C++*) if `link.exe` is not found.
 
 Run `koi.bat build` again (integrated `target/` clean).
+
+### `E0463` / can't find crate for `std` / `core` (MSVC target)
+The `stable-x86_64-pc-windows-msvc` toolchain folder exists but is **incomplete** (missing `std` manifest — common after a partial install or Defender quarantine).
+
+```powershell
+koi.bat doctor
+```
+
+Doctor uninstalls and reinstalls the MSVC toolchain when the manifest is missing. Manual fallback:
+
+```powershell
+rustup toolchain uninstall stable-x86_64-pc-windows-msvc
+rustup toolchain install stable-x86_64-pc-windows-msvc
+rustup default stable-x86_64-pc-windows-msvc
+```
 
 ### `spawn EPERM` (esbuild) or cargo access denied (os error 5)
 Windows blocks tools from the **Desktop** (Defender, controlled folder access).

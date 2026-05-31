@@ -14,7 +14,7 @@
 ![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?style=for-the-badge&logo=windows&logoColor=white)
 ![Lightweight](https://img.shields.io/badge/Lightweight-~10–25%20MB-00d4ff?style=for-the-badge)
 ![Free](https://img.shields.io/badge/Free-MIT-00ff9d?style=for-the-badge)
-![Version](https://img.shields.io/badge/Version-1.1.4-9d4edd?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-1.1.5-9d4edd?style=for-the-badge)
 
 <br />
 
@@ -74,7 +74,7 @@ This isn't a theme slapped on a utility. It's an app you actually **leave open**
 - **App icon** — the word **Koi** in neon (same style as the title bar), visible in the window, taskbar, and notification area
 - **Zen music** — starts with the dashboard, volume remembered; a second track hides for the curious
 - **Light or dark theme** — comfortable day and night
-- **Settings** — **Essential · Atmosphere · Connection · Watch · About**; **Zen · Soft · Aura** presets in one click; personal DNS server (IP + nickname)
+- **Settings** — **Essential · Atmosphere · Connection · Watch · About**; **Zen · Soft · Aura** presets in one click; personal DNS server (IP + nickname); **Support Koi** on About (Ko-fi tip, thank-you toast)
 
 > Beautiful enough to keep open — not just useful once a month.
 

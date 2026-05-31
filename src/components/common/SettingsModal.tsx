@@ -905,8 +905,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           </p>
                           <DonateButton
                             reducedMotion={prefersReducedMotion ?? false}
-                            onClick={() =>
+                            onOpenSuccess={() =>
                               showToast(t('settings_about_donate_toast'))
+                            }
+                            onOpenError={() =>
+                              showToast(t('settings_about_donate_error'), 'warning')
                             }
                           />
                           <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--text-subtle)]">
