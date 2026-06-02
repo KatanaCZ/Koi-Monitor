@@ -122,6 +122,10 @@
     --glass-blur: 24px;
   }
 
+  html, body {
+    overscroll-behavior-y: none;
+  }
+
   body {
     background-color: var(--background);
     background-image: none;

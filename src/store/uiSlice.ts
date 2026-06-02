@@ -32,7 +32,7 @@ export const createUiSlice: StateCreator<
   [],
   UiSlice
 > = (set) => ({
-  zenMode: false,
+  zenMode: typeof localStorage !== 'undefined' ? localStorage.getItem('koi_zenMode') === 'true' : false,
   activityProfile: 'desktop',
   statusToast: null,
   notificationLog: [],
@@ -40,7 +40,12 @@ export const createUiSlice: StateCreator<
   easterMusicActive: false,
   zenTrackerResetSeq: 0,
 
-  setZenMode: (zenMode) => set({ zenMode }),
+  setZenMode: (zenMode) => {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('koi_zenMode', String(zenMode));
+    }
+    set({ zenMode });
+  },
 
   setActivityProfile: (activityProfile) => set({ activityProfile }),
 

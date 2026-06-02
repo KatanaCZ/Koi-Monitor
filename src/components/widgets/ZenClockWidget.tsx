@@ -16,6 +16,7 @@ export const ZenClockWidget = memo(function ZenClockWidget() {
   const sakuraColor = useAppStore((s) => s.settings.sakuraColor);
   const zenMetricsVisible = useAppStore((s) => s.settings.zenMetricsVisible);
   const updateSettings = useAppStore((s) => s.updateSettings);
+  const setZenMode = useAppStore((s) => s.setZenMode);
   const setNotificationPanelOpen = useAppStore((s) => s.setNotificationPanelOpen);
   const unreadAlertCount = useAppStore((s) =>
     selectUnreadAlertCount(s.notificationLog),
@@ -89,7 +90,9 @@ export const ZenClockWidget = memo(function ZenClockWidget() {
           initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: fade, ease: [0.16, 1, 0.3, 1] }}
-          className="zen-wallpaper-clock w-full text-center"
+          className="zen-wallpaper-clock w-full text-center cursor-pointer hover:opacity-90 active:scale-[0.99] transition-all select-none"
+          onClick={() => setZenMode(false)}
+          title={t("zen_footer_back")}
         >
           <h1
             className={`zen-hero-time zen-hero-glow font-extralight mono-text leading-none tracking-tight flex flex-wrap items-start justify-center gap-x-2 sm:gap-x-3 ${colorClass}`}
@@ -185,7 +188,14 @@ export const ZenClockWidget = memo(function ZenClockWidget() {
           >
             {zenMetricsVisible ? <Eye size={15} aria-hidden="true" /> : <EyeOff size={15} aria-hidden="true" />}
           </button>
-          <span className="text-xs sm:text-sm tracking-wide opacity-60">{t("zen_footer_back")}</span>
+          <button
+            type="button"
+            onClick={() => setZenMode(false)}
+            className="text-xs sm:text-sm tracking-wide opacity-60 hover:opacity-100 transition-opacity cursor-pointer bg-transparent border-none p-0 inline-flex items-center min-h-[44px]"
+            aria-label={t("zen_footer_back")}
+          >
+            {t("zen_footer_back")}
+          </button>
         </div>
       </footer>
     </motion.div>
