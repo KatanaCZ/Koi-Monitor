@@ -32,11 +32,11 @@ export const ZenView: React.FC = () => {
   return (
     <motion.div
       key="zen"
-      initial={{ opacity: 0, scale: prefersReducedMotion ? 1 : 0.98 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: prefersReducedMotion ? 1 : 0.98 }}
+      initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 25 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: prefersReducedMotion ? 0 : 25 }}
       transition={{
-        duration: prefersReducedMotion ? 0.15 : 0.6,
+        duration: prefersReducedMotion ? 0.15 : 0.5,
         ease: [0.16, 1, 0.3, 1],
       }}
       className="flex-1 flex flex-col min-h-0 w-full h-full relative z-[2]"

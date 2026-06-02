@@ -17,6 +17,33 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · [Sem
 ### Changed
 
 ### Fixed
+
+## [1.1.7] - 2026-06-02
+
+### For you
+
+- **Scroll Responsiveness** — Fixed a scroll wheel delay when attempting to scroll back up from the absolute top or bottom of the dashboard.
+- **Zen Mode** — Click anywhere on the central clock header or the bottom "Escape · Dashboard" button to return to the full dashboard instantly.
+- **Zen Default** — The app now remembers your Zen Mode preference. If closed in Zen Mode, it reopens in Zen Mode automatically on next launch.
+- **Smoother Tilt** — The 3D movement on bento cards is now much more subtle and 100% glitch-free at the card edges.
+- **Calm Motion** — Card 3D tilt is now completely disabled when the "Calm Motion" option is active.
+
+### Technical details
+
+### Added
+
+- **`localStorage` persistence for `zenMode`** — Wired into the Zustand `uiSlice` store to retain the user's view preference across restarts.
+
+### Changed
+
+- **`NeonBentoCard` refactoring** — Decoupled the stable flat hover event-detecting parent container from the inner GPU-accelerated 3D rotating card, eliminating pointer loss loop glitches at the card boundaries.
+- **Subtle 3D Tilt** — Reduced maximum tilt angle on bento cards from `10deg` to a premium `4deg` and wired it to respect `calmMotion`.
+- **Zen Footer Toggle** — Converted the static span hint into an interactive, hover-reactive `<button>`.
+- **GPU-accelerated Transitions** — Redesigned `DashboardView` and `ZenView` animations in Framer Motion to use GPU-promoted vertical translations (`translateY`) with custom cubic-bezier easing (`[0.16, 1, 0.3, 1]`) instead of scale/opacity alone, matching the premium slide feel at native monitor refresh rates while keeping the inactive view fully unmounted for 0% idle CPU overhead.
+
+### Fixed
+
+- **Elastic Overscroll** — Set `overscroll-behavior-y: none` on `html` and `body` in `globals.css` to disable the native WebView2/Windows 11 scroll bounce at window bounds, making reverse scrolling instantaneous.
 ## [1.1.6] - 2026-05-31
 
 ### For you

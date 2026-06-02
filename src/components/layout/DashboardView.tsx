@@ -67,10 +67,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   return (
     <motion.div
       key="dashboard"
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 25 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.4 }}
+      exit={{ opacity: 0, y: 25 }}
+      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
       className="space-y-6 flex-1 flex flex-col"
     >
       <Suspense
