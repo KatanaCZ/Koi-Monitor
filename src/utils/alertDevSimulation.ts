@@ -17,6 +17,7 @@ declare global {
     koiSimulateFlow?: () => void;
     koiSimulateBoost?: () => void;
     koiSimulateFocus?: (lostFocus?: boolean) => void;
+    koiSimulateBattery?: (percentage?: number, charging?: boolean) => void;
     __koiForceGamingProfile?: boolean;
     __koiDevSimActive?: boolean;
   }
@@ -81,6 +82,7 @@ function mockSystemInfo(): SystemInfo {
     },
     uptime: 3600,
     security: { is_protected: true, product_name: 'Dev AV' },
+    battery: { percentage: 80, is_charging: false },
   };
 }
 
@@ -473,6 +475,26 @@ function simulateFocusState(lostFocus: boolean = true): void {
   }
 }
 
+export function simulateBattery(percentage: number = 75, charging: boolean = false): void {
+  const base = requireSystemInfo();
+  if (!base) return;
+
+  setDevSimActive(true);
+
+  console.info(`[Koi Dev] Simulating Battery: ${percentage}% (charging: ${charging}). Real telemetry blocked.`);
+
+  const s = useAppStore.getState();
+  if (s.systemInfo) {
+    s.applyTelemetrySnapshot(
+      {
+        ...s.systemInfo,
+        battery: { percentage, is_charging: charging },
+      },
+      false,
+    );
+  }
+}
+
 export function mountAlertDevSimulation(): void {
   if (!import.meta.env.DEV) return;
 
@@ -483,8 +505,9 @@ export function mountAlertDevSimulation(): void {
   window.koiSimulateFlow = simulateZenFlow;
   window.koiSimulateBoost = simulateZenBoost;
   window.koiSimulateFocus = simulateFocusState;
+  window.koiSimulateBattery = simulateBattery;
   (window as Window & { __koiStore?: typeof useAppStore }).__koiStore = useAppStore;
   console.info(
-    '[Koi Dev] koiSimulateLoad() · koiSimulateGaming() · koiSimulateLatency200() · koiSimulateZen() · koiSimulateFlow() · koiSimulateBoost() · koiSimulateFocus(lostFocus?: boolean)',
+    '[Koi Dev] koiSimulateLoad() · koiSimulateGaming() · koiSimulateLatency200() · koiSimulateZen() · koiSimulateFlow() · koiSimulateBoost() · koiSimulateFocus(lostFocus?: boolean) · koiSimulateBattery(percentage?, charging?)',
   );
 }

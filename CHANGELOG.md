@@ -18,6 +18,23 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · [Sem
 
 ### Fixed
 
+## [1.1.8] - 2026-06-03
+
+### For you
+
+- **Battery Telemetry** — Added battery percentage and status monitoring specifically for laptops or devices with battery systems (UPS).
+- **Dashboard Battery Status** — Displays a beautiful battery chip next to the system uptime on the dashboard when a battery is present.
+- **Zen Mode Integration** — Displays battery percentage and charging/low/full indicators in Zen mode below the CPU/GPU/RAM metrics.
+
+### Technical details
+
+### Added
+
+- **`SYSTEM_POWER_STATUS` integration** — Query Windows power status natively in Rust via `GetSystemPowerStatus` in the `windows` crate and expose it through the Zustand store as `battery`.
+- **`SystemBatteryChip` component** — Displays the battery percentage, charging, low, and full states (utilizing Lucide's `Battery` / `BatteryCharging` / `BatteryLow` icons and custom pulse animations).
+- **`koiSimulateBattery(percentage, charging)` tool** — Added simulation command in the browser dev console to test battery indicators on desktop machines.
+
+
 ## [1.1.7] - 2026-06-02
 
 ### For you
@@ -236,7 +253,7 @@ First public release — local Windows monitor, open source.
 
 - n/a
 
-[Unreleased]: https://github.com/KatanaCZ/Koi-Monitor/compare/v1.1.6...HEAD
+[Unreleased]: https://github.com/KatanaCZ/Koi-Monitor/compare/v1.1.8...HEAD
 [1.0.0]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.0.0
 [1.1.0]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.0
 [1.1.1]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.1
@@ -245,3 +262,5 @@ First public release — local Windows monitor, open source.
 [1.1.4]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.4
 [1.1.5]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.5
 [1.1.6]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.6
+[1.1.7]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.7
+[1.1.8]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.8
