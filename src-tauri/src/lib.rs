@@ -154,6 +154,12 @@ pub use memory::*;
 pub use security::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BatteryInfo {
+    pub percentage: u8,
+    pub is_charging: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SystemInfo {
     pub cpu: CpuInfo,
     pub memory: MemoryInfo,
@@ -161,6 +167,7 @@ pub struct SystemInfo {
     pub network: NetworkInfo,
     pub uptime: u64,
     pub security: SecurityInfo,
+    pub battery: Option<BatteryInfo>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -390,6 +397,7 @@ struct SharedMonitorState {
     gpus: Vec<GpuInfo>,
     uptime: u64,
     security: SecurityInfo,
+    battery: Option<BatteryInfo>,
 }
 
 impl Default for SharedMonitorState {
@@ -416,6 +424,7 @@ impl Default for SharedMonitorState {
             gpus: Vec::new(),
             uptime: 0,
             security: SecurityInfo::default(),
+            battery: None,
         }
     }
 }
@@ -470,6 +479,7 @@ fn system_info_from_state(m: &SharedMonitorState) -> SystemInfo {
         gpu: m.gpus.clone(),
         uptime: m.uptime,
         security: m.security.clone(),
+        battery: m.battery.clone(),
     }
 }
 
@@ -861,6 +871,25 @@ pub fn run() {
                             None
                         };
 
+                    #[cfg(target_os = "windows")]
+                    let battery_info = unsafe {
+                        let mut status = windows::Win32::System::Power::SYSTEM_POWER_STATUS::default();
+                        if windows::Win32::System::Power::GetSystemPowerStatus(&mut status).is_ok() {
+                            if status.BatteryFlag != 128 && status.BatteryLifePercent != 255 {
+                                Some(BatteryInfo {
+                                    percentage: status.BatteryLifePercent,
+                                    is_charging: (status.BatteryFlag & 8) != 0,
+                                })
+                            } else {
+                                None
+                            }
+                        } else {
+                            None
+                        }
+                    };
+                    #[cfg(not(target_os = "windows"))]
+                    let battery_info = None;
+
                     let telemetry_payload = if let Ok(mut s) = state.lock() {
                         s.cpu_usage = cpu_usage;
                         s.per_core_usage = per_core;
@@ -876,6 +905,7 @@ pub fn run() {
                         s.interfaces = ifaces;
                         s.gpus = current_gpus;
                         s.uptime = sysinfo::System::uptime();
+                        s.battery = battery_info;
 
                         if let Some(security) = security_update {
                             s.security = security;

@@ -55,6 +55,11 @@ export interface SecurityInfo {
   product_name: string;
 }
 
+export interface BatteryInfo {
+  percentage: number;
+  is_charging: boolean;
+}
+
 export interface SystemInfo {
   cpu: CpuInfo;
   memory: MemoryInfo;
@@ -62,6 +67,7 @@ export interface SystemInfo {
   network: NetworkInfo;
   uptime: number;
   security: SecurityInfo;
+  battery?: BatteryInfo | null;
 }
 
 export interface DnsResult {

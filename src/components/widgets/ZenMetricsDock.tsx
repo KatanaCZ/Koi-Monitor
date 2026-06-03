@@ -1,5 +1,6 @@
 import { memo, useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { Battery, BatteryCharging, BatteryLow } from "lucide-react";
 import { useAppStore } from "../../store";
 import { getNeonTextShadow } from "../../utils/neonEffects";
 import {
@@ -132,6 +133,37 @@ export const ZenMetricsDock = memo(function ZenMetricsDock() {
   const isDark = theme === "dark";
   const liveUptime = useLiveUptime();
   const uptimeLabel = formatUptimeShort(liveUptime, language);
+  const battery = useAppStore((s) => s.systemInfo?.battery);
+
+  const batteryIsLow = battery ? battery.percentage <= 20 : false;
+  const batteryIsFull = battery ? battery.percentage === 100 : false;
+
+  let batteryIconColor = "var(--text-muted)";
+  let batteryTextColor = "inherit";
+  let batteryTextShadow = undefined;
+  let BatteryIcon = Battery;
+  let batteryIconClass = "";
+
+  if (battery) {
+    if (battery.is_charging) {
+      batteryIconColor = "var(--neon-green)";
+      batteryTextColor = "var(--neon-green-text)";
+      batteryTextShadow = getNeonTextShadow("var(--neon-green)", isDark);
+      BatteryIcon = BatteryCharging;
+      batteryIconClass = "animate-pulse text-[var(--neon-green)]";
+    } else if (batteryIsLow) {
+      batteryIconColor = "var(--error)";
+      batteryTextColor = "var(--error-text)";
+      batteryTextShadow = getNeonTextShadow("var(--error)", isDark);
+      BatteryIcon = BatteryLow;
+      batteryIconClass = "animate-pulse text-[var(--error)]";
+    } else if (batteryIsFull) {
+      batteryIconColor = "var(--neon-green)";
+      batteryTextColor = "var(--neon-green-text)";
+      batteryTextShadow = getNeonTextShadow("var(--neon-green)", isDark);
+      batteryIconClass = "text-[var(--neon-green)]";
+    }
+  }
 
   const [gamingDetailsOpen, setGamingDetailsOpen] = useState(false);
 
@@ -179,6 +211,12 @@ export const ZenMetricsDock = memo(function ZenMetricsDock() {
     </span>
   );
 
+  let ariaLabel = t("zen_metrics_dock_aria", { ram: ram.toFixed(0), uptime: uptimeLabel });
+  if (battery) {
+    const chargingText = battery.is_charging ? t("battery_charging") : t("battery_discharging");
+    ariaLabel += `, ${t("battery_aria", { percentage: battery.percentage, charging: chargingText })}`;
+  }
+
   return (
     <section
       aria-label={t("zen_metrics_dock_title")}
@@ -222,7 +260,7 @@ export const ZenMetricsDock = memo(function ZenMetricsDock() {
 
       <p
         role="group"
-        aria-label={t("zen_metrics_dock_aria", { ram: ram.toFixed(0), uptime: uptimeLabel })}
+        aria-label={ariaLabel}
         className="flex flex-wrap items-center justify-center gap-x-6 sm:gap-x-10 gap-y-2 mt-8 sm:mt-10 text-xl sm:text-2xl lg:text-3xl text-[var(--text-muted)]"
       >
         <span className="inline-flex items-baseline gap-2 sm:gap-3">
@@ -240,6 +278,28 @@ export const ZenMetricsDock = memo(function ZenMetricsDock() {
           </span>
           <span className="mono-text font-semibold tabular-nums">{uptimeLabel}</span>
         </span>
+        {battery && (
+          <>
+            <span className="text-[var(--text-subtle)]" aria-hidden="true">
+              ·
+            </span>
+            <span className="inline-flex items-center gap-2">
+              <span className="text-xs sm:text-sm uppercase font-bold tracking-[0.18em] text-[var(--text-subtle)]">
+                {t("battery_label")}
+              </span>
+              <span
+                className="mono-text font-semibold tabular-nums inline-flex items-center gap-1.5 transition-colors duration-300"
+                style={{
+                  color: batteryTextColor,
+                  textShadow: batteryTextShadow,
+                }}
+              >
+                <BatteryIcon size={20} className={batteryIconClass} style={!battery.is_charging && !batteryIsLow && !batteryIsFull ? { color: batteryIconColor } : undefined} />
+                {battery.percentage} %
+              </span>
+            </span>
+          </>
+        )}
       </p>
 
       <AnimatePresence initial={false}>

@@ -6,6 +6,7 @@ import { useAppStore } from '../../store';
 import { hideToTray } from '../../utils/systemTray';
 import { SlashTitle } from '../common/SlashTitle';
 import { SystemUptimeChip } from '../common/SystemUptimeChip';
+import { SystemBatteryChip } from '../common/SystemBatteryChip';
 import { selectUnreadAlertCount } from '../../utils/notificationLog';
 import { useTranslation } from '../../hooks/useTranslation';
 
@@ -103,10 +104,11 @@ export const TitleBar: React.FC<TitleBarProps> = ({
 
       {!zenMode ? (
         <div
-          className="flex flex-1 justify-center min-w-0 px-2 pointer-events-none"
+          className="flex flex-1 justify-center items-center gap-2 min-w-0 px-2 pointer-events-none"
           data-tauri-drag-region
         >
           <SystemUptimeChip />
+          <SystemBatteryChip />
         </div>
       ) : (
         <div className="flex-1 min-w-0" data-tauri-drag-region />
