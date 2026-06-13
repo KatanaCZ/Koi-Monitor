@@ -93,6 +93,12 @@ export const TRANSLATIONS = {
     settings_startup_hint: "Koi vous accompagne dès l'ouverture de session",
     settings_tray: "Présence discrète",
     settings_tray_hint: "Fermer masque l'app. Un clic dans la barre la réveille",
+    settings_desktop_widget: "Widget de bureau",
+    settings_desktop_widget_hint: "Affiche une bulle d'information détachable sur le bureau",
+    settings_widget_mode: "Style du widget",
+    settings_widget_mode_hint: "Widget complet ou plus minimaliste",
+    widget_mode_koi: "Koi Pills",
+    widget_mode_zen: "Zen Pills",
 
     // Settings - Atmosphère
     settings_preset: "Préréglage Koi",
@@ -549,6 +555,12 @@ export const TRANSLATIONS = {
     settings_startup_hint: "Koi accompanies you as soon as you log in",
     settings_tray: "System Tray Presence",
     settings_tray_hint: "Closing hides the app. A click in the tray wakes it up",
+    settings_desktop_widget: "Desktop Widget",
+    settings_desktop_widget_hint: "Shows a detachable info pill on your desktop",
+    settings_widget_mode: "Widget Style",
+    settings_widget_mode_hint: "Complete widget or more minimalist",
+    widget_mode_koi: "Koi Pills",
+    widget_mode_zen: "Zen Pills",
 
     // Settings - Atmosphère
     settings_preset: "Koi Preset",

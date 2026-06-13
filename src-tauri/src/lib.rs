@@ -610,6 +610,33 @@ fn get_app_icon_png() -> Vec<u8> {
     include_bytes!("../icons/32x32.png").to_vec()
 }
 
+#[tauri::command]
+fn open_widget_view(app: tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window("widget") {
+        let _ = window.show();
+    }
+}
+
+#[tauri::command]
+fn close_widget_view(app: tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window("widget") {
+        let _ = window.hide();
+    }
+}
+
+#[tauri::command]
+fn open_main_window(app: tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+}
+
+#[tauri::command]
+fn exit_app(_app: tauri::AppHandle) {
+    std::process::exit(0);
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     env_logger::init();
@@ -638,7 +665,11 @@ pub fn run() {
             open_windows_update,
             get_app_icon_png,
             set_telemetry_active,
-            set_telemetry_throttled
+            set_telemetry_throttled,
+            open_widget_view,
+            close_widget_view,
+            open_main_window,
+            exit_app
         ])
         .setup(move |app| {
             log::info!("Application setup complete");

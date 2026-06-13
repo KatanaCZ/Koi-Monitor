@@ -8,6 +8,7 @@ import {
   hideToTray,
   isTauriRuntime,
   showMainWindow,
+  quitApp,
 } from '../utils/systemTray';
 
 export function useSystemTray(): void {
@@ -36,6 +37,12 @@ export function useSystemTray(): void {
       if (!minimizeToTray || cancelled) {
         if (!cancelled && !minimizeToTray) {
           await showMainWindow();
+          unlistenClose = await getCurrentWindow().onCloseRequested(async (event) => {
+            if (quittingRef.current) return;
+            event.preventDefault();
+            quittingRef.current = true;
+            await quitApp();
+          });
         }
         return;
       }
@@ -44,7 +51,7 @@ export function useSystemTray(): void {
         quittingRef.current = true;
         await destroyTrayIcon(trayRef.current);
         trayRef.current = null;
-        await getCurrentWindow().close();
+        // Menu item will call quitApp() automatically
       });
 
       if (cancelled) {

@@ -34,6 +34,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   ambientMusicMuted: false,
   zenMetricsVisible: true,
   alertThresholds: { ...DEFAULT_ALERT_THRESHOLDS },
+  showDesktopWidget: false,
+  desktopWidgetMode: 'zen',
 };
 
 export const loadSettings = (): AppSettings => {

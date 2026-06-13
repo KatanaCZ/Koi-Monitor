@@ -3,7 +3,7 @@ import { getCurrentWindow } from '@tauri-apps/api/window';
 import { Minus, Square, X, Sun, Moon, Maximize2, Settings, Flower, Bell, Volume2, VolumeX } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAppStore } from '../../store';
-import { hideToTray } from '../../utils/systemTray';
+import { hideToTray, quitApp } from '../../utils/systemTray';
 import { SlashTitle } from '../common/SlashTitle';
 import { SystemUptimeChip } from '../common/SystemUptimeChip';
 import { SystemBatteryChip } from '../common/SystemBatteryChip';
@@ -70,8 +70,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
       await hideToTray();
       return;
     }
-    const window = getCurrentWindow();
-    await window.close();
+    await quitApp();
   };
 
   const toggleTheme = () => {

@@ -17,6 +17,33 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · [Sem
 ### Changed
 
 ### Fixed
+## [1.1.9] - 2026-06-13
+
+### For you
+
+- **Desktop Widget** — Added a detachable "Pills" widget (Koi mode & Zen mode) that can float anywhere on your desktop.
+- **Draggable & Transparent** — The widget is perfectly borderless and transparent. It opens the main dashboard with a single click.
+- **Auto System Tray** — The widget automatically appears when Koi Monitor is minimized to the system tray, keeping your metrics in sight without clutter.
+- **GPU in Zen Pill** — The Zen pill now includes GPU utilization monitoring along with CPU, RAM, and Ping.
+
+### Technical details
+
+### Added
+
+- **Multi-window architecture** — Added a secondary `widget.html` Vite entry point and a transparent Tauri window configuration (`widget`).
+- **`useStorageSync` & `useWidgetSync`** — Custom hooks bridging `localStorage` across isolated Tauri Webviews (Zustand state mirroring) for instant mode swapping.
+
+### Changed
+
+- **Tauri Capabilities** — `default.json` updated to allow IPC events and `startDragging` for the new `"widget"` window.
+- **`systemTray.ts`** — Injects `showDesktopWidget: true` upon `hideToTray` to automatically summon the widget.
+- **`ZenPill`** — Now tracks and displays GPU usage via the `telemetrySlice`.
+
+### Fixed
+
+- **Transparent Webview Background** — Overrode `globals.css` with `background: transparent !important` in the widget HTML to eliminate WebView2 shadow artifacts on Windows 11.
+- **Widget Close Button** — Prevented the widget's native dragging handler (`startDragging`) from intercepting and blocking the close button's click event.
+- **Background Process Persistence** — Fixed an issue where the Tauri background process remained active when closing the main app window if the widget window was still open. Quitting the app now securely destroys all running windows.
 
 ## [1.1.8] - 2026-06-03
 
@@ -253,14 +280,6 @@ First public release — local Windows monitor, open source.
 
 - n/a
 
-[Unreleased]: https://github.com/KatanaCZ/Koi-Monitor/compare/v1.1.8...HEAD
-[1.0.0]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.0.0
-[1.1.0]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.0
-[1.1.1]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.1
-[1.1.2]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.2
-[1.1.3]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.3
-[1.1.4]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.4
-[1.1.5]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.5
-[1.1.6]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.6
-[1.1.7]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.7
+[Unreleased]: https://github.com/KatanaCZ/Koi-Monitor/compare/v1.1.9...HEAD
+[1.1.9]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.9
 [1.1.8]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.8

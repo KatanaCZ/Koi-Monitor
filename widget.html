@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="fr" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Koi Pills</title>
+    <style>
+      /* Ensure the base window is perfectly transparent for Tauri */
+      html, body {
+        background: transparent !important;
+        background-color: transparent !important;
+        background-image: none !important;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/widget.tsx"></script>
+  </body>
+</html>
