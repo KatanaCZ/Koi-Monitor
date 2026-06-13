@@ -244,4 +244,6 @@ export interface AppSettings {
   /** Afficher la rangée compacte CPU/GPU/Jeu/RAM/Actif en mode Zen */
   zenMetricsVisible: boolean;
   alertThresholds: AlertThresholdSettings;
+  showDesktopWidget: boolean;
+  desktopWidgetMode: 'koi' | 'zen';
 }

@@ -400,6 +400,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       launchAtStartup: false,
       ambientMusicMuted: false,
       zenMetricsVisible: true,
+      showDesktopWidget: false,
+      desktopWidgetMode: 'koi',
       alertThresholds: { ...DEFAULT_ALERT_THRESHOLDS },
     };
     updateSettings(defaultSettings);
@@ -611,6 +613,26 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           label={t('settings_tray')}
                           hint={t('settings_tray_hint')}
                         />
+                        <NeonSwitch
+                          checked={settings.showDesktopWidget}
+                          onChange={(v) => handleSettingChange('showDesktopWidget', v)}
+                          label={t('settings_desktop_widget')}
+                          hint={t('settings_desktop_widget_hint')}
+                        />
+                        {settings.showDesktopWidget && (
+                          <SettingRow label={t('settings_widget_mode')} hint={t('settings_widget_mode_hint')}>
+                            <SegmentControl
+                              compact
+                              options={[
+                                { value: 'koi', label: t('widget_mode_koi') },
+                                { value: 'zen', label: t('widget_mode_zen') },
+                              ]}
+                              value={settings.desktopWidgetMode}
+                              onChange={(v) => handleSettingChange('desktopWidgetMode', v as 'koi' | 'zen')}
+                              ariaLabel={t('settings_widget_mode')}
+                            />
+                          </SettingRow>
+                        )}
                       </motion.div>
                     )}
 

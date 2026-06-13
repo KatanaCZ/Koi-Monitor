@@ -31,6 +31,8 @@ import { ZenView } from './components/layout/ZenView';
 import { useAtmosphereSync } from './hooks/useAtmosphereSync';
 import { useKeyboardNavigation } from './hooks/useKeyboardNavigation';
 import { useDriversData } from './hooks/useDriversData';
+import { useWidgetSync } from './hooks/useWidgetSync';
+import { useStorageSync } from './hooks/useStorageSync';
 
 const SettingsModal = lazy(() =>
   import('./components/common/SettingsModal').then((m) => ({ default: m.SettingsModal })),
@@ -62,6 +64,8 @@ const App: React.FC = () => {
   useAutostart();
   useThresholdAlerts();
   useAtmosphereSync();
+  useWidgetSync();
+  useStorageSync();
 
   const [showSplash, setShowSplash] = useState(() => !shouldSkipDevSplash());
   const { toggleAmbientMute, ambientMusicMuted } = useAmbientMusic(showSplash);

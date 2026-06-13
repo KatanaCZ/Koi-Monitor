@@ -12,9 +12,9 @@
 <br />
 
 ![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?style=for-the-badge&logo=windows&logoColor=white)
-![Lightweight](https://img.shields.io/badge/Lightweight-~10–25%20MB-00d4ff?style=for-the-badge)
+![Optimized](https://img.shields.io/badge/Optimized-WebView2-00d4ff?style=for-the-badge)
 ![Free](https://img.shields.io/badge/Free-MIT-00ff9d?style=for-the-badge)
-![Version](https://img.shields.io/badge/Version-1.1.8-9d4edd?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-1.1.9-9d4edd?style=for-the-badge)
 
 <br />
 
@@ -80,17 +80,17 @@ This isn't a theme slapped on a utility. It's an app you actually **leave open**
 
 ---
 
-## ⚡ Light and discreet
+## ⚡ Optimized and respectful
 
 A monitor shouldn't be the heaviest app on your PC.
 
-| | Koi Monitor | Many “modern” apps |
-|--|-------------|---------------------|
-| **Disk** | ~10–25 MB | Often 150 MB+ |
-| **RAM at rest** | ~80–150 MB | Often much more |
-| **When idle** | Very low — the app rests when minimized or in the background | Varies |
+| | Koi Monitor |
+|--|-------------|
+| **Disk** | ~10–25 MB (thanks to Tauri, no bundled Chromium) |
+| **RAM** | ~100–250 MB (uses Windows WebView2 Edge engine) |
+| **CPU / GPU at rest** | Close to 0% (smart suspension when minimized or hidden) |
 
-Leave it running while you work, stream, or game. You shouldn't feel a second heavy app beside you.
+Koi Monitor runs on web technologies (Tauri + React) to deliver a stunning, modern UI. While it requires the Windows WebView2 browser engine (which inherently consumes some RAM), we've engineered strict limits so you don't feel it while working, streaming, or gaming:
 
 - **Canvas 2D particle engine**: petals in Canvas with pre-rendered textures (offscreen), isolated layer, strict cap at **30 FPS** (focus) / **24 FPS** (unfocused); frosted glass turns off when unfocused to free the GPU.
 - **Smart idle**: minimized, in the tray, or behind another window, Koi suspends telemetry, DNS, and visual effects. Active alerts keep watching in the background.
