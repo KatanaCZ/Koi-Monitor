@@ -4,7 +4,8 @@
 
 | Version | Supported |
 |---------|-----------|
-| 1.0.x   | Yes       |
+| 2.x     | Yes       |
+| 1.x     | No        |
 
 ## Reporting a vulnerability
 
@@ -22,4 +23,4 @@ We aim to acknowledge reports within **7 days** and provide a fix or mitigation 
 
 ## Scope notes
 
-Koi Monitor is a **local Windows desktop app**. It does not collect telemetry, sync data to the cloud, or expose a network service. Reports about DNS ping targets, driver scan permissions, or WebView2 CSP are in scope when they affect local security or user data on disk.
+Koi Monitor is a **local Windows desktop app**. It does not collect telemetry, sync data to the cloud, or expose a network service. Reports about DNS ping targets, driver scan permissions, or the helper processes Koi starts (PowerShell, pnputil) are in scope when they affect local security or user data on disk.

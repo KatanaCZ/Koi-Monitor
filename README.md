@@ -12,9 +12,9 @@
 <br />
 
 ![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?style=for-the-badge&logo=windows&logoColor=white)
-![Optimized](https://img.shields.io/badge/Optimized-WebView2-00d4ff?style=for-the-badge)
+![Native](https://img.shields.io/badge/Native-Rust-00d4ff?style=for-the-badge)
 ![Free](https://img.shields.io/badge/Free-MIT-00ff9d?style=for-the-badge)
-![Version](https://img.shields.io/badge/Version-1.1.9-9d4edd?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-2.0.0--alpha.1-9d4edd?style=for-the-badge)
 
 <br />
 
@@ -86,14 +86,14 @@ A monitor shouldn't be the heaviest app on your PC.
 
 | | Koi Monitor |
 |--|-------------|
-| **Disk** | ~10–25 MB (thanks to Tauri, no bundled Chromium) |
-| **RAM** | ~100–250 MB (uses Windows WebView2 Edge engine) |
-| **CPU / GPU at rest** | Close to 0% (smart suspension when minimized or hidden) |
+| **Processes** | 1 — no browser engine behind the window |
+| **RAM** | ~120 MB with the dashboard open, ~45 MB in the notification area |
+| **CPU / GPU** | ~0.5 % / ~1 % with the dashboard visible and the sakura animated |
 
-Koi Monitor runs on web technologies (Tauri + React) to deliver a stunning, modern UI. While it requires the Windows WebView2 browser engine (which inherently consumes some RAM), we've engineered strict limits so you don't feel it while working, streaming, or gaming:
+Koi Monitor is a single native program written in Rust: the interface, the petals and the glass are drawn directly on the graphics card (Direct3D 12), with nothing to install next to it. Figures measured on a Ryzen 7 7800X3D with an RX 7900 XTX.
 
-- **Canvas 2D particle engine**: petals in Canvas with pre-rendered textures (offscreen), isolated layer, strict cap at **30 FPS** (focus) / **24 FPS** (unfocused); frosted glass turns off when unfocused to free the GPU.
-- **Smart idle**: minimized, in the tray, or behind another window, Koi suspends telemetry, DNS, and visual effects. Active alerts keep watching in the background.
+- **One shader for the atmosphere**: aura, petals, Zen pond and glass cards share it; a frame costs a handful of draw calls.
+- **Smart idle**: in the notification area Koi holds no graphics surface and stops sampling. Active alerts keep watching in the background.
 
 
 ### Zen Mode 🌸
@@ -174,7 +174,7 @@ Release notes: **Release** tab (plain *For you* text) or [`CHANGELOG.md`](CHANGE
 | | |
 |--|--|
 | **OS** | Windows 10 or 11, 64-bit |
-| **WebView2** | Already on Windows 11; on Windows 10, via Windows Update or Edge if needed |
+| **Graphics** | A Direct3D 12 capable card or integrated chip |
 | **Internet** | Recommended (DNS, latency, drivers) |
 | **Account** | Standard user is usually enough |
 | **Enterprise** | Some locked-down PCs limit advanced scans |
@@ -184,14 +184,12 @@ Release notes: **Release** tab (plain *For you* text) or [`CHANGELOG.md`](CHANGE
 
 ```powershell
 git clone https://github.com/KatanaCZ/Koi-Monitor.git
-cd koi-monitor
-.\koi.bat setup    # Admin — first install
-.\koi.bat dev      # Tauri + Vite (port 1420)
-.\koi.bat devfast  # Frontend only + debug exe
-.\koi.bat build    # Exe in %LOCALAPPDATA%\koi-monitor\
+cd Koi-Monitor
+cargo run --release      # build and start
+cargo build --release    # exe in target\x86_64-pc-windows-msvc\release\
 ```
 
-Requirements: Node.js 20+, Rust, WebView2. Technical docs: [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md).
+Requirements: Rust (stable, MSVC) and the Visual Studio Build Tools (C++ workload). Technical docs: [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md).
 
 </details>
 
@@ -204,9 +202,10 @@ Requirements: Node.js 20+, Rust, WebView2. Technical docs: [`docs/DEVELOPMENT.md
 | What | Where | When |
 |------|-------|------|
 | **The exe** | Where *you* copied it | You keep / delete it |
-| **App profile** (WebView2) | `%LOCALAPPDATA%\com.koi.monitor\` | First launch |
-| **Settings** (theme, DNS, alerts…) | In that profile, a few KB | When you change an option |
-| **Charts, log, cache** | RAM only | Cleared on exit |
+| **App folder** | `%LOCALAPPDATA%\com.koi.monitor\` | First change of a setting |
+| **Settings** (theme, DNS, alerts…) | `settings.json` in that folder, a few KB | When you change an option |
+| **Error log** | `koi.log` in that folder, 256 KB at most | When something goes wrong |
+| **Charts, notification log** | RAM only | Cleared on exit |
 
 **Start with Windows** (off by default): one startup entry — without copying the exe elsewhere.
 

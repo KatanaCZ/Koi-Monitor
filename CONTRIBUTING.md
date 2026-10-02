@@ -1,10 +1,10 @@
 # Contributing to Koi Monitor
 
-Thank you for your interest in Koi Monitor. This project targets **Windows 10/11** with **Tauri v2 + React**.
+Thank you for your interest in Koi Monitor. This project targets **Windows 10/11** and is written in **Rust** (iced + wgpu).
 
 ## Before you start
 
-- Read [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) for architecture, commands, and troubleshooting.
+- Read [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) for the layout, commands, and how to open the app in a given state.
 - Keep changes **surgical** — match existing style, avoid unrelated refactors.
 
 ## Branches & workflow
@@ -46,64 +46,51 @@ Patch notes live in **[`CHANGELOG.md`](CHANGELOG.md)** ([Keep a Changelog](https
 **Before each version:**
 
 1. Fill **`## [Unreleased]`**: **For you** first (3–5 bullets, user benefits), then **Technical details** (Added / Changed / Fixed). Do not put CI/infra in **For you**.
-2. On green `master`:
+2. On green `master`, set the version in `Cargo.toml`, move **Unreleased** under the new version heading in `CHANGELOG.md`, then:
 
 ```powershell
-.\scripts\prepare-release.ps1 -Version 1.0.1   # CHANGELOG + app version (About, npm, Tauri, Cargo, README)
-git add CHANGELOG.md src/appVersion.ts package.json package-lock.json src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/Cargo.lock README.md
-git commit -m "chore(release): prepare v1.0.1"
+cargo build --release
+git add Cargo.toml Cargo.lock CHANGELOG.md README.md
+git commit -m "chore(release): prepare v2.0.0"
 git push origin master
-git tag v1.0.1
-git push origin v1.0.1
+git tag v2.0.0
+git push origin v2.0.0
 ```
 
-3. The **Release** workflow extracts the changelog section and publishes **`koi-monitor.exe`** + notes on GitHub.
+3. There is no release workflow at the moment: create the GitHub Release by hand, attach `target\x86_64-pc-windows-msvc\release\koi-monitor.exe`, and paste the **For you** section as its notes.
 
-**SemVer:** `1.0.x` fixes · `1.x.0` features · `x.0.0` breaking changes.
+**SemVer:** `2.0.x` fixes · `2.x.0` features · `x.0.0` breaking changes.
 
 ## Development setup
 
+Requires Rust (stable, MSVC) and the Visual Studio Build Tools (C++ workload).
+
 ```powershell
 git clone https://github.com/KatanaCZ/Koi-Monitor.git
-cd koi-monitor
-.\koi.bat setup    # First time — admin
-.\koi.bat dev      # Full Tauri + Vite (port 1420)
-.\koi.bat devfast  # Frontend only + debug exe (after one `dev` build)
+cd Koi-Monitor
+cargo run --release
 ```
 
 ## Checks before opening a PR
 
 ```powershell
-npm ci
-npm run build
-npx tsc --noEmit
-cd src-tauri
-cargo check --release
-cargo clippy --release -- -D warnings
+cargo clippy --all-targets -- -D warnings
 cargo test
 ```
 
-CI also runs `npm audit`, `cargo audit`, and a Recharts bundle budget (≤ 550 KB). The full **`koi.bat build`** runs on **push to `master`** and on **Release tags** — not on PRs (saves ~7 min; shipping exe is validated at tag).
-
-**Expected CI times (GitHub Actions, `windows-latest`):**
-
-| Trigger | Job | Typical duration |
-|---------|-----|------------------|
-| Pull request | `audit` (npm + rust checks) | ~6–10 min (warm cache) · ~12–15 min (cold) |
-| Push `master` | `audit` + build exe | ~12–18 min |
-| Tag `v*` | `release` | ~3–8 min (warm) · ~7 min baseline |
+CI also runs `cargo audit`. The release executable is built on **push to `master`**, not on PRs.
 
 ## Pull requests
 
 - Target branch: **`master`** (protected — merge via PR only)
 - One logical change per PR when possible
 - Update user-visible behavior in `README.md` and technical details in `docs/DEVELOPMENT.md` when relevant
-- **Dependabot PRs:** merge grouped **minor/patch** when CI `audit` is green (weekly, npm + cargo)
-- **Ignored npm majors** in `.github/dependabot.yml`: `react`, `react-dom`, `@types/react*`, `recharts`, `framer-motion`, `@vitejs/plugin-react`, `vite`, `typescript`, `zustand`, `lucide-react` — manual upgrades via `chore/deps-*` or `feat/*` + local QA (`koi.bat dev`, `npm run build`, `tsc`)
+- **Dependabot PRs:** merge grouped **minor/patch** when CI `audit` is green (weekly, cargo)
 - Close stale Dependabot major PRs instead of leaving them open
 
 ## Code conventions
 
-- Tauri IPC: centralize calls in [`src/services/api.ts`](src/services/api.ts)
-- Zustand: prefer granular selectors over full-store subscriptions
-- Rust: no `unwrap()` on external input; prefer explicit errors for WMI/PowerShell paths
+- `src/backend/` holds no UI types; views in `src/ui/` read state and return widgets
+- No `unwrap()` on external input; prefer explicit errors for WMI/PowerShell paths
+- Helper processes go through `backend::subprocess`, hidden and under a timeout
+- A bug fix comes with the test that failed before it
