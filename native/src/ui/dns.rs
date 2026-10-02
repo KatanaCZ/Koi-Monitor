@@ -218,14 +218,14 @@ fn server_list<'a>(app: &'a App, ctx: &Ctx, expanded: bool) -> Element<'a, Messa
 
 // --- gaming latency ---------------------------------------------------------
 
-struct VerdictStyle {
-    color: Color,
-    text: Color,
-    badge_background: Color,
-    badge_border: Color,
+pub struct VerdictStyle {
+    pub color: Color,
+    pub text: Color,
+    pub badge_background: Color,
+    pub badge_border: Color,
 }
 
-fn verdict_style(verdict: &str, ctx: &Ctx) -> VerdictStyle {
+pub fn verdict_style(verdict: &str, ctx: &Ctx) -> VerdictStyle {
     let p = ctx.p;
     let tone = |color: Color, text: Color| VerdictStyle {
         color,
@@ -430,7 +430,7 @@ fn metric_column<'a>(glyph: Icon, label: &str, target: String, value: String, to
 }
 
 /// Gateway / internet / jitter detail, opened from the verdict badge.
-fn gaming_breakdown<'a>(gaming: &GamingLatencySnapshot, ctx: &Ctx) -> Element<'a, Message> {
+pub fn gaming_breakdown<'a>(gaming: &GamingLatencySnapshot, ctx: &Ctx) -> Element<'a, Message> {
     let (p, tr) = (ctx.p, ctx.tr);
 
     let reading = |ms: f64| if ms < 0.0 { "—".to_string() } else { format!("{ms:.0} ms") };

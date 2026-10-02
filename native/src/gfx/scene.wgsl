@@ -19,10 +19,12 @@ struct Uniforms {
     base: vec4<f32>,
     // rgb: surface tint, a: its opacity over the backdrop.
     glass: vec4<f32>,
-    // x: corner radius, y: 1 when the target is sRGB, z: 1 in light theme, w: zen pond tempo (0 = off).
+    // x: corner radius, y: 1 when the target is sRGB, z: 1 in light theme, w: pond breath period in seconds (0 = still).
     params: vec4<f32>,
     // x: border opacity, y: shadow opacity, z: frost (0 = solid surface), w: ambient glow.
     extra: vec4<f32>,
+    // Zen pond. rgb: halo colour of the current state, a: ripple amplitude (0 = no pond).
+    pond: vec4<f32>,
 }
 
 @group(0) @binding(0) var<uniform> u: Uniforms;
@@ -65,6 +67,56 @@ fn aura(uv: vec2<f32>, center: vec2<f32>, radius: f32, aspect: f32) -> f32 {
     return f * f;
 }
 
+// One breathing ripple of the Zen pond: an ellipse outline in the 1200x800 box of the
+// original SVG (`preserveAspectRatio="xMidYMid slice"`).
+fn ripple(frag: vec2<f32>, center: vec2<f32>, radii: vec2<f32>, delay: f32) -> f32 {
+    let fit = max(u.resolution.x / 1200.0, u.resolution.y / 800.0);
+    let origin = (u.resolution - vec2<f32>(1200.0, 800.0) * fit) * 0.5;
+
+    // 0 → 1 → 0 over one breath; a still pond rests a third of the way in.
+    var breath = 0.3;
+    if (u.params.w > 0.0) {
+        breath = 0.5 - 0.5 * cos((u.time + delay) / u.params.w * 6.2832);
+    }
+    let amplitude = u.pond.a;
+    let r = radii * fit * vec2<f32>(1.0 + 0.04 * amplitude * breath, 1.0 + 0.12 * amplitude * breath);
+    let p = frag - (origin + center * fit);
+
+    // First-order distance to the ellipse outline.
+    let k0 = length(p / r);
+    let k1 = length(p / (r * r));
+    let d = abs(k0 * (k0 - 1.0) / max(k1, 0.000001));
+
+    let line = smoothstep(1.4 * u.scale, 0.0, d);
+    return line * (0.12 + 0.16 * breath) * min(amplitude, 1.5);
+}
+
+// Zen wallpaper: depth glow around the clock, a lit water surface and three ripples.
+fn pond(base: vec3<f32>, frag: vec2<f32>, uv: vec2<f32>) -> vec3<f32> {
+    let halo = u.pond.rgb;
+    var color = base;
+
+    let around_clock = length((uv - vec2<f32>(0.5, 0.38)) / vec2<f32>(0.70, 0.55));
+    color = mix(color, halo, 0.08 * smoothstep(0.72, 0.0, around_clock));
+    let from_below = length((uv - vec2<f32>(0.5, 1.0)) / vec2<f32>(0.95, 0.65));
+    color = mix(color, halo, 0.07 * smoothstep(0.55, 0.0, from_below));
+
+    // Water surface: the bottom 46 %, fading upwards.
+    let surface = clamp((uv.y - 0.54) / 0.46, 0.0, 1.0);
+    color = mix(color, halo, 0.06 * surface * surface * 0.85);
+
+    var ripples = ripple(frag, vec2<f32>(600.0, 540.0), vec2<f32>(440.0, 52.0), 0.0);
+    ripples = max(ripples, ripple(frag, vec2<f32>(470.0, 580.0), vec2<f32>(340.0, 38.0), 1.1));
+    ripples = max(ripples, ripple(frag, vec2<f32>(730.0, 600.0), vec2<f32>(300.0, 32.0), 2.3));
+    color = mix(color, halo, ripples * 0.9);
+
+    // Soft halo behind the clock digits (`.zen-hero-glow`).
+    let glow = length((uv - vec2<f32>(0.5, 0.30)) / vec2<f32>(0.34, 0.20));
+    color = mix(color, u.accent.rgb, 0.07 * smoothstep(1.0, 0.0, glow));
+
+    return color;
+}
+
 // The window backdrop at a given pixel. Glass surfaces re-evaluate it to cover
 // the sharp petals underneath before drawing their own blurred ones.
 fn backdrop(frag: vec2<f32>) -> vec3<f32> {
@@ -83,15 +135,8 @@ fn backdrop(frag: vec2<f32>) -> vec3<f32> {
     let pulse = 0.085 + 0.035 * sin(u.time * 0.628);
     color = mix(color, u.accent.rgb, rise * rise * pulse * u.extra.w);
 
-    // Zen pond: slow concentric ripples around the clock.
-    if (u.params.w > 0.0) {
-        let p = (uv - vec2<f32>(0.5, 0.46)) * vec2<f32>(aspect, 1.0);
-        let d = length(p);
-        let pond = smoothstep(0.75, 0.0, d);
-        color = mix(color, u.accent.rgb, pond * pond * 0.07);
-        let wave = sin(d * 34.0 - u.time * u.params.w);
-        let ring = smoothstep(0.93, 1.0, wave) * smoothstep(0.62, 0.08, d) * smoothstep(0.02, 0.10, d);
-        color = mix(color, mix(u.accent.rgb, vec3<f32>(1.0), 0.35), ring * 0.11);
+    if (u.pond.a > 0.0) {
+        color = pond(color, frag, uv);
     }
 
     // Dither to hide banding in the dark gradients.

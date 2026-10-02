@@ -2,13 +2,17 @@
 
 #![windows_subsystem = "windows"]
 
+mod alerts;
 mod app;
 mod backend;
+mod clock;
 mod gfx;
 mod i18n;
+mod notify;
 mod settings;
 mod theme;
 mod ui;
+mod zen_state;
 
 use iced::window::settings::PlatformSpecific;
 use iced::{window, Size};

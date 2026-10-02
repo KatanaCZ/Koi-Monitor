@@ -12,13 +12,22 @@ pub const GEIST_BOLD: Font = Font { weight: Weight::Bold, ..GEIST };
 /// Figures and data (`.mono-text`).
 pub const MONO: Font = Font { family: Family::Name("JetBrains Mono Medium"), weight: Weight::Medium, ..Font::DEFAULT };
 pub const MONO_BOLD: Font = Font { family: Family::Name("JetBrains Mono"), weight: Weight::Bold, ..Font::DEFAULT };
+pub const MONO_SEMIBOLD: Font =
+    Font { family: Family::Name("JetBrains Mono SemiBold"), weight: Weight::Semibold, ..Font::DEFAULT };
+/// The Zen clock.
+pub const MONO_EXTRALIGHT: Font =
+    Font { family: Family::Name("JetBrains Mono ExtraLight"), weight: Weight::ExtraLight, ..Font::DEFAULT };
+pub const MONO_LIGHT: Font = Font { family: Family::Name("JetBrains Mono Light"), weight: Weight::Light, ..Font::DEFAULT };
 
-pub const FONT_FILES: [&[u8]; 6] = [
+pub const FONT_FILES: [&[u8]; 9] = [
     include_bytes!("../assets/fonts/geist-sans-400.ttf"),
     include_bytes!("../assets/fonts/geist-sans-500.ttf"),
     include_bytes!("../assets/fonts/geist-sans-600.ttf"),
     include_bytes!("../assets/fonts/geist-sans-700.ttf"),
+    include_bytes!("../assets/fonts/jetbrains-mono-200.ttf"),
+    include_bytes!("../assets/fonts/jetbrains-mono-300.ttf"),
     include_bytes!("../assets/fonts/jetbrains-mono-500.ttf"),
+    include_bytes!("../assets/fonts/jetbrains-mono-600.ttf"),
     include_bytes!("../assets/fonts/jetbrains-mono-700.ttf"),
 ];
 

@@ -6,4 +6,7 @@ pub mod dns;
 pub mod drivers;
 pub mod icons;
 pub mod kit;
+pub mod overlays;
+pub mod settings;
 pub mod title_bar;
+pub mod zen;

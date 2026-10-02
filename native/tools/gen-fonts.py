@@ -13,7 +13,7 @@ OUT.mkdir(parents=True, exist_ok=True)
 
 FONTS = {
     "geist-sans": [400, 500, 600, 700],
-    "jetbrains-mono": [500, 700],
+    "jetbrains-mono": [200, 300, 500, 600, 700],
 }
 
 for family, weights in FONTS.items():

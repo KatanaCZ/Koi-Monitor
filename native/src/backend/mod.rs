@@ -4,6 +4,7 @@
 //! modules of the Tauri backend, unchanged. `system` is the telemetry loop that used
 //! to live in `src-tauri/src/lib.rs`, emitting through a channel instead of Tauri events.
 
+pub mod autostart;
 pub mod dns;
 pub mod driver_status;
 mod driver_store;

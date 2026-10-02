@@ -19,6 +19,7 @@ use std::time::{Duration, Instant};
 
 use crate::settings::{BackgroundAura, SakuraIntensity, Settings};
 use crate::theme::Palette;
+use crate::zen_state::LoadState;
 
 /// Petals do not need more than this; the original canvas ran at 30 FPS too.
 const FRAME_INTERVAL: Duration = Duration::from_millis(33);
@@ -49,13 +50,33 @@ pub struct Atmosphere {
     pub petals: [u32; 3],
     /// Translucent surfaces with petals behind them, or solid cards.
     pub frosted: bool,
-    /// Ripple tempo of the Zen pond, 0 outside Zen mode.
-    pub pond: f32,
+    /// The Zen wallpaper, when Zen mode is on and the aura is not disabled.
+    pub pond: Option<Pond>,
+}
+
+/// Zen pond: its colour and breath follow the machine's load state.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Pond {
+    pub color: Color,
+    /// How far the ripples swell.
+    pub amplitude: f32,
+    /// Seconds per breath; 0 keeps the pond still (calm motion).
+    pub period: f32,
 }
 
 impl Atmosphere {
-    pub fn new(settings: &Settings, reduced_motion: bool, pond: f32) -> Self {
+    pub fn new(settings: &Settings, reduced_motion: bool, load: LoadState) -> Self {
         let palette = Palette::of(settings.theme);
+        let still = settings.calm_motion || reduced_motion;
+
+        let pond = (settings.zen_mode && settings.background_aura != BackgroundAura::Off).then(|| {
+            let (color, amplitude, period) = match load {
+                LoadState::Rest => (palette.green.fill, 1.0, 4.0),
+                LoadState::Moderate => (palette.cyan.fill, 1.4, 2.5 * 0.85),
+                LoadState::Intense => (palette.warning.fill, 1.9, 1.4 * 0.75),
+            };
+            Pond { color, amplitude, period: if still { 0.0 } else { period } }
+        });
 
         // Zen keeps the scene quiet: one notch fewer petals and no foreground layer.
         let intensity = match (settings.zen_mode, settings.sakura_intensity) {
@@ -70,7 +91,7 @@ impl Atmosphere {
             SakuraIntensity::High => 1.35,
         };
         let count = |base: f32, max: u32| {
-            if multiplier == 0.0 || settings.calm_motion || reduced_motion {
+            if multiplier == 0.0 || still {
                 0
             } else {
                 ((base * multiplier).round() as u32).clamp(1, max)
@@ -95,9 +116,13 @@ impl Atmosphere {
         }
     }
 
+    fn has_petals(&self) -> bool {
+        self.petals.iter().any(|&count| count > 0)
+    }
+
     /// Whether the scene changes from one frame to the next.
     pub fn animated(&self) -> bool {
-        self.petals.iter().any(|&count| count > 0) || self.pond > 0.0
+        self.has_petals() || self.pond.is_some_and(|pond| pond.period > 0.0)
     }
 }
 
@@ -175,6 +200,7 @@ struct Uniforms {
     glass: [f32; 4],
     params: [f32; 4],
     extra: [f32; 4],
+    pond: [f32; 4],
 }
 
 #[repr(C)]
@@ -377,7 +403,7 @@ impl shader::Primitive for Layer {
                     (Surface::Card, true) => palette.glass_surface,
                     (Surface::Panel, true) if dark => Color { a: 0.4, ..crate::theme::rgb(0x0e0820) },
                     (Surface::Panel, true) => palette.glass_surface,
-                    (Surface::Dialog, _) => Color { a: 0.96, ..palette.card_solid },
+                    (Surface::Dialog, _) => palette.card_solid,
                     (_, false) => palette.card_solid,
                 };
                 // Without a real blur the tint carries more of the frosted look than CSS's 0.4.
@@ -414,9 +440,11 @@ impl shader::Primitive for Layer {
                 radius,
                 if pipeline.srgb_target { 1.0 } else { 0.0 },
                 if dark { 0.0 } else { 1.0 },
-                atmosphere.pond,
+                atmosphere.pond.map(|pond| pond.period).unwrap_or(0.0),
             ],
-            extra: [border, shadow, frost, if atmosphere.animated() { 1.0 } else { 0.0 }],
+            // The ambient glow belongs to the sakura layer: no petals, no glow.
+            extra: [border, shadow, frost, if atmosphere.has_petals() { 1.0 } else { 0.0 }],
+            pond: atmosphere.pond.map(|pond| with_w(rgb(pond.color), pond.amplitude)).unwrap_or([0.0; 4]),
         };
 
         // Slots are handed out round-robin: every primitive of a frame is prepared

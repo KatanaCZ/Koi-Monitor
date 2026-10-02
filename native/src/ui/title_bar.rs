@@ -9,14 +9,16 @@ use super::icons::{icon, Icon};
 use super::kit::{caption, icon_button, inset_style, panel, Ctx, Emphasis};
 use crate::app::{App, Message};
 use crate::settings::ThemeMode;
-use crate::theme::{mix, GEIST_SEMIBOLD, MONO_BOLD};
+use crate::theme::{mix, GEIST_BOLD, GEIST_SEMIBOLD, MONO_BOLD};
 
 pub const HEIGHT: f32 = 48.0;
 
 /// "Koi Monitor" with the brand gradient (`.slash-title-static`).
-struct Wordmark<'a> {
-    cache: &'a Cache,
-    ctx: Ctx,
+pub struct Wordmark<'a> {
+    pub cache: &'a Cache,
+    pub ctx: Ctx,
+    pub size: f32,
+    pub bold: bool,
 }
 
 impl<Message> canvas::Program<Message> for Wordmark<'_> {
@@ -44,8 +46,8 @@ impl<Message> canvas::Program<Message> for Wordmark<'_> {
             let wordmark = Text {
                 content: "Koi Monitor".to_string(),
                 position: Point::new(0.0, frame.height() / 2.0),
-                size: Pixels(15.0),
-                font: GEIST_SEMIBOLD,
+                size: Pixels(self.size),
+                font: if self.bold { GEIST_BOLD } else { GEIST_SEMIBOLD },
                 align_y: alignment::Vertical::Center,
                 ..Text::default()
             };
@@ -141,7 +143,7 @@ pub fn view<'a>(app: &'a App, ctx: &Ctx) -> Element<'a, Message> {
     let zen = settings.zen_mode;
     let to_tray = settings.minimize_to_tray;
 
-    let wordmark = canvas_widget(Wordmark { cache: &app.wordmark_cache, ctx: *ctx }).width(108).height(24);
+    let wordmark = canvas_widget(Wordmark { cache: &app.wordmark_cache, ctx: *ctx, size: 15.0, bold: false }).width(108).height(24);
 
     // Everything that is not a button drags the window; a double click maximizes it.
     let mut center = row![].spacing(8).align_y(iced::Center);
