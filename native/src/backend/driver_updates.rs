@@ -116,16 +116,10 @@ fn resolve_update_candidate(
 }
 
 pub fn trigger_wu_driver_detect() {
-    let _ = Command::new("powershell")
-        .args([
-            "-NoProfile",
-            "-ExecutionPolicy",
-            "Bypass",
-            "-Command",
-            "try { (New-Object -ComObject Microsoft.Update.AutoUpdate).DetectNow() | Out-Null } catch {}",
-        ])
-        .creation_flags(0x08000000)
-        .output();
+    let script = "try { (New-Object -ComObject Microsoft.Update.AutoUpdate).DetectNow() | Out-Null } catch {}";
+    if let Err(error) = run_powershell_with_timeout(script, 20) {
+        log::warn!("Windows Update detection: {error}");
+    }
 }
 
 pub fn open_windows_update_settings() -> Result<(), String> {

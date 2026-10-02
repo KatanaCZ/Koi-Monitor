@@ -3,7 +3,7 @@
 //! Field names and defaults follow `AppSettings` from the web UI (`koi_settings`).
 
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::backend::dns::DnsServer;
 
@@ -270,30 +270,141 @@ impl Settings {
     }
 }
 
-fn path() -> Option<PathBuf> {
+/// `%LOCALAPPDATA%\com.koi.monitor`, where Koi keeps its settings and its log.
+pub fn data_dir() -> Option<PathBuf> {
     let base = std::env::var_os("LOCALAPPDATA")?;
-    Some(PathBuf::from(base).join("com.koi.monitor").join("settings.json"))
+    Some(PathBuf::from(base).join("com.koi.monitor"))
 }
 
-pub fn load() -> Settings {
-    path()
-        .and_then(|path| std::fs::read_to_string(path).ok())
-        .and_then(|json| serde_json::from_str::<Settings>(&json).ok())
-        .unwrap_or_default()
+fn path() -> Option<PathBuf> {
+    Some(data_dir()?.join("settings.json"))
+}
+
+/// Reads a settings file, `None` when it is not a JSON object at all. A value that is
+/// not understood (older version, hand edit) falls back to its default on its own.
+fn parse(json: &str) -> Option<Settings> {
+    let serde_json::Value::Object(stored) = serde_json::from_str(json).ok()? else {
+        return None;
+    };
+    if let Ok(settings) = serde_json::from_value(serde_json::Value::Object(stored.clone())) {
+        return Some(settings);
+    }
+
+    let mut settings = Settings::default();
+    let mut accepted = serde_json::to_value(&settings).ok()?;
+    for (key, value) in stored {
+        let mut candidate = accepted.clone();
+        candidate[key.as_str()] = value;
+        match serde_json::from_value(candidate.clone()) {
+            Ok(parsed) => {
+                settings = parsed;
+                accepted = candidate;
+            }
+            Err(error) => log::warn!("Setting `{key}` ignored: {error}"),
+        }
+    }
+    Some(settings)
+}
+
+fn load_from(path: &Path) -> Settings {
+    let Ok(json) = std::fs::read_to_string(path) else {
+        return Settings::default().sanitized();
+    };
+    parse(&json)
+        .unwrap_or_else(|| {
+            // The next save would overwrite it: keep the unreadable file aside.
+            let aside = path.with_file_name("settings.corrupt.json");
+            match std::fs::copy(path, &aside) {
+                Ok(_) => log::warn!("Unreadable settings kept as {}", aside.display()),
+                Err(error) => log::warn!("Unreadable settings, and no copy could be kept: {error}"),
+            }
+            Settings::default()
+        })
         .sanitized()
 }
 
-pub fn save(settings: &Settings) {
-    let Some(path) = path() else { return };
+/// Writes next to the file, then swaps: an interrupted save leaves the previous settings intact.
+fn save_to(path: &Path, settings: &Settings) {
     if let Some(parent) = path.parent() {
         let _ = std::fs::create_dir_all(parent);
     }
-    match serde_json::to_string_pretty(settings) {
-        Ok(json) => {
-            if let Err(error) = std::fs::write(&path, json) {
-                log::warn!("Failed to save settings: {error}");
-            }
+    let json = match serde_json::to_string_pretty(settings) {
+        Ok(json) => json,
+        Err(error) => {
+            log::warn!("Failed to serialize settings: {error}");
+            return;
         }
-        Err(error) => log::warn!("Failed to serialize settings: {error}"),
+    };
+
+    let draft = path.with_file_name("settings.json.tmp");
+    if let Err(error) = std::fs::write(&draft, json).and_then(|()| std::fs::rename(&draft, path)) {
+        log::warn!("Failed to save settings: {error}");
+        let _ = std::fs::remove_file(&draft);
+    }
+}
+
+pub fn load() -> Settings {
+    path().map(|path| load_from(&path)).unwrap_or_else(|| Settings::default().sanitized())
+}
+
+pub fn save(settings: &Settings) {
+    if let Some(path) = path() {
+        save_to(&path, settings);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// An empty directory of its own for one test.
+    fn scratch_dir(test: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("koi-settings-{}-{test}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("scratch directory");
+        dir
+    }
+
+    #[test]
+    fn invalid_value_costs_only_its_own_setting() {
+        let settings = parse(r#"{"theme":"auto","refreshInterval":5000,"language":"en","zenMode":true}"#)
+            .expect("a JSON object is readable");
+
+        assert_eq!(settings.theme, ThemeMode::Dark);
+        assert_eq!(settings.refresh_interval, 5000);
+        assert_eq!(settings.language, Language::En);
+        assert!(settings.zen_mode);
+    }
+
+    #[test]
+    fn text_that_is_not_a_json_object_is_rejected() {
+        assert!(parse("{ \"theme\": ").is_none());
+        assert!(parse("[]").is_none());
+    }
+
+    #[test]
+    fn saved_settings_load_back() {
+        let path = scratch_dir("round-trip").join("settings.json");
+        let settings = Settings { refresh_interval: 5000, zen_mode: true, ..Settings::default() };
+
+        save_to(&path, &settings);
+
+        assert_eq!(load_from(&path), settings);
+        let leftovers: Vec<_> = std::fs::read_dir(path.parent().unwrap())
+            .unwrap()
+            .flatten()
+            .map(|entry| entry.file_name())
+            .filter(|name| name != "settings.json")
+            .collect();
+        assert!(leftovers.is_empty(), "left behind: {leftovers:?}");
+    }
+
+    #[test]
+    fn unreadable_file_is_kept_aside_before_defaults_replace_it() {
+        let path = scratch_dir("corrupt").join("settings.json");
+        std::fs::write(&path, "{ \"theme\": ").unwrap();
+
+        assert_eq!(load_from(&path), Settings::default().sanitized());
+        assert_eq!(std::fs::read_to_string(path.with_file_name("settings.corrupt.json")).unwrap(), "{ \"theme\": ");
     }
 }

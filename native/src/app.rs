@@ -671,7 +671,10 @@ impl App {
             }
             Change::LaunchAtStartup(enabled) => match autostart::set_enabled(enabled) {
                 Ok(()) => self.settings.launch_at_startup = enabled,
-                Err(error) => log::warn!("{error}"),
+                Err(error) => {
+                    log::warn!("{error}");
+                    return self.settings_toast("toast_startup_error", Severity::Warning);
+                }
             },
             Change::MinimizeToTray(enabled) => {
                 self.settings.minimize_to_tray = enabled;
@@ -1066,7 +1069,11 @@ impl App {
                 self.save_settings();
                 return self.sync_widget();
             }
-            Message::Tray(tray::Event::Quit) => return iced::exit(),
+            Message::Tray(tray::Event::Quit) => {
+                // Take the icon down first, or Windows shows it until the pointer passes over it.
+                self.tray = None;
+                return iced::exit();
+            }
             Message::DragWidget => return self.widget_window.map(window::drag).unwrap_or_else(Task::none),
             Message::CloseWidget => {
                 self.settings.show_desktop_widget = false;

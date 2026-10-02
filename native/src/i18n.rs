@@ -53,3 +53,18 @@ impl Tr {
         self.0 == Language::Fr
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn startup_failure_has_its_own_message_in_both_languages() {
+        let french = Tr(Language::Fr).t("toast_startup_error");
+        let english = Tr(Language::En).t("toast_startup_error");
+
+        assert_ne!(french, "toast_startup_error");
+        assert_ne!(english, "toast_startup_error");
+        assert_ne!(french, english);
+    }
+}

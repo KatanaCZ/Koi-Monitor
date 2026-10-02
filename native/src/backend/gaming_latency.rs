@@ -91,7 +91,8 @@ fn compute_verdict(
     jitter_ms: f64,
     sample_count: u32,
 ) -> &'static str {
-    if sample_count < 3 {
+    // Only successful pings are counted: with no internet there is nothing to wait for.
+    if sample_count < 3 && internet_ms >= 0.0 {
         return "measuring";
     }
 
@@ -188,16 +189,24 @@ fn measure_latency(host: &str) -> Option<f64> {
     unsafe { IcmpCloseHandle(handle) };
 
     if replies > 0 {
-        let rtt = u32::from_ne_bytes([
-            reply_buffer[8],
-            reply_buffer[9],
-            reply_buffer[10],
-            reply_buffer[11],
-        ]);
-        Some(rtt.max(1) as f64)
+        echo_reply_rtt(&reply_buffer)
     } else {
         None
     }
+}
+
+/// Round-trip time in ms of the first `ICMP_ECHO_REPLY` in `reply`. `IcmpSendEcho` also
+/// counts the error replies of routers ("destination unreachable"): only `IP_SUCCESS` is a ping.
+#[cfg(target_os = "windows")]
+fn echo_reply_rtt(reply: &[u8]) -> Option<f64> {
+    const IP_SUCCESS: u32 = 0;
+
+    let status = u32::from_ne_bytes(reply.get(4..8)?.try_into().ok()?);
+    if status != IP_SUCCESS {
+        return None;
+    }
+    let rtt = u32::from_ne_bytes(reply.get(8..12)?.try_into().ok()?);
+    Some(rtt.max(1) as f64)
 }
 
 #[cfg(not(target_os = "windows"))]
@@ -251,22 +260,11 @@ fn parse_ping_ms(output: &str) -> Option<f64> {
 
 #[cfg(target_os = "windows")]
 fn detect_default_gateway() -> Option<String> {
-    use std::os::windows::process::CommandExt;
-    use std::process::Command;
-
     let script = "(Get-NetRoute -DestinationPrefix '0.0.0.0/0' | Sort-Object RouteMetric | Select-Object -First 1).NextHop";
 
-    let output = Command::new("powershell")
-        .args([
-            "-NoProfile",
-            "-ExecutionPolicy",
-            "Bypass",
-            "-Command",
-            script,
-        ])
-        .creation_flags(0x08000000)
-        .output()
-        .ok()?;
+    let Ok(output) = super::subprocess::run_powershell_with_timeout(script, 10) else {
+        return detect_default_gateway_fallback();
+    };
 
     if !output.status.success() {
         return detect_default_gateway_fallback();
@@ -282,14 +280,11 @@ fn detect_default_gateway() -> Option<String> {
 
 #[cfg(target_os = "windows")]
 fn detect_default_gateway_fallback() -> Option<String> {
-    use std::os::windows::process::CommandExt;
     use std::process::Command;
 
-    let output = Command::new("cmd")
-        .args(["/C", "route", "print", "0.0.0.0"])
-        .creation_flags(0x08000000)
-        .output()
-        .ok()?;
+    let mut command = Command::new("cmd");
+    command.args(["/C", "route", "print", "0.0.0.0"]);
+    let output = super::subprocess::run_with_timeout(command, "route", 10).ok()?;
 
     let text = String::from_utf8_lossy(&output.stdout);
     for line in text.lines() {
@@ -317,4 +312,46 @@ fn is_valid_ipv4(ip: &str) -> bool {
         return false;
     }
     parts.iter().all(|p| p.parse::<u8>().is_ok())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn offline_is_reported_from_the_first_sample() {
+        assert_eq!(compute_verdict(-1.0, -1.0, 0.0, 0), "offline");
+    }
+
+    #[test]
+    fn unreachable_internet_does_not_wait_for_samples() {
+        assert_eq!(compute_verdict(2.0, -1.0, 0.0, 0), "internet_unreachable");
+    }
+
+    #[test]
+    fn first_successful_pings_are_still_measuring() {
+        assert_eq!(compute_verdict(2.0, 20.0, 0.0, 2), "measuring");
+    }
+
+    /// An `ICMP_ECHO_REPLY` header: address, status, round-trip time.
+    #[cfg(target_os = "windows")]
+    fn echo_reply(status: u32, rtt_ms: u32) -> [u8; 12] {
+        let mut reply = [0u8; 12];
+        reply[4..8].copy_from_slice(&status.to_ne_bytes());
+        reply[8..12].copy_from_slice(&rtt_ms.to_ne_bytes());
+        reply
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn successful_echo_reply_gives_its_round_trip_time() {
+        assert_eq!(echo_reply_rtt(&echo_reply(0, 12)), Some(12.0));
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn router_error_reply_is_not_a_ping() {
+        // 11003 = IP_DEST_HOST_UNREACHABLE, answered by the gateway in about a millisecond.
+        assert_eq!(echo_reply_rtt(&echo_reply(11003, 1)), None);
+    }
 }

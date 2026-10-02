@@ -28,7 +28,7 @@ const QUIT_ID: &str = "tray-quit";
 
 static EVENTS: OnceLock<Mutex<mpsc::Sender<Event>>> = OnceLock::new();
 
-fn emit(event: Event) {
+pub fn emit(event: Event) {
     if let Some(sender) = EVENTS.get() {
         if let Ok(mut sender) = sender.lock() {
             let _ = sender.try_send(event);
@@ -75,16 +75,16 @@ pub struct Labels {
 
 /// The icon in the notification area; dropping it removes the icon.
 pub struct Tray {
+    /// 0 when the icon could not be created.
     thread_id: u32,
+    thread: Option<std::thread::JoinHandle<()>>,
 }
 
 impl Tray {
     pub fn spawn(labels: Labels) -> Self {
         let (ready, started) = std::sync::mpsc::channel();
 
-        std::thread::spawn(move || {
-            let _ = ready.send(unsafe { GetCurrentThreadId() });
-
+        let thread = std::thread::spawn(move || {
             let menu = Menu::new();
             let items = [
                 MenuItem::with_id(SHOW_ID, &labels.show, true, None),
@@ -116,6 +116,10 @@ impl Tray {
                 }
             };
 
+            // Announced once the icon exists: its hidden window has given this thread
+            // the message queue that WM_QUIT is posted to.
+            let _ = ready.send(unsafe { GetCurrentThreadId() });
+
             // The icon's hidden window needs its messages pumped; WM_QUIT ends the loop
             // and drops the icon.
             let mut message = MSG::default();
@@ -127,16 +131,17 @@ impl Tray {
             }
         });
 
-        Self { thread_id: started.recv().unwrap_or(0) }
+        Self { thread_id: started.recv().unwrap_or(0), thread: Some(thread) }
     }
 }
 
 impl Drop for Tray {
+    /// Ends the icon's thread and waits for it, so the icon is gone when this returns.
     fn drop(&mut self) {
-        if self.thread_id != 0 {
-            unsafe {
-                let _ = PostThreadMessageW(self.thread_id, WM_QUIT, WPARAM(0), LPARAM(0));
-            }
+        let asked = self.thread_id == 0
+            || unsafe { PostThreadMessageW(self.thread_id, WM_QUIT, WPARAM(0), LPARAM(0)) }.is_ok();
+        if let (true, Some(thread)) = (asked, self.thread.take()) {
+            let _ = thread.join();
         }
     }
 }

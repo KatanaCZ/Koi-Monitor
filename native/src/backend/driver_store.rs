@@ -1,6 +1,6 @@
 use super::driver_version::is_update_available;
 use super::drivers::DriverInfo;
-use std::os::windows::process::CommandExt;
+use super::subprocess::run_with_timeout;
 use std::process::Command;
 
 #[derive(Debug, Clone)]
@@ -11,14 +11,15 @@ pub struct DriverStorePackage {
 }
 
 pub fn fetch_driver_store_packages() -> Vec<DriverStorePackage> {
-    let output = Command::new("pnputil")
-        .args(["/enum-drivers"])
-        .creation_flags(0x08000000)
-        .output();
+    let mut command = Command::new("pnputil");
+    command.args(["/enum-drivers"]);
 
-    let Ok(result) = output else {
-        log::warn!("pnputil /enum-drivers failed to start");
-        return Vec::new();
+    let result = match run_with_timeout(command, "pnputil /enum-drivers", 30) {
+        Ok(result) => result,
+        Err(error) => {
+            log::warn!("{error}");
+            return Vec::new();
+        }
     };
 
     if !result.status.success() {
