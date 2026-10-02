@@ -159,7 +159,8 @@ fn server_tile<'a>(dns: &DnsResult, ctx: &Ctx) -> Element<'a, Message> {
 
     container(
         column![
-            title,
+            // Same height with or without the crown, so all tiles line up.
+            title.height(24),
             text(dns.ip.clone()).size(10).font(MONO).color(p.text_muted),
             Space::new().height(8),
             latency_text(dns.latency_ms, 24.0, 12.0, status.color),

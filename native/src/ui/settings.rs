@@ -744,6 +744,8 @@ pub fn view<'a>(app: &'a App, dialog: &'a Dialog, ctx: &Ctx) -> Element<'a, Mess
     .height(Fill)
     .style(move |_| container::Style {
         background: Some(alpha(p.surface_inset, p.surface_inset.a * 0.4).into()),
+        // Follows the dialog's rounded corner.
+        border: Border { radius: iced::border::Radius::default().bottom_left(31), ..Border::default() },
         ..container::Style::default()
     });
 
