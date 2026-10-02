@@ -3,10 +3,12 @@
 use iced::keyboard::{self, key};
 use iced::widget::canvas::Cache;
 use iced::widget::{center, column, container, mouse_area, opaque, shader, stack};
+use iced::window::settings::PlatformSpecific;
 use iced::{window, Element, Fill, Padding, Size, Subscription, Task};
 use std::time::{Duration, Instant};
 
 use crate::alerts::{self, Severity};
+use crate::audio::{Music, Track};
 use crate::backend::dns::{self, DnsResult};
 use crate::backend::drivers::{self, DriverInfo};
 use crate::backend::gaming_latency::GamingLatencySnapshot;
@@ -15,15 +17,17 @@ use crate::backend::{autostart, driver_updates, open};
 use crate::gfx::{Atmosphere, Backdrop};
 use crate::i18n::Tr;
 use crate::notify::{self, Source};
+use crate::splash::{self, Splash};
 use crate::settings::{
     self, default_dns_checklist, is_valid_custom_dns_ipv4, AlertThresholds, BackgroundAura, CustomDns, DesktopAlerts,
     GamingAlerts, Language, NeonGlow, SakuraColor, SakuraIntensity, Sensitivity, Settings, ThemeMode, WidgetMode,
 };
 use crate::theme::Palette;
+use crate::tray::{self, Tray};
 use crate::ui::charts::History;
 use crate::ui::kit::Ctx;
 use crate::ui::settings::{is_max_atmosphere, Dialog, Preset};
-use crate::ui::{dashboard, overlays, title_bar, zen};
+use crate::ui::{dashboard, overlays, pill, title_bar, zen};
 use crate::zen_state::LoadTracker;
 
 const KOFI_URL: &str = "https://ko-fi.com/katanacz";
@@ -76,6 +80,8 @@ pub enum Message {
     Backend(system::Event),
     /// Once a second: refreshes the uptime chip and the Zen clock.
     Tick,
+    /// Animation frame of the opening screen.
+    SplashTick,
     EscapePressed,
 
     ToggleMute,
@@ -122,8 +128,18 @@ pub enum Message {
     MinimizeWindow,
     ToggleMaximize,
     CloseWindow,
-    WindowResized(Size),
+    WindowResized(window::Id, Size),
     Maximized(bool),
+    /// The user asked a window to close (title bar, Alt+F4, taskbar).
+    CloseRequested(window::Id),
+    WindowClosed(window::Id),
+
+    Tray(tray::Event),
+    ShowMainWindow,
+    DragWidget,
+    CloseWidget,
+    /// The easter-egg click streak lapsed.
+    SecretTapExpired(u32),
 }
 
 /// A dialog over a dimmed page: clicking outside closes it, clicks inside stay in it.
@@ -151,6 +167,12 @@ pub struct App {
 
     pub drivers: Vec<DriverInfo>,
     pub drivers_loading: bool,
+    /// The first driver scan has finished, whatever its outcome.
+    drivers_settled: bool,
+    /// Telemetry samples received since launch.
+    samples_received: u32,
+    /// The opening screen, until it has played.
+    splash: Option<Splash>,
     /// Key of the driver picked in the expanded drivers view.
     pub driver_selected: Option<String>,
 
@@ -175,6 +197,20 @@ pub struct App {
 
     pub settings_dialog: Option<Dialog>,
     pub expanded: Option<Expanded>,
+
+    /// The dashboard window; None while Koi sits in the notification area.
+    main_window: Option<window::Id>,
+    /// The desktop widget window, when shown.
+    widget_window: Option<window::Id>,
+    tray: Option<Tray>,
+    music: Music,
+    /// The secret track is playing instead of the ambient one.
+    easter_active: bool,
+    /// Windows has animation effects turned off: no petals, no ripples, no music on its own.
+    reduced_motion: bool,
+    /// Quick clicks on the wordmark so far, and the streak they belong to.
+    secret_taps: u8,
+    secret_seq: u32,
     pub window_size: Size,
     pub maximized: bool,
     /// When `system.uptime` was last received, to count seconds in between samples.
@@ -203,6 +239,9 @@ impl App {
             gaming_details_open: false,
             drivers: Vec::new(),
             drivers_loading: false,
+            drivers_settled: false,
+            samples_received: 0,
+            splash: Some(Splash::new(Instant::now())),
             driver_selected: None,
             cpu_history: History::new(),
             ram_history: History::new(),
@@ -221,12 +260,32 @@ impl App {
             onboarding_open,
             settings_dialog: None,
             expanded: None,
+            main_window: None,
+            widget_window: None,
+            tray: None,
+            music: Music::default(),
+            easter_active: false,
+            reduced_motion: crate::backend::prefs::reduced_motion(),
+            secret_taps: 0,
+            secret_seq: 0,
             window_size: Size::new(1400.0, 900.0),
             maximized: false,
             uptime_synced: Instant::now(),
         };
 
-        let startup = Task::batch([app.ping_dns(), app.scan_drivers(false, false), app.apply_dev_state()]);
+        let dev_state = app.apply_dev_state();
+        app.sync_tray();
+        // The music waits for the opening screen to finish.
+        if app.splash.is_none() {
+            app.sync_music();
+        }
+        let startup = Task::batch([
+            app.show_main_window(),
+            app.sync_widget(),
+            app.ping_dns(),
+            app.scan_drivers(false, false),
+            dev_state,
+        ]);
         (app, startup)
     }
 
@@ -256,6 +315,13 @@ impl App {
                 "settings-about" => self.settings_dialog = settings_tab(SettingsTab::About),
                 "onboarding" => self.onboarding_open = true,
                 "no-onboarding" => self.onboarding_open = false,
+                "mute" => self.settings.ambient_music_muted = true,
+                "no-splash" => self.splash = None,
+                "widget-koi" | "widget-zen" => {
+                    self.settings.show_desktop_widget = true;
+                    self.settings.desktop_widget_mode = if token == "widget-koi" { WidgetMode::Koi } else { WidgetMode::Zen };
+                }
+                "tray" => self.settings.minimize_to_tray = true,
                 "notifications" => self.notification_panel_open = true,
                 "toast" => {
                     let now = Instant::now();
@@ -273,6 +339,164 @@ impl App {
         task
     }
 
+    // --- windows, tray, widget ------------------------------------------------
+
+    fn main_window_settings() -> window::Settings {
+        window::Settings {
+            size: Size::new(1400.0, 900.0),
+            min_size: Some(Size::new(1024.0, 768.0)),
+            decorations: false,
+            icon: crate::icon::window(),
+            // Closing is decided in `close_main_window` (quit, or hide to the tray).
+            exit_on_close_request: false,
+            platform_specific: PlatformSpecific {
+                undecorated_shadow: true,
+                corner_preference: window::settings::platform::CornerPreference::Round,
+                ..PlatformSpecific::default()
+            },
+            ..window::Settings::default()
+        }
+    }
+
+    /// Opens the dashboard window, or brings it back to the front.
+    fn show_main_window(&mut self) -> Task<Message> {
+        if let Some(id) = self.main_window {
+            return Task::batch([window::minimize(id, false), window::gain_focus(id)]);
+        }
+        let (id, open) = window::open(Self::main_window_settings());
+        self.main_window = Some(id);
+        self.window_size = Size::new(1400.0, 900.0);
+        self.maximized = false;
+        self.sync_sampling();
+        open.discard()
+    }
+
+    /// Closes the dashboard window but keeps Koi running behind its tray icon,
+    /// with the desktop widget in sight. Without a window, Koi holds no GPU surface.
+    fn hide_to_tray(&mut self) -> Task<Message> {
+        let Some(id) = self.main_window else {
+            return Task::none();
+        };
+        self.settings.show_desktop_widget = true;
+        self.save_settings();
+        Task::batch([window::close(id), self.sync_widget()])
+    }
+
+    /// The close button: hide to the tray when "Discrete presence" is on, quit otherwise.
+    fn close_main_window(&mut self) -> Task<Message> {
+        if self.settings.minimize_to_tray {
+            self.hide_to_tray()
+        } else {
+            iced::exit()
+        }
+    }
+
+    /// Opens, closes or resizes the desktop widget window to match the settings.
+    fn sync_widget(&mut self) -> Task<Message> {
+        let size = pill::window_size(self.settings.desktop_widget_mode);
+        match (self.settings.show_desktop_widget, self.widget_window) {
+            (true, None) => {
+                let (id, open) = window::open(window::Settings {
+                    size,
+                    resizable: false,
+                    decorations: false,
+                    level: window::Level::AlwaysOnTop,
+                    icon: crate::icon::window(),
+                    exit_on_close_request: false,
+                    platform_specific: PlatformSpecific {
+                        skip_taskbar: true,
+                        undecorated_shadow: true,
+                        corner_preference: window::settings::platform::CornerPreference::Round,
+                        ..PlatformSpecific::default()
+                    },
+                    ..window::Settings::default()
+                });
+                self.widget_window = Some(id);
+                self.sync_sampling();
+                open.discard()
+            }
+            (true, Some(id)) => window::resize(id, size),
+            (false, Some(id)) => window::close(id),
+            (false, None) => Task::none(),
+        }
+    }
+
+    /// The tray icon exists only while "Discrete presence" is on.
+    fn sync_tray(&mut self) {
+        if !self.settings.minimize_to_tray {
+            self.tray = None;
+            return;
+        }
+        if self.tray.is_none() {
+            let french = self.tr().is_french();
+            self.tray = Some(Tray::spawn(tray::Labels {
+                show: if french { "Afficher Koi Monitor" } else { "Show Koi Monitor" }.to_string(),
+                toggle_widget: if french { "Afficher / Masquer le widget" } else { "Show / Hide the widget" }.to_string(),
+                quit: if french { "Quitter" } else { "Quit" }.to_string(),
+            }));
+        }
+    }
+
+    /// Telemetry runs while something displays it, or while Koi watch needs it.
+    fn sync_sampling(&self) {
+        let visible = self.main_window.is_some() || self.widget_window.is_some();
+        system::set_active(visible || self.settings.alert_thresholds.enabled);
+    }
+
+    // --- music ------------------------------------------------------------------
+
+    /// Plays or pauses according to the mute setting. With reduced motion, Koi stays silent.
+    fn sync_music(&mut self) {
+        if self.settings.ambient_music_muted || self.reduced_motion {
+            self.music.pause();
+        } else {
+            self.music.play(if self.easter_active { Track::Easter } else { Track::Ambient });
+        }
+    }
+
+    /// A click on the wordmark. Five within 2.5 s toggle the secret track.
+    fn secret_tap(&mut self) -> Task<Message> {
+        self.secret_taps += 1;
+        self.secret_seq = self.secret_seq.wrapping_add(1);
+
+        if self.secret_taps < 5 {
+            let seq = self.secret_seq;
+            let lapse = Task::future(tokio::time::sleep(Duration::from_millis(2500))).map(move |_| Message::SecretTapExpired(seq));
+
+            // Playful hints, until the secret has been found once.
+            let hint = if self.easter_active || self.settings.easter_music_seen {
+                Task::none()
+            } else {
+                let key = ["easter_hint_1", "easter_hint_2", "easter_hint_3", "easter_hint_4"][self.secret_taps as usize - 1];
+                let message = self.tr().t(key).to_string();
+                self.toast(message, Severity::Success, Source::System, false)
+            };
+            return Task::batch([lapse, hint]);
+        }
+
+        self.secret_taps = 0;
+        if self.easter_active {
+            self.easter_active = false;
+            if self.settings.ambient_music_muted {
+                self.music.pause();
+            } else {
+                self.music.crossfade(Track::Ambient);
+            }
+            return Task::none();
+        }
+
+        if self.settings.ambient_music_muted {
+            let message = self.tr().t("easter_mute_warning").to_string();
+            return self.toast(message, Severity::Warning, Source::System, true);
+        }
+        self.easter_active = true;
+        self.music.crossfade(Track::Easter);
+        self.settings.easter_music_seen = true;
+        self.save_settings();
+        let message = self.tr().t("easter_reward").to_string();
+        self.toast(message, Severity::Success, Source::System, false)
+    }
+
     /// System uptime in seconds, interpolated between telemetry samples.
     pub fn live_uptime(&self) -> u64 {
         match &self.system {
@@ -285,6 +509,16 @@ impl App {
         self.notifications.unread_alerts()
     }
 
+    fn splash_flags(&self) -> splash::Flags {
+        splash::Flags {
+            system: self.system.is_some(),
+            dns: self.dns_attempted,
+            drivers: self.drivers_settled,
+            // A few samples, so the charts are not empty when the dashboard appears.
+            dashboard: self.samples_received >= 3,
+        }
+    }
+
     fn tr(&self) -> Tr {
         Tr(self.settings.language)
     }
@@ -294,14 +528,17 @@ impl App {
         Ctx {
             p,
             tr: self.tr(),
-            atmosphere: Atmosphere::new(&self.settings, false, self.zen_tracker.state()),
+            atmosphere: Atmosphere::new(&self.settings, self.reduced_motion, self.zen_tracker.state()),
             accent: p.accent(self.settings.sakura_color),
             glow: self.settings.neon_glow,
         }
     }
 
     fn save_settings(&self) {
-        settings::save(&self.settings);
+        // A session opened with `KOI_DEV_STATE` plays with the settings: never persist it.
+        if std::env::var_os("KOI_DEV_STATE").is_none() {
+            settings::save(&self.settings);
+        }
     }
 
     fn set_zen(&mut self, zen: bool) {
@@ -417,7 +654,12 @@ impl App {
                 self.settings.refresh_interval = ms;
                 system::set_interval(Duration::from_millis(ms as u64));
             }
-            Change::Language(language) => self.settings.language = language,
+            Change::Language(language) => {
+                self.settings.language = language;
+                // The tray menu is built once: rebuild it in the new language.
+                self.tray = None;
+                self.sync_tray();
+            }
             Change::SimplifiedMode(simplified) => {
                 self.settings.simplified_mode = simplified;
                 toast = if simplified {
@@ -431,9 +673,18 @@ impl App {
                 Ok(()) => self.settings.launch_at_startup = enabled,
                 Err(error) => log::warn!("{error}"),
             },
-            Change::MinimizeToTray(enabled) => self.settings.minimize_to_tray = enabled,
-            Change::ShowDesktopWidget(show) => self.settings.show_desktop_widget = show,
-            Change::WidgetMode(mode) => self.settings.desktop_widget_mode = mode,
+            Change::MinimizeToTray(enabled) => {
+                self.settings.minimize_to_tray = enabled;
+                self.sync_tray();
+            }
+            Change::ShowDesktopWidget(show) => {
+                self.settings.show_desktop_widget = show;
+                follow_up = self.sync_widget();
+            }
+            Change::WidgetMode(mode) => {
+                self.settings.desktop_widget_mode = mode;
+                follow_up = self.sync_widget();
+            }
             Change::Preset(preset) => preset.apply(&mut self.settings),
             Change::Theme(theme) => {
                 self.settings.theme = theme;
@@ -461,7 +712,10 @@ impl App {
                 let message = self.tr().tf(key, &[("name", &name)]);
                 return Task::batch([self.settings_toast_text(message, Severity::Success), self.ping_dns()]);
             }
-            Change::AlertsEnabled(enabled) => self.settings.alert_thresholds.enabled = enabled,
+            Change::AlertsEnabled(enabled) => {
+                self.settings.alert_thresholds.enabled = enabled;
+                self.sync_sampling();
+            }
             Change::Sensitivity(sensitivity) => {
                 self.settings.alert_thresholds.desktop = DesktopAlerts::preset(sensitivity);
                 toast = ("toast_alert_saved", Severity::Success);
@@ -497,6 +751,7 @@ impl App {
                 let alert = self.watcher.evaluate(&info, &self.gaming, &self.settings.alert_thresholds, now, self.tr());
                 self.uptime_synced = now;
                 self.system = Some(info);
+                self.samples_received = self.samples_received.saturating_add(1);
 
                 if let Some(alert) = alert {
                     return self.toast(alert.message, alert.severity, Source::Alert, true);
@@ -504,9 +759,16 @@ impl App {
             }
             Message::Backend(system::Event::GamingLatency(snapshot)) => self.gaming = snapshot,
             Message::Tick => {}
+            Message::SplashTick => {
+                let flags = self.splash_flags();
+                if self.splash.as_mut().is_some_and(|splash| splash.tick(flags, Instant::now())) {
+                    self.splash = None;
+                    self.sync_music();
+                }
+            }
             Message::EscapePressed => {
                 // Innermost layer first, as each handler did in the web UI.
-                if self.onboarding_open {
+                if self.onboarding_open && self.splash.is_none() {
                     return self.update(Message::AlertOnboarding(false));
                 } else if self.settings_dialog.is_some() {
                     self.settings_dialog = None;
@@ -524,6 +786,7 @@ impl App {
             Message::ToggleMute => {
                 self.settings.ambient_music_muted = !self.settings.ambient_music_muted;
                 self.save_settings();
+                self.sync_music();
             }
             Message::ToggleNotifications => {
                 self.notification_panel_open = !self.notification_panel_open;
@@ -698,7 +961,7 @@ impl App {
                     }
                 };
             }
-            Message::SecretTap => {}
+            Message::SecretTap => return self.secret_tap(),
 
             Message::DnsTick => return self.ping_dns(),
             Message::DnsAutoTest => {
@@ -727,6 +990,7 @@ impl App {
                     return Task::none();
                 }
                 self.drivers_loading = false;
+                self.drivers_settled = true;
                 match result {
                     Ok(list) => {
                         let empty = crate::ui::drivers::is_empty_list(&list);
@@ -759,15 +1023,61 @@ impl App {
                 }
             }
 
-            Message::DragWindow => return window::latest().and_then(window::drag),
-            Message::MinimizeWindow => return window::latest().and_then(|id| window::minimize(id, true)),
-            Message::ToggleMaximize => return window::latest().and_then(window::toggle_maximize),
-            Message::CloseWindow => return window::latest().and_then(window::close),
-            Message::WindowResized(size) => {
-                self.window_size = size;
-                return window::latest().and_then(window::is_maximized).map(Message::Maximized);
+            Message::DragWindow => return self.main_window.map(window::drag).unwrap_or_else(Task::none),
+            Message::MinimizeWindow => {
+                if self.settings.minimize_to_tray {
+                    return self.hide_to_tray();
+                }
+                return self.main_window.map(|id| window::minimize(id, true)).unwrap_or_else(Task::none);
+            }
+            Message::ToggleMaximize => return self.main_window.map(window::toggle_maximize).unwrap_or_else(Task::none),
+            Message::CloseWindow => return self.close_main_window(),
+            Message::WindowResized(id, size) => {
+                if self.main_window == Some(id) {
+                    self.window_size = size;
+                    return window::is_maximized(id).map(Message::Maximized);
+                }
             }
             Message::Maximized(maximized) => self.maximized = maximized,
+            Message::CloseRequested(id) => {
+                if self.main_window == Some(id) {
+                    return self.close_main_window();
+                }
+                if self.widget_window == Some(id) {
+                    return self.update(Message::CloseWidget);
+                }
+            }
+            Message::WindowClosed(id) => {
+                if self.main_window == Some(id) {
+                    self.main_window = None;
+                    self.settings_dialog = None;
+                    self.expanded = None;
+                    self.notification_panel_open = false;
+                }
+                if self.widget_window == Some(id) {
+                    self.widget_window = None;
+                }
+                self.sync_sampling();
+            }
+
+            Message::Tray(tray::Event::Show) | Message::ShowMainWindow => return self.show_main_window(),
+            Message::Tray(tray::Event::ToggleWidget) => {
+                self.settings.show_desktop_widget = !self.settings.show_desktop_widget;
+                self.save_settings();
+                return self.sync_widget();
+            }
+            Message::Tray(tray::Event::Quit) => return iced::exit(),
+            Message::DragWidget => return self.widget_window.map(window::drag).unwrap_or_else(Task::none),
+            Message::CloseWidget => {
+                self.settings.show_desktop_widget = false;
+                self.save_settings();
+                return self.sync_widget();
+            }
+            Message::SecretTapExpired(seq) => {
+                if seq == self.secret_seq {
+                    self.secret_taps = 0;
+                }
+            }
         }
         Task::none()
     }
@@ -776,7 +1086,10 @@ impl App {
         let mut subscriptions = vec![
             Subscription::run(system::stream).map(Message::Backend),
             iced::time::every(Duration::from_secs(1)).map(|_| Message::Tick),
-            window::resize_events().map(|(_, size)| Message::WindowResized(size)),
+            window::resize_events().map(|(id, size)| Message::WindowResized(id, size)),
+            window::close_requests().map(Message::CloseRequested),
+            window::close_events().map(Message::WindowClosed),
+            Subscription::run(tray::events).map(Message::Tray),
             keyboard::listen().filter_map(|event| match event {
                 keyboard::Event::KeyPressed { key: keyboard::Key::Named(key::Named::Escape), .. } => {
                     Some(Message::EscapePressed)
@@ -785,18 +1098,36 @@ impl App {
             }),
         ];
 
-        // The DNS comparison is a dashboard feature: Zen mode leaves the network alone.
-        if !self.settings.zen_mode {
+        // The DNS comparison is a dashboard feature: Zen mode and the tray leave the network alone.
+        if !self.settings.zen_mode && self.main_window.is_some() {
             subscriptions.push(
                 iced::time::every(Duration::from_millis(self.settings.dns_interval as u64)).map(|_| Message::DnsTick),
             );
         }
 
+        if self.splash.is_some() {
+            subscriptions.push(iced::time::every(Duration::from_millis(33)).map(|_| Message::SplashTick));
+        }
+
         Subscription::batch(subscriptions)
     }
 
-    pub fn view(&self) -> Element<'_, Message> {
+    pub fn title(&self, window: window::Id) -> String {
+        if self.widget_window == Some(window) { "Koi Widget" } else { "Koi Monitor" }.to_string()
+    }
+
+    pub fn view(&self, window: window::Id) -> Element<'_, Message> {
         let ctx = self.ctx();
+        if self.widget_window == Some(window) {
+            return pill::view(self, &ctx);
+        }
+        if let Some(splash) = &self.splash {
+            return stack![
+                shader(Backdrop(ctx.atmosphere)).width(Fill).height(Fill),
+                mouse_area(crate::ui::splash::view(splash, self.splash_flags(), &ctx)).on_press(Message::DragWindow),
+            ]
+            .into();
+        }
         let overlay = ctx.p.overlay;
 
         // Same width and gutters as the dashboard (`max-w-7xl` + `px-8`).
@@ -838,7 +1169,7 @@ impl App {
             ));
         }
 
-        if self.onboarding_open {
+        if self.onboarding_open && self.splash.is_none() {
             layers = layers.push(modal(overlays::alert_onboarding(&ctx), Message::AlertOnboarding(false), overlay));
         }
 

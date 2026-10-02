@@ -25,7 +25,7 @@ const icons = [
   "flower", "gamepad-2", "globe", "hard-drive", "heart", "info", "loader-circle", "maximize-2",
   "memory-stick", "minimize-2", "minus", "monitor", "monitor-play", "moon", "refresh-cw", "rotate-ccw",
   "router", "settings", "settings-2", "signal", "square", "sun", "trash-2", "upload", "volume-2",
-  "volume-x", "wifi", "x", "chevron-right", "chevron-down", "music", "shield-check", "zap",
+  "volume-x", "wifi", "x",
 ];
 
 const iconDir = resolve(root, "node_modules/lucide-react/dist/esm/icons");

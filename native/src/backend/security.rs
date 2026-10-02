@@ -189,20 +189,10 @@ pub fn fetch_antivirus_status_with_wmi(
     build_security_info(products)
 }
 
-#[cfg(target_os = "windows")]
-pub fn fetch_antivirus_status() -> SecurityInfo {
-    fetch_antivirus_status_with_wmi(None)
-}
-
 #[cfg(not(target_os = "windows"))]
 pub fn fetch_antivirus_status_with_wmi(_security_wmi: Option<&()>) -> SecurityInfo {
     SecurityInfo {
         is_protected: false,
         product_name: "Non disponible".to_string(),
     }
-}
-
-#[cfg(not(target_os = "windows"))]
-pub fn fetch_antivirus_status() -> SecurityInfo {
-    fetch_antivirus_status_with_wmi(None)
 }

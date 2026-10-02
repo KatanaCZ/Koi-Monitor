@@ -40,8 +40,6 @@ icons! {
     Bluetooth => "bluetooth",
     Box => "box",
     Check => "check",
-    ChevronDown => "chevron-down",
-    ChevronRight => "chevron-right",
     Clock => "clock",
     Cpu => "cpu",
     Crown => "crown",
@@ -65,13 +63,11 @@ icons! {
     Monitor => "monitor",
     MonitorPlay => "monitor-play",
     Moon => "moon",
-    Music => "music",
     RefreshCw => "refresh-cw",
     RotateCcw => "rotate-ccw",
     Router => "router",
     Settings => "settings",
     Settings2 => "settings-2",
-    ShieldCheck => "shield-check",
     Signal => "signal",
     Square => "square",
     Sun => "sun",
@@ -81,7 +77,6 @@ icons! {
     VolumeX => "volume-x",
     Wifi => "wifi",
     X => "x",
-    Zap => "zap",
 }
 
 /// A square icon of the given size, tinted with `color`.

@@ -128,7 +128,8 @@ impl Watcher {
         }
     }
 
-    pub fn profile(&self) -> Profile {
+    #[cfg(test)]
+    fn profile(&self) -> Profile {
         self.profile
     }
 

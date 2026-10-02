@@ -143,7 +143,11 @@ pub fn view<'a>(app: &'a App, ctx: &Ctx) -> Element<'a, Message> {
     let zen = settings.zen_mode;
     let to_tray = settings.minimize_to_tray;
 
-    let wordmark = canvas_widget(Wordmark { cache: &app.wordmark_cache, ctx: *ctx, size: 15.0, bold: false }).width(108).height(24);
+    // Five quick clicks on the wordmark: the secret melody.
+    let wordmark = mouse_area(
+        canvas_widget(Wordmark { cache: &app.wordmark_cache, ctx: *ctx, size: 15.0, bold: false }).width(108).height(24),
+    )
+    .on_press(Message::SecretTap);
 
     // Everything that is not a button drags the window; a double click maximizes it.
     let mut center = row![].spacing(8).align_y(iced::Center);

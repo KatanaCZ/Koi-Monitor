@@ -14,6 +14,7 @@ pub mod drivers;
 pub mod gaming_latency;
 pub mod memory;
 pub mod open;
+pub mod prefs;
 pub mod security;
 mod subprocess;
 pub mod system;

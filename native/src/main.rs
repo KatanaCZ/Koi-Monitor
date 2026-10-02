@@ -4,18 +4,19 @@
 
 mod alerts;
 mod app;
+mod audio;
 mod backend;
 mod clock;
 mod gfx;
 mod i18n;
+mod icon;
 mod notify;
 mod settings;
+mod splash;
 mod theme;
+mod tray;
 mod ui;
 mod zen_state;
-
-use iced::window::settings::PlatformSpecific;
-use iced::{window, Size};
 
 use app::App;
 use theme::Palette;
@@ -27,10 +28,11 @@ fn main() -> iced::Result {
         std::env::set_var("WGPU_BACKEND", "dx12");
     }
 
-    let mut application = iced::application(App::boot, App::update, App::view)
-        .title("Koi Monitor")
+    // A daemon keeps running without any window: that is Koi in the notification area.
+    let mut application = iced::daemon(App::boot, App::update, App::view)
+        .title(App::title)
         .subscription(App::subscription)
-        .theme(|app: &App| match app.settings.theme {
+        .theme(|app: &App, _window| match app.settings.theme {
             settings::ThemeMode::Dark => iced::Theme::Dark,
             settings::ThemeMode::Light => iced::Theme::Light,
         })
@@ -39,18 +41,7 @@ fn main() -> iced::Result {
             iced::theme::Style { background_color: palette.background, text_color: palette.foreground }
         })
         .default_font(theme::GEIST)
-        .antialiasing(true)
-        .window(window::Settings {
-            size: Size::new(1400.0, 900.0),
-            min_size: Some(Size::new(1024.0, 768.0)),
-            decorations: false,
-            platform_specific: PlatformSpecific {
-                undecorated_shadow: true,
-                corner_preference: window::settings::platform::CornerPreference::Round,
-                ..PlatformSpecific::default()
-            },
-            ..window::Settings::default()
-        });
+        .antialiasing(true);
 
     for font in theme::FONT_FILES {
         application = application.font(font);

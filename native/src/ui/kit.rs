@@ -205,37 +205,3 @@ pub fn icon_button<'a, Message: Clone + 'a>(
 
     hint(control, label, ctx)
 }
-
-/// Text button with a tinted background (card actions such as "Test auto").
-pub fn pill_button<'a, Message: Clone + 'a>(
-    label: impl text::IntoFragment<'a>,
-    glyph: Option<Icon>,
-    neon: Neon,
-    message: Option<Message>,
-    ctx: &Ctx,
-) -> Element<'a, Message> {
-    let p = ctx.p;
-    let mut content = row![].spacing(6).align_y(iced::Center);
-    if let Some(glyph) = glyph {
-        content = content.push(icon(glyph, 14.0, neon.text));
-    }
-    content = content.push(text(label).size(12).font(GEIST_SEMIBOLD).color(neon.text));
-
-    button(content)
-        .padding(Padding::from([8, 12]))
-        .on_press_maybe(message)
-        .style(move |_, status| {
-            let strength = match status {
-                button::Status::Hovered | button::Status::Pressed => 0.22,
-                button::Status::Disabled => 0.06,
-                button::Status::Active => 0.12,
-            };
-            button::Style {
-                background: Some(alpha(neon.fill, strength).into()),
-                border: Border { color: alpha(neon.fill, 0.30), width: 1.0, radius: 12.0.into() },
-                text_color: p.foreground,
-                ..button::Style::default()
-            }
-        })
-        .into()
-}

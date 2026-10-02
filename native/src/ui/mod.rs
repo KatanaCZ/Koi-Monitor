@@ -7,6 +7,8 @@ pub mod drivers;
 pub mod icons;
 pub mod kit;
 pub mod overlays;
+pub mod pill;
 pub mod settings;
+pub mod splash;
 pub mod title_bar;
 pub mod zen;

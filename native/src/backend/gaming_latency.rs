@@ -2,7 +2,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 use std::time::{Duration, Instant};
 
-pub const GAMING_LATENCY_EVENT: &str = "gaming-latency-update";
 const INTERNET_HOST: &str = "1.1.1.1";
 const MAX_SAMPLES: usize = 15;
 const GATEWAY_REFRESH_SECS: u64 = 120;
