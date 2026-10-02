@@ -70,7 +70,7 @@ This isn't a theme slapped on a utility. It's an app you actually **leave open**
 
 - **Glass cards** — readable; disable them if you prefer something calmer
 - **Sakura** — petals in the background, 4 tints (pink, purple, blue, mint) that tint the UI too
-- **Signature opening** — katana animation, ~8–10 s splash on a fast machine
+- **Signature opening** — the title is written, cut by a blade and rejoined, then glides to its place while the dashboard fades in; about 4 s
 - **App icon** — the word **Koi** in neon (same style as the title bar), visible in the window, taskbar, and notification area
 - **Zen music** — starts with the dashboard, volume remembered; a second track hides for the curious
 - **Light or dark theme** — comfortable day and night
@@ -122,7 +122,7 @@ Pretty is good. Fake is not.
 - **Driver updates** — Windows Update first; NVIDIA / AMD / Intel links as backup
 - **Alerts** — off by default; if enabled: discreet toast, zero Windows popups
 
-A test fails? **Clear message at the bottom of the screen**, not a cryptic error. If a driver scan takes a while, the app still starts (up to ~90 s worst case).
+A test fails? **Clear message at the bottom of the screen**, not a cryptic error. A driver scan that takes a while never holds the dashboard back: its card shows its own progress.
 
 ---
 

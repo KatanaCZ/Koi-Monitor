@@ -52,6 +52,8 @@ pub struct Atmosphere {
     pub frosted: bool,
     /// The Zen wallpaper, when Zen mode is on and the aura is not disabled.
     pub pond: Option<Pond>,
+    /// Opacity of the glass surfaces drawn with it: below 1 while a view fades in.
+    pub presence: f32,
 }
 
 /// Zen pond: its colour and breath follow the machine's load state.
@@ -113,6 +115,7 @@ impl Atmosphere {
             ],
             frosted: settings.enable_glassmorphic_blur,
             pond,
+            presence: 1.0,
         }
     }
 
@@ -415,12 +418,13 @@ impl shader::Primitive for Layer {
                     (Surface::Dialog, false) => (0.16, 0.30),
                     (_, false) => (0.13, 0.14),
                 };
+                let presence = atmosphere.presence;
                 (
                     physical(bounds.shrink(margin)),
                     radius * scale,
-                    with_w(rgb(tint), opacity),
-                    border,
-                    shadow,
+                    with_w(rgb(tint), opacity * presence),
+                    border * presence,
+                    shadow * presence,
                     if frosted { 1.0 } else { 0.0 },
                 )
             }

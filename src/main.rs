@@ -50,7 +50,9 @@ fn main() -> iced::Result {
         })
         .style(|app, _| {
             let palette = Palette::of(app.settings.theme);
-            iced::theme::Style { background_color: palette.background, text_color: palette.foreground }
+            // Text without a colour of its own fades in with the rest after the opening screen.
+            let arriving = ui::splash::bar_entrance(app.entrance());
+            iced::theme::Style { background_color: palette.background, text_color: theme::alpha(palette.foreground, arriving) }
         })
         .default_font(theme::GEIST)
         .antialiasing(true);

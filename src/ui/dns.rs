@@ -32,8 +32,8 @@ struct LatencyStatus {
 fn latency_status(latency_ms: f64, ctx: &Ctx) -> LatencyStatus {
     let (p, tr) = (ctx.p, ctx.tr);
     let dark = p.is_dark();
-    let tint = |dark_bg: u32, light_bg: u32| if dark { rgba(dark_bg, 0.15) } else { rgba(light_bg, 0.10) };
-    let pick = |dark_color: u32, light_color: u32| if dark { rgb(dark_color) } else { rgb(light_color) };
+    let tint = |dark_bg: u32, light_bg: u32| p.fading(if dark { rgba(dark_bg, 0.15) } else { rgba(light_bg, 0.10) });
+    let pick = |dark_color: u32, light_color: u32| p.fading(if dark { rgb(dark_color) } else { rgb(light_color) });
 
     if latency_ms < 0.0 {
         LatencyStatus { label: tr.t("dns_status_expired"), color: p.text_muted, background: tint(0x64748b, 0x64748b) }
@@ -93,9 +93,9 @@ fn server_style(is_best: bool, radius: f32, ctx: &Ctx) -> container::Style {
     }
     let green = p.green.fill;
     container::Style {
-        background: Some(if p.is_dark() { alpha(green, 0.05) } else { rgb(0xd1fae5) }.into()),
+        background: Some(if p.is_dark() { alpha(green, 0.05) } else { p.fading(rgb(0xd1fae5)) }.into()),
         border: Border {
-            color: if p.is_dark() { alpha(green, 0.30) } else { rgb(0x6ee7b7) },
+            color: if p.is_dark() { alpha(green, 0.30) } else { p.fading(rgb(0x6ee7b7)) },
             width: 1.0,
             radius: radius.into(),
         },
@@ -236,10 +236,10 @@ pub fn verdict_style(verdict: &str, ctx: &Ctx) -> VerdictStyle {
     };
     match verdict {
         "ready" => tone(p.green.fill, p.green.text),
-        "marginal" => tone(rgb(0xfbbf24), if p.is_dark() { rgb(0xfde68a) } else { rgb(0x92400e) }),
-        "local_issue" | "local_network" => tone(rgb(0xfb923c), if p.is_dark() { rgb(0xfdba74) } else { rgb(0x9a3412) }),
+        "marginal" => tone(p.fading(rgb(0xfbbf24)), if p.is_dark() { p.fading(rgb(0xfde68a)) } else { p.fading(rgb(0x92400e)) }),
+        "local_issue" | "local_network" => tone(p.fading(rgb(0xfb923c)), if p.is_dark() { p.fading(rgb(0xfdba74)) } else { p.fading(rgb(0x9a3412)) }),
         "offline" | "internet_unreachable" | "high_latency" => {
-            tone(rgb(0xf87171), if p.is_dark() { rgb(0xfca5a5) } else { rgb(0x991b1b) })
+            tone(p.fading(rgb(0xf87171)), if p.is_dark() { p.fading(rgb(0xfca5a5)) } else { p.fading(rgb(0x991b1b)) })
         }
         _ => VerdictStyle {
             color: p.green.fill,
@@ -274,7 +274,9 @@ fn signal_bars<'a>(latency_ms: f64, measuring: bool, color: Color, compact: bool
 
     let bars = [0.45f32, 0.6, 0.75, 0.88, 1.0].into_iter().enumerate().map(|(index, ratio)| {
         // Inactive bars stay visible on the dark trough, dimmer still while measuring.
-        let fill = if index < active { color } else { alpha(track, track.a.max(0.14) * if measuring { 0.6 } else { 1.0 }) };
+        // The dark theme's track is too faint for bars this small: more than twice as opaque here.
+        let lift = if ctx.p.is_dark() { 0.14 / 0.06 } else { 1.0 };
+        let fill = if index < active { color } else { alpha(track, lift * if measuring { 0.6 } else { 1.0 }) };
         container(Space::new())
             .width(width)
             .height((height * ratio).round().max(2.0))
@@ -324,7 +326,7 @@ fn via_band<'a>(app: &'a App, ctx: &Ctx, compact: bool) -> Element<'a, Message> 
         None => LatencyStatus {
             label: tr.t("dns_status_pending"),
             color: p.text_muted,
-            background: rgba(0x64748b, if p.is_dark() { 0.15 } else { 0.10 }),
+            background: p.fading(rgba(0x64748b, if p.is_dark() { 0.15 } else { 0.10 })),
         },
     };
     let resolver_label = best.map(|dns| format!("Via {}", dns.server_name)).unwrap_or_else(|| tr.t("dns_resolver_label").to_string());
@@ -406,11 +408,11 @@ fn metric_tone(ms: f64, kind: &str, sample_count: u32, ctx: &Ctx) -> Color {
     if ms < 0.0 || (kind == "jitter" && sample_count < 2) {
         p.text_muted
     } else if kind == "gateway" && ms > 25.0 {
-        rgb(0xfb923c)
+        p.fading(rgb(0xfb923c))
     } else if kind == "internet" && ms > 100.0 {
-        rgb(0xf87171)
+        p.fading(rgb(0xf87171))
     } else if (kind == "internet" && ms > 60.0) || (kind == "jitter" && ms > 20.0) {
-        rgb(0xfbbf24)
+        p.fading(rgb(0xfbbf24))
     } else {
         p.green.text
     }

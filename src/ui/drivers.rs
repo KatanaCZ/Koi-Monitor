@@ -71,7 +71,7 @@ fn version_highlight<'a>(version: &str, other: &str, available: bool, size: f32,
         return text(ctx.tr.t("drivers_version_not_detected")).size(size).font(MONO).color(p.text_muted).into();
     }
 
-    let tone = if available { if p.is_dark() { rgb(0x7dd3fc) } else { rgb(0x0284c7) } } else { p.purple.text };
+    let tone = if available { if p.is_dark() { p.fading(rgb(0x7dd3fc)) } else { p.fading(rgb(0x0284c7)) } } else { p.purple.text };
     let highlight = if available { rgb(SKY) } else { p.purple.fill };
 
     let mut line = row![text("v").size(size).font(MONO_BOLD).color(tone)].align_y(iced::Center);
@@ -103,7 +103,7 @@ fn version_compare<'a>(driver: &DriverInfo, inline: bool, compact: bool, ctx: &C
         container(column![text(label.to_uppercase()).size(label_size).font(GEIST_BOLD).color(label_color), value].spacing(4))
             .padding(padding)
             .style(move |_| container::Style {
-                background: Some(if available { alpha(sky, 0.10) } else { alpha(p.surface_raised, p.surface_raised.a * 0.7) }.into()),
+                background: Some(if available { alpha(sky, 0.10) } else { alpha(p.surface_raised, 0.7) }.into()),
                 border: Border { color: if available { alpha(sky, 0.35) } else { p.border }, width: 1.0, radius: 12.0.into() },
                 shadow: if available { Shadow { color: alpha(sky, 0.12), offset: [0.0, 0.0].into(), blur_radius: 16.0 } } else { Shadow::default() },
                 ..container::Style::default()
@@ -118,7 +118,7 @@ fn version_compare<'a>(driver: &DriverInfo, inline: bool, compact: bool, ctx: &C
     );
     let available = block(
         tr.t("drivers_version_label_available"),
-        if p.is_dark() { rgb(0x38bdf8) } else { rgb(0x0284c7) },
+        if p.is_dark() { p.fading(rgb(0x38bdf8)) } else { p.fading(rgb(0x0284c7)) },
         version_highlight(&driver.latest_version, &driver.version, true, value_size, ctx),
         true,
     );
@@ -241,11 +241,11 @@ fn category_icon<'a>(driver: &DriverInfo, box_size: f32, ctx: &Ctx) -> Element<'
     }
 
     let (glyph, color) = match driver.category.as_str() {
-        "Graphics" => (Icon::Monitor, rgb(0x3b82f6)),
-        "Network" => (Icon::Wifi, rgb(0x10b981)),
-        "Storage" => (Icon::HardDrive, rgb(0xf59e0b)),
-        "Audio" => (Icon::Volume, rgb(0xa855f7)),
-        "Bluetooth" => (Icon::Bluetooth, rgb(0x06b6d4)),
+        "Graphics" => (Icon::Monitor, p.fading(rgb(0x3b82f6))),
+        "Network" => (Icon::Wifi, p.fading(rgb(0x10b981))),
+        "Storage" => (Icon::HardDrive, p.fading(rgb(0xf59e0b))),
+        "Audio" => (Icon::Volume, p.fading(rgb(0xa855f7))),
+        "Bluetooth" => (Icon::Bluetooth, p.fading(rgb(0x06b6d4))),
         "Firmware" => (Icon::Cpu, p.text_muted),
         _ => (Icon::Box, p.text_subtle),
     };
@@ -467,7 +467,7 @@ fn summary_band<'a>(drivers: &[&DriverInfo], compact: bool, ctx: &Ctx) -> Elemen
     let (badge, tone) = if updates > 0 {
         (counted(tr, updates, "drivers_badge_update_one", "drivers_badge_update_many"), p.purple.text)
     } else if verify > 0 {
-        (counted(tr, verify, "drivers_badge_verify_one", "drivers_badge_verify_many"), rgb(0xf59e0b))
+        (counted(tr, verify, "drivers_badge_verify_one", "drivers_badge_verify_many"), p.fading(rgb(0xf59e0b)))
     } else {
         (tr.t("drivers_badge_all_ok").to_string(), p.green.text)
     };
@@ -641,7 +641,7 @@ fn detail_panel<'a>(driver: &DriverInfo, ctx: &Ctx) -> Element<'a, Message> {
     if update {
         let mut actions = column![].spacing(12);
         if store_only {
-            let amber = if p.is_dark() { rgb(0xfbbf24) } else { rgb(0xb45309) };
+            let amber = if p.is_dark() { p.fading(rgb(0xfbbf24)) } else { p.fading(rgb(0xb45309)) };
             actions = actions.push(
                 column![
                     text(tr.t("drivers_store_warning_1")).size(11).color(amber),
@@ -671,7 +671,7 @@ fn detail_panel<'a>(driver: &DriverInfo, ctx: &Ctx) -> Element<'a, Message> {
         panel = panel.push(action_button(
             tr.t(if verify { "drivers_btn_confirm_online" } else { "drivers_btn_manufacturer_page" }).to_string(),
             true,
-            verify.then(|| rgb(0xf59e0b)),
+            verify.then(|| p.fading(rgb(0xf59e0b))),
             Message::OpenUrl(driver.update_url.clone()),
             ctx,
         ));

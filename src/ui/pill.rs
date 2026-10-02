@@ -7,7 +7,7 @@ use super::icons::{icon, Icon};
 use super::kit::Ctx;
 use crate::app::{App, Message};
 use crate::settings::WidgetMode;
-use crate::theme::{alpha, GEIST_BOLD};
+use crate::theme::GEIST_BOLD;
 
 /// Window size for each style.
 pub fn window_size(mode: WidgetMode) -> Size {
@@ -104,7 +104,7 @@ pub fn view<'a>(app: &'a App, ctx: &Ctx) -> Element<'a, Message> {
         .height(Fill)
         .style(move |_| container::Style {
             background: Some(p.card_solid.into()),
-            border: Border { color: alpha(p.border_strong, p.border_strong.a), width: 1.0, radius: 0.0.into() },
+            border: Border { color: p.border_strong, width: 1.0, radius: 0.0.into() },
             ..container::Style::default()
         })
         .into()

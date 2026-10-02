@@ -167,10 +167,6 @@ pub struct App {
 
     pub drivers: Vec<DriverInfo>,
     pub drivers_loading: bool,
-    /// The first driver scan has finished, whatever its outcome.
-    drivers_settled: bool,
-    /// Telemetry samples received since launch.
-    samples_received: u32,
     /// The opening screen, until it has played.
     splash: Option<Splash>,
     /// Key of the driver picked in the expanded drivers view.
@@ -222,6 +218,8 @@ impl App {
         let settings = settings::load();
         system::set_interval(Duration::from_millis(settings.refresh_interval as u64));
         let onboarding_open = !settings.alerts_onboarding_done;
+        let reduced_motion = crate::backend::prefs::reduced_motion();
+        let calm = settings.calm_motion || reduced_motion;
 
         let mut app = Self {
             settings,
@@ -239,9 +237,7 @@ impl App {
             gaming_details_open: false,
             drivers: Vec::new(),
             drivers_loading: false,
-            drivers_settled: false,
-            samples_received: 0,
-            splash: Some(Splash::new(Instant::now())),
+            splash: Some(Splash::new(Instant::now(), calm)),
             driver_selected: None,
             cpu_history: History::new(),
             ram_history: History::new(),
@@ -265,7 +261,7 @@ impl App {
             tray: None,
             music: Music::default(),
             easter_active: false,
-            reduced_motion: crate::backend::prefs::reduced_motion(),
+            reduced_motion,
             secret_taps: 0,
             secret_seq: 0,
             window_size: Size::new(1400.0, 900.0),
@@ -317,6 +313,13 @@ impl App {
                 "no-onboarding" => self.onboarding_open = false,
                 "mute" => self.settings.ambient_music_muted = true,
                 "no-splash" => self.splash = None,
+                // `splash-at=1.4`: the opening screen held 1.4 s in.
+                held if held.starts_with("splash-at=") => {
+                    if let Ok(seconds) = held["splash-at=".len()..].parse::<f32>() {
+                        let calm = self.settings.calm_motion || self.reduced_motion;
+                        self.splash = Some(Splash::frozen_at(Instant::now(), seconds, calm));
+                    }
+                }
                 "widget-koi" | "widget-zen" => {
                     self.settings.show_desktop_widget = true;
                     self.settings.desktop_widget_mode = if token == "widget-koi" { WidgetMode::Koi } else { WidgetMode::Zen };
@@ -510,12 +513,19 @@ impl App {
     }
 
     fn splash_flags(&self) -> splash::Flags {
-        splash::Flags {
-            system: self.system.is_some(),
-            dns: self.dns_attempted,
-            drivers: self.drivers_settled,
-            // A few samples, so the charts are not empty when the dashboard appears.
-            dashboard: self.samples_received >= 3,
+        splash::Flags { system: self.system.is_some(), dns: self.dns_attempted }
+    }
+
+    /// The opening screen is still playing, hand-over included.
+    pub fn opening(&self) -> bool {
+        self.splash.is_some()
+    }
+
+    /// The hand-over from the opening screen to the dashboard, 0 to 1; 1 once it is over.
+    pub fn entrance(&self) -> f32 {
+        match &self.splash {
+            Some(splash) => splash.outro(Instant::now()).unwrap_or(0.0),
+            None => 1.0,
         }
     }
 
@@ -754,7 +764,6 @@ impl App {
                 let alert = self.watcher.evaluate(&info, &self.gaming, &self.settings.alert_thresholds, now, self.tr());
                 self.uptime_synced = now;
                 self.system = Some(info);
-                self.samples_received = self.samples_received.saturating_add(1);
 
                 if let Some(alert) = alert {
                     return self.toast(alert.message, alert.severity, Source::Alert, true);
@@ -764,9 +773,24 @@ impl App {
             Message::Tick => {}
             Message::SplashTick => {
                 let flags = self.splash_flags();
-                if self.splash.as_mut().is_some_and(|splash| splash.tick(flags, Instant::now())) {
+                let now = Instant::now();
+                let Some(splash) = &mut self.splash else {
+                    return Task::none();
+                };
+                let was_handing_over = splash.outro(now).is_some();
+                let over = splash.tick(flags, now);
+                let handing_over = splash.outro(now).is_some();
+
+                if over {
                     self.splash = None;
+                }
+                // The music comes in with the dashboard.
+                if handing_over && !was_handing_over {
                     self.sync_music();
+                }
+                // The fade is baked into cached geometry: redraw it each frame of the hand-over.
+                if handing_over || over {
+                    self.clear_caches();
                 }
             }
             Message::EscapePressed => {
@@ -993,7 +1017,6 @@ impl App {
                     return Task::none();
                 }
                 self.drivers_loading = false;
-                self.drivers_settled = true;
                 match result {
                     Ok(list) => {
                         let empty = crate::ui::drivers::is_empty_list(&list);
@@ -1112,8 +1135,9 @@ impl App {
             );
         }
 
+        // One tick per frame drawn: the opening screen runs at the display's rate.
         if self.splash.is_some() {
-            subscriptions.push(iced::time::every(Duration::from_millis(33)).map(|_| Message::SplashTick));
+            subscriptions.push(window::frames().map(|_| Message::SplashTick));
         }
 
         Subscription::batch(subscriptions)
@@ -1128,31 +1152,42 @@ impl App {
         if self.widget_window == Some(window) {
             return pill::view(self, &ctx);
         }
-        if let Some(splash) = &self.splash {
-            return stack![
-                shader(Backdrop(ctx.atmosphere)).width(Fill).height(Fill),
-                mouse_area(crate::ui::splash::view(splash, self.splash_flags(), &ctx)).on_press(Message::DragWindow),
-            ]
-            .into();
-        }
+        // The opening screen: alone at first, then above the dashboard it hands over to.
+        let opening = self.splash.as_ref().map(|splash| {
+            let slot = (!self.settings.zen_mode).then(|| title_bar::wordmark_slot(self.window_size.width));
+            (splash.outro(Instant::now()).is_some(), crate::ui::splash::view(splash, self.splash_flags(), slot, splash.live(), &ctx))
+        });
+        let opening = match opening {
+            Some((false, scene)) => {
+                return stack![
+                    shader(Backdrop(ctx.atmosphere)).width(Fill).height(Fill),
+                    mouse_area(scene).on_press(Message::DragWindow),
+                ]
+                .into();
+            }
+            Some((true, scene)) => Some(scene),
+            None => None,
+        };
+        let entrance = self.entrance();
+        let arriving = ctx.entering(crate::ui::splash::bar_entrance(entrance));
         let overlay = ctx.p.overlay;
 
         // Same width and gutters as the dashboard (`max-w-7xl` + `px-8`).
         let title_bar = || {
-            container(container(title_bar::view(self, &ctx)).max_width(1280))
+            container(container(title_bar::view(self, &arriving)).max_width(title_bar::MAX_WIDTH))
                 .center_x(Fill)
-                .padding(Padding { top: 24.0, right: 32.0, bottom: 0.0, left: 32.0 })
+                .padding(Padding { top: title_bar::TOP, right: title_bar::GUTTER, bottom: 0.0, left: title_bar::GUTTER })
         };
 
         let page: Element<'_, Message> = if self.settings.zen_mode {
             let top: Element<'_, Message> = if self.zen_bar_revealed {
                 mouse_area(title_bar()).on_exit(Message::ZenBar(false)).into()
             } else {
-                zen::title_bar_peek(&ctx)
+                zen::title_bar_peek(&arriving)
             };
-            column![top, zen::view(self, &ctx)].into()
+            column![top, zen::view(self, &arriving)].into()
         } else {
-            column![title_bar(), dashboard::view(self, &ctx)].spacing(24).into()
+            column![title_bar(), dashboard::view(self, &ctx, entrance)].spacing(24).into()
         };
 
         let mut layers = stack![shader(Backdrop(ctx.atmosphere)).width(Fill).height(Fill), page];
@@ -1182,6 +1217,10 @@ impl App {
 
         if let Some(toast) = &self.notifications.toast {
             layers = layers.push(overlays::status_toast(toast, &ctx));
+        }
+
+        if let Some(scene) = opening {
+            layers = layers.push(scene);
         }
 
         layers.into()

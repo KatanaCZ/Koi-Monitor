@@ -1,173 +1,155 @@
-//! Opening sequence: title intro, then hardware / connection / drivers / ready.
+//! Opening sequence: the title intro, a short wait for the first data when it is
+//! not there yet, then the hand-over to the dashboard.
 //!
-//! Port of the phase logic of `SplashScreen.tsx`. Each phase lasts at least long enough
-//! to be read, waits for the backend it stands for, and the bar never moves backwards.
+//! This module only keeps time; `ui::splash` draws it.
 
 use std::time::{Duration, Instant};
 
-/// Title intro before the steps appear.
-pub const INTRO: Duration = Duration::from_millis(1800);
-/// The splash gives up waiting after this long (a driver scan can hang).
-const SAFETY_TIMEOUT: Duration = Duration::from_secs(90);
-/// Pause on a step's "done" message before moving on.
-const STEP_DONE_DWELL: Duration = Duration::from_millis(650);
-/// Pause on "everything is ready" before the dashboard appears.
-const READ_PAUSE: Duration = Duration::from_millis(950);
+/// The title intro: letters, blade, cut, rejoin, underline.
+pub const INTRO: Duration = Duration::from_millis(3000);
+/// The wordmark travels to the title bar while the dashboard comes in.
+pub const OUTRO: Duration = Duration::from_millis(1100);
+/// With calm motion the title only fades in, then hands over.
+const CALM_INTRO: Duration = Duration::from_millis(900);
+const CALM_OUTRO: Duration = Duration::from_millis(450);
+/// Past the intro, the progress line appears only if the data still takes this long.
+pub const LINE_DELAY: Duration = Duration::from_millis(250);
+/// Longest wait for the first data once the intro has played.
+const WAIT_CAP: Duration = Duration::from_secs(8);
 
-/// What the backend has delivered so far.
+/// What the backend has delivered so far. The driver scan is not waited for:
+/// its card shows its own progress.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Flags {
     pub system: bool,
     pub dns: bool,
-    pub drivers: bool,
-    pub dashboard: bool,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Step {
-    Pending,
-    Active,
-    Done,
+impl Flags {
+    pub fn ready(self) -> bool {
+        self.system && self.dns
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct Splash {
-    /// 0 = intro, 1 = hardware, 2 = connection, 3 = drivers, 4 = ready.
-    phase: u8,
-    pub started: Instant,
-    phase_started: Instant,
-    /// When the backend of the current phase was first seen ready.
-    ready_since: Option<Instant>,
+    started: Instant,
+    outro_started: Option<Instant>,
+    last_tick: Instant,
+    /// Progress of the wait, 0 to 100; it never moves backwards.
     pub percent: f32,
-    /// Set once everything is ready: the moment the splash closes.
-    closes_at: Option<Instant>,
-}
-
-fn min_duration(phase: u8) -> Duration {
-    match phase {
-        0 => INTRO,
-        1 => Duration::from_millis(1300),
-        2 => Duration::from_millis(1550),
-        3 => Duration::from_millis(1300),
-        _ => Duration::from_millis(1900),
-    }
-}
-
-/// Progress range covered by each phase.
-fn progress_range(phase: u8) -> (f32, f32) {
-    match phase {
-        0 => (0.0, 10.0),
-        1 => (10.0, 32.0),
-        2 => (33.0, 64.0),
-        3 => (66.0, 94.0),
-        _ => (95.0, 100.0),
-    }
-}
-
-fn ease_out_quad(t: f32) -> f32 {
-    1.0 - (1.0 - t).powi(2)
+    /// The progress line has been on screen, so it gets to finish before the hand-over.
+    line_shown: bool,
+    calm: bool,
+    /// A dev session can hold the sequence at one instant.
+    frozen: Option<Instant>,
 }
 
 impl Splash {
-    pub fn new(now: Instant) -> Self {
-        Self { phase: 0, started: now, phase_started: now, ready_since: None, percent: 0.0, closes_at: None }
+    pub fn new(now: Instant, calm: bool) -> Self {
+        Self { started: now, outro_started: None, last_tick: now, percent: 0.0, line_shown: false, calm, frozen: None }
     }
 
-    fn backend_ready(&self, flags: Flags) -> bool {
-        match self.phase {
-            0 => true,
-            1 => flags.system,
-            2 => flags.dns,
-            3 => flags.drivers,
-            _ => flags.dashboard,
+    /// The sequence held `seconds` after its start, for screenshots.
+    pub fn frozen_at(now: Instant, seconds: f32, calm: bool) -> Self {
+        let mut splash = Self::new(now, calm);
+        let at = now + Duration::from_secs_f32(seconds.max(0.0));
+        if at >= now + splash.intro() {
+            splash.outro_started = Some(now + splash.intro());
+            splash.percent = 100.0;
         }
+        splash.frozen = Some(at);
+        splash
     }
 
-    /// Where the bar is heading in the current phase.
-    fn target_percent(&self, flags: Flags, now: Instant) -> f32 {
-        let in_phase = now.duration_since(self.phase_started).as_secs_f32();
-        let min = min_duration(self.phase).as_secs_f32();
-        let (floor, ceiling) = progress_range(self.phase);
+    fn clock(&self, now: Instant) -> Instant {
+        self.frozen.unwrap_or(now)
+    }
 
-        match self.phase {
-            0 => floor + (ceiling - floor) * ease_out_quad((in_phase / min).min(1.0)),
-            1..=3 if self.backend_ready(flags) => ceiling,
-            // Still waiting: creep towards the ceiling without ever reaching it.
-            1..=3 => floor + (ceiling - floor - 3.0) * (1.0 - (-in_phase / (min * 0.95).max(1.0)).exp()),
-            _ if !flags.dashboard => floor + (ceiling - floor - 3.0) * (1.0 - (-in_phase / (min * 0.85).max(1.4)).exp()),
-            _ => floor + (ceiling - floor) * ease_out_quad((in_phase / 0.75).min(1.0)),
+    pub fn calm(&self) -> bool {
+        self.calm
+    }
+
+    /// False for a sequence held at one instant.
+    pub fn live(&self) -> bool {
+        self.frozen.is_none()
+    }
+
+    fn intro(&self) -> Duration {
+        if self.calm { CALM_INTRO } else { INTRO }
+    }
+
+    fn outro_duration(&self) -> Duration {
+        if self.calm { CALM_OUTRO } else { OUTRO }
+    }
+
+    /// Seconds since the splash opened.
+    pub fn time(&self, now: Instant) -> f32 {
+        self.clock(now).duration_since(self.started).as_secs_f32()
+    }
+
+    /// Seconds spent waiting for data past the intro; `None` during the intro and the outro.
+    pub fn waiting(&self, now: Instant) -> Option<f32> {
+        if self.outro_started.is_some() {
+            return None;
         }
+        self.clock(now).checked_duration_since(self.started + self.intro()).map(|waited| waited.as_secs_f32())
     }
 
-    /// Advances the sequence. Returns `true` once the splash should close.
+    /// Whether the progress line was drawn at some point.
+    pub fn line_shown(&self) -> bool {
+        self.line_shown
+    }
+
+    /// Progress of the hand-over to the dashboard, 0 to 1; `None` before it starts.
+    pub fn outro(&self, now: Instant) -> Option<f32> {
+        let started = self.outro_started?;
+        let elapsed = self.clock(now).saturating_duration_since(started).as_secs_f32();
+        Some((elapsed / self.outro_duration().as_secs_f32()).clamp(0.0, 1.0))
+    }
+
+    /// Advances the sequence. Returns `true` once the splash is over.
     pub fn tick(&mut self, flags: Flags, now: Instant) -> bool {
-        if now.duration_since(self.started) >= SAFETY_TIMEOUT {
-            self.percent = 100.0;
-            return true;
+        if self.frozen.is_some() {
+            return false;
         }
+        let step = now.saturating_duration_since(self.last_tick).as_secs_f32().min(0.1);
+        self.last_tick = now;
+        let waited = now.checked_duration_since(self.started + self.intro());
 
-        let ready = self.backend_ready(flags);
-        if ready && self.phase >= 1 && self.ready_since.is_none() {
-            self.ready_since = Some(now);
-        }
-
-        let dwelled = self.phase == 0 || self.ready_since.is_some_and(|since| now.duration_since(since) >= STEP_DONE_DWELL);
-        let in_phase = now.duration_since(self.phase_started);
-        if self.phase < 4 && ready && dwelled && in_phase >= min_duration(self.phase) {
-            self.phase += 1;
-            self.phase_started = now;
-            self.ready_since = None;
-        }
-
-        // Ease towards the target, faster once the step's backend has answered.
-        let target = self.target_percent(flags, now);
-        let factor = if (1..=3).contains(&self.phase) && self.backend_ready(flags) { 0.18 } else { 0.11 };
-        let next = if (target - self.percent).abs() < 0.15 { target } else { self.percent + (target - self.percent) * factor };
-        self.percent = next.max(self.percent).min(100.0);
-
-        if self.phase == 4 && flags.dashboard && self.percent >= 99.5 {
-            let in_phase = now.duration_since(self.phase_started);
-            let remaining = min_duration(4).saturating_sub(in_phase);
-            let closes_at = *self.closes_at.get_or_insert(now + remaining + READ_PAUSE);
-            return now >= closes_at;
-        }
-        false
-    }
-
-    pub fn step(&self, index: u8, flags: Flags) -> Step {
-        let step_phase = index + 1;
-        let ready = match index {
-            0 => flags.system,
-            1 => flags.dns,
-            _ => flags.drivers,
+        // Ease towards a target that depends on what has answered; time-based, so the
+        // pace is the same at 60 Hz and at 165 Hz.
+        let seconds = waited.map(|waited| waited.as_secs_f32()).unwrap_or(0.0);
+        let target = match (flags.system, flags.dns) {
+            (true, true) => 100.0,
+            (true, false) => 55.0 + 35.0 * (1.0 - (-seconds / 2.5).exp()),
+            (false, _) => 45.0 * (1.0 - (-seconds / 2.0).exp()),
         };
-        if self.phase > step_phase || (self.phase == step_phase && ready) {
-            Step::Done
-        } else if self.phase == step_phase {
-            Step::Active
-        } else {
-            Step::Pending
-        }
+        let eased = self.percent + (target - self.percent) * (1.0 - (-step * 9.0).exp());
+        self.percent = if target - eased < 0.2 { target } else { eased }.max(self.percent).min(100.0);
+
+        let Some(outro_started) = self.outro_started else {
+            if let Some(waited) = waited {
+                if waited >= LINE_DELAY && !flags.ready() {
+                    self.line_shown = true;
+                }
+                let line_done = !self.line_shown || self.percent >= 99.5;
+                if (flags.ready() && line_done) || waited >= WAIT_CAP {
+                    self.outro_started = Some(now);
+                }
+            }
+            return false;
+        };
+        now.saturating_duration_since(outro_started) >= self.outro_duration()
     }
 
-    /// Translation key of the status line under the steps.
+    /// Translation key of the status line shown while waiting.
     pub fn message_key(&self, flags: Flags) -> &'static str {
-        match (self.phase, self.backend_ready(flags)) {
-            (0, _) => "splash_init",
-            (1, false) => "splash_status_system_loading",
-            (1, true) => "splash_status_system_done",
-            (2, false) => "splash_status_dns_loading",
-            (2, true) => "splash_status_dns_done",
-            (3, false) => "splash_status_drivers_loading",
-            (3, true) => "splash_status_drivers_done",
-            (_, false) => "splash_dashboard_loading",
-            (_, true) => "splash_dashboard_done",
+        match (flags.system, flags.dns) {
+            (false, _) => "splash_status_system_loading",
+            (true, false) => "splash_status_dns_loading",
+            (true, true) => "splash_dashboard_done",
         }
-    }
-
-    /// The steps and the bar appear once the title intro has played.
-    pub fn intro_done(&self, now: Instant) -> bool {
-        now.duration_since(self.started) >= INTRO
     }
 }
 
@@ -175,8 +157,9 @@ impl Splash {
 mod tests {
     use super::*;
 
-    const TICK: Duration = Duration::from_millis(33);
-    const ALL_READY: Flags = Flags { system: true, dns: true, drivers: true, dashboard: true };
+    /// A 120 Hz display.
+    const TICK: Duration = Duration::from_millis(8);
+    const READY: Flags = Flags { system: true, dns: true };
 
     /// Ticks until the splash closes or `limit` elapses; returns the elapsed time.
     fn run(splash: &mut Splash, flags: Flags, start: Instant, from: Duration, limit: Duration) -> (Duration, bool) {
@@ -191,45 +174,99 @@ mod tests {
     }
 
     #[test]
-    fn a_ready_backend_still_gets_a_readable_sequence() {
+    fn ready_backend_gets_the_intro_then_the_dashboard() {
         let start = Instant::now();
-        let mut splash = Splash::new(start);
-        let (elapsed, closed) = run(&mut splash, ALL_READY, start, Duration::ZERO, Duration::from_secs(30));
+        let mut splash = Splash::new(start, false);
+        let (elapsed, closed) = run(&mut splash, READY, start, Duration::ZERO, Duration::from_secs(30));
 
         assert!(closed);
-        // Intro + three steps + ready, each with its minimum time: about 8 to 10 s.
-        assert!(elapsed > Duration::from_secs(7) && elapsed < Duration::from_secs(12), "closed after {elapsed:?}");
-        assert_eq!(splash.percent, 100.0);
+        let expected = INTRO + OUTRO;
+        assert!(elapsed >= expected && elapsed < expected + Duration::from_millis(200), "closed after {elapsed:?}");
+        assert!(!splash.line_shown(), "nothing to wait for: no progress line");
     }
 
     #[test]
-    fn waits_for_the_driver_scan_and_never_goes_backwards() {
+    fn waits_for_the_first_data_and_never_goes_backwards() {
         let start = Instant::now();
-        let mut splash = Splash::new(start);
-        let waiting = Flags { system: true, dns: true, drivers: false, dashboard: true };
+        let mut splash = Splash::new(start, false);
+        let waiting = Flags { system: true, dns: false };
 
         let mut previous = 0.0;
         let mut elapsed = Duration::ZERO;
-        while elapsed < Duration::from_secs(20) {
+        while elapsed < Duration::from_secs(6) {
             assert!(!splash.tick(waiting, start + elapsed));
             assert!(splash.percent >= previous);
             previous = splash.percent;
             elapsed += TICK;
         }
-        assert_eq!(splash.step(1, waiting), Step::Done);
-        assert_eq!(splash.step(2, waiting), Step::Active);
-        assert!(splash.percent < 94.0);
-        assert_eq!(splash.message_key(waiting), "splash_status_drivers_loading");
+        assert!(splash.outro(start + elapsed).is_none());
+        assert!(splash.waiting(start + elapsed).is_some());
+        assert!(splash.line_shown());
+        assert!(splash.percent > 55.0 && splash.percent < 95.0, "{}", splash.percent);
+        assert_eq!(splash.message_key(waiting), "splash_status_dns_loading");
 
-        let (_, closed) = run(&mut splash, ALL_READY, start, elapsed, Duration::from_secs(40));
+        let ready_at = elapsed;
+        let (closed_at, closed) = run(&mut splash, READY, start, elapsed, Duration::from_secs(20));
         assert!(closed);
+        assert_eq!(splash.percent, 100.0);
+        // The line finishes, then the hand-over plays.
+        let after_ready = closed_at - ready_at;
+        assert!(after_ready >= OUTRO && after_ready < OUTRO + Duration::from_secs(1), "{after_ready:?}");
     }
 
     #[test]
-    fn gives_up_after_the_safety_timeout() {
+    fn gives_up_waiting_after_the_cap() {
         let start = Instant::now();
-        let mut splash = Splash::new(start);
-        assert!(!splash.tick(Flags::default(), start + Duration::from_secs(89)));
-        assert!(splash.tick(Flags::default(), start + Duration::from_secs(91)));
+        let mut splash = Splash::new(start, false);
+        let (elapsed, closed) = run(&mut splash, Flags::default(), start, Duration::ZERO, Duration::from_secs(60));
+
+        assert!(closed);
+        let expected = INTRO + WAIT_CAP + OUTRO;
+        assert!(elapsed >= expected && elapsed < expected + Duration::from_millis(200), "closed after {elapsed:?}");
+    }
+
+    #[test]
+    fn calm_motion_keeps_it_short() {
+        let start = Instant::now();
+        let mut splash = Splash::new(start, true);
+        let (elapsed, closed) = run(&mut splash, READY, start, Duration::ZERO, Duration::from_secs(30));
+
+        assert!(closed);
+        assert!(elapsed < Duration::from_millis(1600), "closed after {elapsed:?}");
+    }
+
+    #[test]
+    fn hand_over_runs_from_zero_to_one() {
+        let start = Instant::now();
+        let mut splash = Splash::new(start, false);
+        assert!(splash.outro(start).is_none());
+        assert!(splash.waiting(start + Duration::from_secs(1)).is_none(), "still in the intro");
+
+        let mut elapsed = Duration::ZERO;
+        let mut previous = 0.0;
+        while !splash.tick(READY, start + elapsed) {
+            if let Some(progress) = splash.outro(start + elapsed) {
+                assert!(progress >= previous && progress <= 1.0);
+                previous = progress;
+            }
+            elapsed += TICK;
+        }
+        assert!(previous > 0.97, "last progress seen: {previous}");
+    }
+
+    #[test]
+    fn frozen_sequence_stays_where_it_was_put() {
+        let start = Instant::now();
+        let mut splash = Splash::frozen_at(start, 1.4, false);
+        for seconds in [0, 5, 500] {
+            let now = start + Duration::from_secs(seconds);
+            assert!(!splash.tick(READY, now));
+            assert!((splash.time(now) - 1.4).abs() < 0.001);
+            assert!(splash.outro(now).is_none());
+        }
+
+        let late = Splash::frozen_at(start, 3.55, false);
+        let progress = late.outro(start + Duration::from_secs(9)).expect("past the intro");
+        assert!((progress - 0.5).abs() < 0.01, "{progress}");
     }
 }

@@ -43,7 +43,6 @@ icons! {
     Clock => "clock",
     Cpu => "cpu",
     Crown => "crown",
-    Disc => "disc",
     Download => "download",
     EthernetPort => "ethernet-port",
     ExternalLink => "external-link",
@@ -84,5 +83,7 @@ pub fn icon<'a>(icon: Icon, size: f32, color: Color) -> Svg<'a> {
     iced::widget::svg(icon.handle())
         .width(size)
         .height(size)
+        // The tint replaces the drawing's colour but not its opacity: pass that on its own.
+        .opacity(color.a)
         .style(move |_theme, _status| svg::Style { color: Some(color) })
 }

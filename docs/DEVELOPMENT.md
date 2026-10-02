@@ -83,13 +83,29 @@ $env:KOI_DEV_STATE = 'mute,no-splash,no-onboarding,zen'; cargo run --release
 `mute` · `no-splash` · `onboarding` / `no-onboarding` · `dark` / `light` · `zen` / `dashboard` ·
 `zen-bar` · `expand-dns` / `expand-drivers` · `gaming-details` · `scroll-end` ·
 `settings-general|visual|network|alerts|about` · `notifications` · `toast` ·
-`widget-koi` / `widget-zen` · `tray`
+`widget-koi` / `widget-zen` · `tray` · `splash-at=<seconds>`
+
+`splash-at=1.4` holds the opening screen 1.4 s in (the cut); past 3 s it is the
+hand-over to the dashboard, which lasts 1.1 s.
+
+### The opening screen
+
+`src/splash.rs` keeps time: a 3 s title intro, a wait for the first telemetry sample
+and DNS test only if they are late (a progress line then appears), and a 1.1 s
+hand-over. The driver scan is not waited for. `src/ui/splash.rs` draws it on a canvas
+at the display's refresh rate.
+
+iced has no opacity for a group of widgets. The dashboard fades in by being drawn with
+a faded palette (`Ctx::entering`, `Palette::faded`), one context per card; `theme::alpha`
+is relative for that reason, and a colour from outside the palette goes through
+`Palette::fading`. With calm motion, or Windows animations turned off, the title only
+fades in and out.
 
 ## Differences from the 1.x web version
 
 - **Frosted glass** is the approximation described above, not a real backdrop blur.
-- **Motion** is simpler: no spring entrances, no 3D tilt on cards, no cross-fades between
-  views; the katana title intro is a blade sweep rather than the full split-and-rejoin.
+- **Motion** is simpler: no 3D tilt on cards, no cross-fades between views. The opening
+  screen is the exception: it was redone for the native version.
 - **Accessibility**: iced exposes no accessibility tree yet, so screen readers do not see
   the interface, and keyboard navigation is limited to Escape and text fields.
 - **Charts** have no hover tooltip.

@@ -21,6 +21,21 @@ pub struct Ctx {
     pub glow: NeonGlow,
 }
 
+impl Ctx {
+    /// This context at `opacity`, for a view fading in: colours and glass surfaces alike.
+    pub fn entering(&self, opacity: f32) -> Self {
+        if opacity >= 1.0 {
+            return *self;
+        }
+        Self {
+            p: self.p.faded(opacity),
+            accent: Neon { fill: alpha(self.accent.fill, opacity), text: alpha(self.accent.text, opacity) },
+            atmosphere: Atmosphere { presence: opacity, ..self.atmosphere },
+            ..*self
+        }
+    }
+}
+
 pub const CARD_PADDING: f32 = 24.0;
 pub const CARD_RADIUS: f32 = 32.0;
 pub const GAP: f32 = 24.0;
@@ -74,13 +89,14 @@ pub fn icon_tile<'a, Message: 'a>(glyph: Icon, color: Color) -> Element<'a, Mess
         .add_stop(0.0, color)
         .add_stop(1.0, alpha(color, 0.5));
 
-    container(icon(glyph, 20.0, Color::WHITE))
+    // White and the shadow follow the colour's opacity, so the tile fades in as one.
+    container(icon(glyph, 20.0, alpha(Color::WHITE, color.a)))
         .center_x(40)
         .center_y(40)
         .style(move |_| container::Style {
             background: Some(Background::Gradient(fill.into())),
             border: border::rounded(12),
-            shadow: Shadow { color: Color { a: 0.25, ..Color::BLACK }, offset: [0.0, 4.0].into(), blur_radius: 10.0 },
+            shadow: Shadow { color: Color { a: 0.25 * color.a, ..Color::BLACK }, offset: [0.0, 4.0].into(), blur_radius: 10.0 },
             ..container::Style::default()
         })
         .into()

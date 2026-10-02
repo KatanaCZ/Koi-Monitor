@@ -44,8 +44,10 @@ pub const fn rgba(hex: u32, a: f32) -> Color {
     Color { a, ..rgb(hex) }
 }
 
+/// `color` at `a` of its own opacity. Relative rather than absolute, so that a colour
+/// taken from a fading palette (see [`Palette::faded`]) keeps fading.
 pub fn alpha(color: Color, a: f32) -> Color {
-    Color { a, ..color }
+    Color { a: color.a * a, ..color }
 }
 
 /// `color-mix(in srgb, a t%, b)`.
@@ -68,6 +70,8 @@ pub struct Neon {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Palette {
     pub mode: ThemeMode,
+    /// 1 at rest; below while the view drawn with this palette fades in.
+    pub opacity: f32,
     pub background: Color,
     pub foreground: Color,
     pub text_muted: Color,
@@ -95,6 +99,7 @@ const WHITE: Color = Color::WHITE;
 
 const DARK: Palette = Palette {
     mode: ThemeMode::Dark,
+    opacity: 1.0,
     background: rgb(0x090514),
     foreground: rgb(0xf4ecf9),
     text_muted: rgb(0xc8bfd0),
@@ -120,6 +125,7 @@ const DARK: Palette = Palette {
 
 const LIGHT: Palette = Palette {
     mode: ThemeMode::Light,
+    opacity: 1.0,
     background: rgb(0xe4e8f2),
     foreground: rgb(0x100818),
     text_muted: rgb(0x3a3348),
@@ -153,6 +159,43 @@ impl Palette {
 
     pub fn is_dark(&self) -> bool {
         self.mode == ThemeMode::Dark
+    }
+
+    /// The same palette with every colour at `opacity` of its own: what a view is drawn
+    /// with while it fades in, iced having no opacity for a whole group of widgets.
+    pub fn faded(self, opacity: f32) -> Self {
+        let fade = |color: Color| Color { a: color.a * opacity, ..color };
+        let neon = |neon: Neon| Neon { fill: fade(neon.fill), text: fade(neon.text) };
+        Self {
+            mode: self.mode,
+            opacity: self.opacity * opacity,
+            background: fade(self.background),
+            foreground: fade(self.foreground),
+            text_muted: fade(self.text_muted),
+            text_subtle: fade(self.text_subtle),
+            border: fade(self.border),
+            border_strong: fade(self.border_strong),
+            surface_inset: fade(self.surface_inset),
+            surface_muted: fade(self.surface_muted),
+            surface_raised: fade(self.surface_raised),
+            card_solid: fade(self.card_solid),
+            glass_surface: fade(self.glass_surface),
+            overlay: fade(self.overlay),
+            ring_track: fade(self.ring_track),
+            spectrum_trough: fade(self.spectrum_trough),
+            pink: neon(self.pink),
+            cyan: neon(self.cyan),
+            purple: neon(self.purple),
+            turquoise: neon(self.turquoise),
+            green: neon(self.green),
+            warning: neon(self.warning),
+            error: neon(self.error),
+        }
+    }
+
+    /// A colour from outside the palette, at the opacity the palette is fading with.
+    pub fn fading(&self, color: Color) -> Color {
+        alpha(color, self.opacity)
     }
 
     /// UI accent driven by the Sakura tint (`data-accent`).

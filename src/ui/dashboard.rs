@@ -6,7 +6,7 @@ use iced::{Border, Element, Fill, FillPortion, Padding};
 use super::charts::{AreaChart, CoreSpectrum, DualAreaChart};
 use super::icons::{icon, Icon};
 use super::kit::{badge, caption, card, detail_tile, header, inset_style, mono, Ctx, GAP};
-use super::{dns, drivers};
+use super::{dns, drivers, splash};
 use crate::app::{App, Message};
 use crate::backend::system::{InterfaceKind, NetworkInterface};
 use crate::theme::{alpha, GEIST_SEMIBOLD};
@@ -361,23 +361,27 @@ fn network_card<'a>(app: &'a App, ctx: &Ctx) -> Element<'a, Message> {
     .into()
 }
 
-pub fn view<'a>(app: &'a App, ctx: &Ctx) -> Element<'a, Message> {
+/// `entrance` is the hand-over from the opening screen, 0 to 1: the cards fade in one
+/// after the other while the whole page rises into place. 1 is the dashboard at rest.
+pub fn view<'a>(app: &'a App, ctx: &Ctx, entrance: f32) -> Element<'a, Message> {
     let p = ctx.p;
     let dns_height = dns::card_height(app);
+    // One context per card, in reading order.
+    let card: [Ctx; 6] = std::array::from_fn(|index| ctx.entering(splash::card_entrance(entrance, index)));
 
     let content = column![
-        row![cpu_card(app, ctx), ram_card(app, ctx), gpu_card(app, ctx)].spacing(GAP),
+        row![cpu_card(app, &card[0]), ram_card(app, &card[1]), gpu_card(app, &card[2])].spacing(GAP),
         row![
-            container(network_card(app, ctx)).width(FillPortion(1)),
-            container(dns::card(app, ctx, false)).width(FillPortion(2)),
+            container(network_card(app, &card[3])).width(FillPortion(1)),
+            container(dns::card(app, &card[4], false)).width(FillPortion(2)),
         ]
         .spacing(GAP)
         .height(dns_height),
-        drivers::card(app, ctx, false),
+        drivers::card(app, &card[5], false),
     ]
     .spacing(GAP)
     // Room for the cards' drop shadows inside the scroll area.
-    .padding(Padding { top: 0.0, right: 32.0, bottom: 32.0, left: 32.0 });
+    .padding(Padding { top: splash::rise(entrance), right: 32.0, bottom: 32.0, left: 32.0 });
 
     scrollable(container(container(content).max_width(1280.0 + 64.0)).center_x(Fill))
         .id(SCROLL_ID)

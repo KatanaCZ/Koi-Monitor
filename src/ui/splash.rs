@@ -1,39 +1,395 @@
-//! Opening screen: the wordmark cut by a blade, then the three checks and a progress bar.
+//! Opening screen: the wordmark is written letter by letter, cut by a blade and
+//! rejoined, then travels to its place in the title bar while the dashboard comes in.
 
+use iced::advanced::graphics::text::Paragraph;
+use iced::advanced::text::{self as core_text, Paragraph as _};
 use iced::mouse;
-use iced::widget::canvas::{self, gradient, Frame, Geometry, LineCap, Path, Stroke, Text};
-use iced::widget::{column, container, row, text, Space};
-use iced::{alignment, Background, Border, Color, Element, Fill, FillPortion, Padding, Pixels, Point, Radians, Rectangle, Renderer, Shadow, Theme};
+use iced::widget::canvas::{self, gradient, Action, Event, Frame, Geometry, LineCap, Path, Stroke, Text};
+use iced::{alignment, window, Color, Element, Fill, Font, Pixels, Point, Radians, Rectangle, Renderer, Size, Theme, Vector};
 use std::time::Instant;
 
-use super::icons::{icon, Icon};
-use super::kit::{panel, Ctx};
+use super::kit::Ctx;
+use super::title_bar;
 use crate::app::Message;
-use crate::splash::{Flags, Splash, Step, INTRO};
-use crate::theme::{alpha, mix, Neon, GEIST_BOLD, GEIST_SEMIBOLD, MONO, MONO_BOLD};
+use crate::splash::{Flags, Splash, LINE_DELAY};
+use crate::theme::{alpha, mix, Palette, GEIST_BOLD, GEIST_SEMIBOLD, MONO};
+
+const WORDMARK: &str = "Koi Monitor";
+/// Size of the wordmark during the intro.
+const TITLE_SIZE: f32 = 64.0;
+
+// The intro, in seconds since the splash opened (`crate::splash::INTRO` covers it all).
+/// First letter.
+const WRITE: f32 = 0.35;
+const LETTER_GAP: f32 = 0.045;
+const LETTER_TIME: f32 = 0.42;
+/// The wordmark gathers itself before the cut.
+const BRACE: (f32, f32) = (1.05, 1.20);
+const BLADE: (f32, f32) = (1.20, 1.44);
+/// The blade crosses the wordmark.
+const CUT: f32 = 1.38;
+const REJOIN: (f32, f32) = (1.95, 2.40);
+const UNDERLINE: (f32, f32) = (2.40, 3.00);
+
+const PETALS: usize = 16;
+const SPARKS: usize = 12;
+
+// --- curves -------------------------------------------------------------------
+
+/// Progress of an animation running from `from` to `to`, clamped to 0..1.
+fn span(t: f32, from: f32, to: f32) -> f32 {
+    ((t - from) / (to - from)).clamp(0.0, 1.0)
+}
 
 fn ease_out(t: f32) -> f32 {
     1.0 - (1.0 - t.clamp(0.0, 1.0)).powi(3)
+}
+
+fn ease_in(t: f32) -> f32 {
+    t.clamp(0.0, 1.0).powi(3)
+}
+
+fn ease_in_out(t: f32) -> f32 {
+    let t = t.clamp(0.0, 1.0);
+    if t < 0.5 { 4.0 * t * t * t } else { 1.0 - (-2.0 * t + 2.0).powi(3) / 2.0 }
+}
+
+/// Fast start, long tail: an impact.
+fn ease_out_expo(t: f32) -> f32 {
+    let t = t.clamp(0.0, 1.0);
+    if t >= 1.0 { 1.0 } else { 1.0 - 2f32.powf(-10.0 * t) }
+}
+
+/// Damped spring from 0 to 1, overshooting by about a tenth.
+fn spring(t: f32) -> f32 {
+    let t = t.clamp(0.0, 1.0);
+    if t >= 1.0 { 1.0 } else { 1.0 - (-8.0 * t).exp() * (11.0 * t).cos() }
+}
+
+fn lerp(from: f32, to: f32, t: f32) -> f32 {
+    from + (to - from) * t
+}
+
+/// A number in 0..1 that only looks random, fixed for a given particle and trait.
+fn scatter(index: usize, salt: f32) -> f32 {
+    ((index as f32 * 12.9898 + salt * 78.233).sin() * 43_758.547).fract().abs()
+}
+
+// --- the dashboard coming in --------------------------------------------------
+
+/// Opacity of the title bar, `progress` being the hand-over from 0 to 1.
+pub fn bar_entrance(progress: f32) -> f32 {
+    ease_out(span(progress, 0.12, 0.50))
+}
+
+/// Opacity of the dashboard card at `index`: each one starts a little after the previous.
+pub fn card_entrance(progress: f32, index: usize) -> f32 {
+    // The first card waits for the wordmark to be well on its way above it.
+    let from = 0.30 + 0.055 * index as f32;
+    ease_out(span(progress, from, from + 0.37))
+}
+
+/// How far below its place the dashboard still is, in pixels.
+pub fn rise(progress: f32) -> f32 {
+    36.0 * (1.0 - ease_out(span(progress, 0.18, 0.95)))
+}
+
+// --- drawing ------------------------------------------------------------------
+
+fn measure(font: Font, size: f32) -> f32 {
+    Paragraph::with_text(core_text::Text {
+        content: WORDMARK,
+        bounds: Size::INFINITE,
+        size: Pixels(size),
+        line_height: core_text::LineHeight::default(),
+        font,
+        align_x: core_text::Alignment::Left,
+        align_y: alignment::Vertical::Top,
+        shaping: core_text::Shaping::Basic,
+        wrapping: core_text::Wrapping::None,
+    })
+    .min_bounds()
+    .width
 }
 
 fn gradient_style(linear: gradient::Linear) -> canvas::Style {
     canvas::Style::Gradient(canvas::Gradient::Linear(linear))
 }
 
-/// Progress of an animation running from `from` to `to` seconds.
-fn span(t: f32, from: f32, to: f32) -> f32 {
-    ((t - from) / (to - from)).clamp(0.0, 1.0)
+/// The brand gradient of the title bar wordmark, at any size.
+fn brand(p: &Palette, left: f32, size: f32, opacity: f32) -> gradient::Linear {
+    let extent = title_bar::WORDMARK_GRADIENT * size / title_bar::WORDMARK_SIZE;
+    gradient::Linear::new(Point::new(left, 0.0), Point::new(left + extent, 0.0))
+        .add_stop(0.0, alpha(p.pink.fill, opacity))
+        .add_stop(0.20, alpha(p.purple.fill, opacity))
+        .add_stop(0.30, alpha(p.cyan.fill, opacity))
+        .add_stop(1.0, alpha(mix(p.cyan.fill, Color::WHITE, 0.70), opacity))
 }
 
-/// The title and its intro: glyphs fade in, a blade sweeps across, a line settles underneath.
-struct Title {
+/// Draws the wordmark from its left edge; `glyph` gives each letter its opacity and how
+/// far below its place it still is.
+fn wordmark(frame: &mut Frame, p: &Palette, left: f32, y: f32, size: f32, font: Font, glyph: impl Fn(usize) -> (f32, f32)) {
+    let text = Text {
+        content: WORDMARK.to_string(),
+        position: Point::new(left, y),
+        size: Pixels(size),
+        font,
+        align_y: alignment::Vertical::Center,
+        ..Text::default()
+    };
+    let mut index = 0;
+    text.draw_with(|path, _color| {
+        let (opacity, drop) = glyph(index);
+        index += 1;
+        if opacity > 0.0 {
+            let fill = brand(p, left, size, opacity);
+            frame.with_save(|frame| {
+                frame.translate(Vector::new(0.0, drop));
+                frame.fill(&path, fill);
+            });
+        }
+    });
+}
+
+/// Runs `draw` scaled by `scale` around `centre`.
+fn scaled(frame: &mut Frame, centre: Point, scale: f32, draw: impl FnOnce(&mut Frame)) {
+    frame.with_save(|frame| {
+        frame.translate(Vector::new(centre.x, centre.y));
+        frame.scale(scale);
+        frame.translate(Vector::new(-centre.x, -centre.y));
+        draw(frame);
+    });
+}
+
+/// A horizontal line fading out towards both ends.
+fn hairline(frame: &mut Frame, centre: Point, half: f32, color: Color, width: f32) {
+    if half <= 0.0 || color.a <= 0.0 {
+        return;
+    }
+    let (from, to) = (Point::new(centre.x - half, centre.y), Point::new(centre.x + half, centre.y));
+    let fade = gradient::Linear::new(Point::new(from.x, 0.0), Point::new(to.x, 0.0))
+        .add_stop(0.0, alpha(color, 0.0))
+        .add_stop(0.3, color)
+        .add_stop(0.7, color)
+        .add_stop(1.0, alpha(color, 0.0));
+    frame.stroke(&Path::line(from, to), Stroke { style: gradient_style(fade), width, line_cap: LineCap::Round, ..Stroke::default() });
+}
+
+/// A sakura petal, pointed at both ends, lying along the x axis.
+fn petal(size: f32) -> Path {
+    Path::new(|builder| {
+        builder.move_to(Point::new(-size, 0.0));
+        builder.quadratic_curve_to(Point::new(0.0, -size * 0.62), Point::new(size, 0.0));
+        builder.quadratic_curve_to(Point::new(0.0, size * 0.62), Point::new(-size, 0.0));
+        builder.close();
+    })
+}
+
+struct Scene {
     /// Seconds since the splash opened.
     time: f32,
+    /// Seconds spent waiting for data past the intro.
+    waiting: Option<f32>,
+    /// Progress of the hand-over to the dashboard.
+    outro: Option<f32>,
+    percent: f32,
+    line_shown: bool,
+    status: &'static str,
+    calm: bool,
+    /// Where the wordmark lands in the title bar: left edge and vertical centre. None in Zen mode.
+    slot: Option<Point>,
+    /// Keeps the frames coming; off for a sequence held at one instant.
+    live: bool,
     ctx: Ctx,
 }
 
-impl<Message> canvas::Program<Message> for Title {
+impl Scene {
+    /// The cut wordmark: two halves sliding apart along the blade's path.
+    fn split(&self, frame: &mut Frame, centre: Point, left: f32, cut_y: f32, scale: f32) {
+        let p = &self.ctx.p;
+        let t = self.time;
+        let apart = 9.0 * ease_out_expo(span(t, CUT, CUT + 0.14)) + 2.0 * span(t, CUT + 0.14, REJOIN.0);
+        let shift = apart * (1.0 - spring(span(t, REJOIN.0, REJOIN.1)));
+        // The halves also part a little, so the cut reads as a clean gap.
+        let gap = shift * 0.3;
+        let (width, height) = (frame.width(), frame.height());
+
+        let halves = [
+            (Rectangle::new(Point::ORIGIN, Size::new(width, cut_y - gap)), Vector::new(shift, -gap)),
+            (Rectangle::new(Point::new(0.0, cut_y + gap), Size::new(width, height - cut_y - gap)), Vector::new(-shift, gap)),
+        ];
+        for (region, offset) in halves {
+            // A clipped frame starts from the canvas origin, without the transforms of its parent.
+            frame.with_clip(region, |frame| {
+                frame.translate(offset);
+                scaled(frame, centre, scale, |frame| wordmark(frame, p, left, centre.y, TITLE_SIZE, GEIST_BOLD, |_| (1.0, 0.0)));
+            });
+        }
+    }
+
+    /// Streak of light crossing the wordmark, then the line it leaves behind.
+    fn blade(&self, frame: &mut Frame, centre: Point, cut_y: f32, wide: f32) {
+        let p = &self.ctx.p;
+        let t = self.time;
+        let width = frame.width();
+
+        let sweep = span(t, BLADE.0, BLADE.1);
+        if sweep > 0.0 && sweep < 1.0 {
+            let head = lerp(-0.2 * width, 1.25 * width, ease_in(sweep));
+            let tail = head - width * (0.2 + 0.3 * sweep);
+            let line = Path::line(Point::new(tail, cut_y), Point::new(head, cut_y));
+            let streak = |opacity: f32| {
+                gradient::Linear::new(Point::new(tail, 0.0), Point::new(head, 0.0))
+                    .add_stop(0.0, alpha(p.cyan.fill, 0.0))
+                    .add_stop(0.75, alpha(p.cyan.fill, 0.7 * opacity))
+                    .add_stop(1.0, alpha(Color::WHITE, opacity))
+            };
+            for (opacity, thickness) in [(0.16, 16.0), (0.45, 6.0), (1.0, 1.8)] {
+                frame.stroke(&line, Stroke { style: gradient_style(streak(opacity)), width: thickness, line_cap: LineCap::Round, ..Stroke::default() });
+            }
+        }
+
+        // The cut itself: a white line that widens away from the wordmark while it cools.
+        if t >= CUT {
+            let cooling = span(t, CUT, CUT + 0.6);
+            let glow = (1.0 - cooling).powi(2);
+            let half = wide / 2.0 + 40.0 + width * 0.45 * ease_out_expo(cooling);
+            hairline(frame, Point::new(centre.x, cut_y), half, alpha(Color::WHITE, 0.9 * glow), 1.0 + 3.0 * glow);
+        }
+    }
+
+    /// Petals and sparks thrown out by the cut.
+    fn burst(&self, frame: &mut Frame, left: f32, cut_y: f32, wide: f32) {
+        let p = &self.ctx.p;
+        let since = self.time - CUT;
+        if since <= 0.0 {
+            return;
+        }
+        let tint = mix(self.ctx.accent.fill, Color::WHITE, 0.72);
+
+        for index in 0..PETALS {
+            let age = since - 0.05 * scatter(index, 1.0);
+            let life = 1.0 + 0.6 * scatter(index, 2.0);
+            if age <= 0.0 || age >= life {
+                continue;
+            }
+            let upwards = if index % 2 == 0 { -1.0 } else { 1.0 };
+            let across = (scatter(index, 3.0) - 0.25) * 320.0;
+            let away = upwards * (120.0 + 180.0 * scatter(index, 4.0));
+            // Thrown hard, slowed by the air, then drifting down.
+            let travelled = (1.0 - (-2.2 * age).exp()) / 2.2;
+            let position = Point::new(
+                left + wide * (0.08 + 0.84 * scatter(index, 5.0)) + across * travelled,
+                cut_y + away * travelled + 130.0 * age * age,
+            );
+            let size = 7.0 + 8.0 * scatter(index, 6.0);
+            let spin = scatter(index, 7.0) * std::f32::consts::TAU + age * (2.0 + 4.0 * scatter(index, 8.0)) * upwards;
+            let flutter = 0.35 + 0.65 * (age * 5.0 + scatter(index, 9.0) * 6.0).cos().abs();
+            let opacity = 0.9 * (age / 0.06).min(1.0) * (1.0 - age / life).powf(1.5);
+
+            frame.with_save(|frame| {
+                frame.translate(Vector::new(position.x, position.y));
+                frame.rotate(Radians(spin));
+                frame.scale_nonuniform(Vector::new(1.0, flutter));
+                frame.fill(&petal(size), alpha(tint, opacity));
+            });
+        }
+
+        for index in 0..SPARKS {
+            let life = 0.28 + 0.2 * scatter(index, 11.0);
+            if since >= life {
+                continue;
+            }
+            let upwards = if index % 2 == 0 { -1.0 } else { 1.0 };
+            let angle = (scatter(index, 12.0) - 0.5) * 1.2;
+            let speed = 300.0 + 400.0 * scatter(index, 13.0);
+            let velocity = Vector::new(angle.sin() * speed + 140.0, upwards * angle.cos() * speed);
+            let travelled = (1.0 - (-5.0 * since).exp()) / 5.0;
+            let origin = Point::new(left + wide * scatter(index, 14.0), cut_y);
+            let head = Point::new(origin.x + velocity.x * travelled, origin.y + velocity.y * travelled);
+            let tail = Point::new(head.x - velocity.x * 0.03, head.y - velocity.y * 0.03);
+            let opacity = (1.0 - since / life).powi(2);
+            frame.stroke(
+                &Path::line(tail, head),
+                Stroke::default().with_color(alpha(mix(p.cyan.fill, Color::WHITE, 0.3), opacity)).with_width(1.2).with_line_cap(LineCap::Round),
+            );
+        }
+    }
+
+    /// The progress line and its status, shown only when the first data is late.
+    fn wait_line(&self, frame: &mut Frame, centre: Point, opacity: f32) {
+        if opacity <= 0.0 {
+            return;
+        }
+        let p = &self.ctx.p;
+        let (half, y) = (120.0, centre.y + 96.0);
+        let (from, to) = (Point::new(centre.x - half, y), Point::new(centre.x + half, y));
+        frame.stroke(
+            &Path::line(from, to),
+            Stroke::default().with_color(alpha(p.foreground, 0.10 * opacity)).with_width(2.0).with_line_cap(LineCap::Round),
+        );
+
+        let reached = Point::new(lerp(from.x, to.x, (self.percent / 100.0).clamp(0.0, 1.0)), y);
+        if reached.x > from.x {
+            let fill = gradient::Linear::new(Point::new(from.x, 0.0), Point::new(to.x, 0.0))
+                .add_stop(0.0, alpha(p.pink.fill, opacity))
+                .add_stop(0.5, alpha(p.purple.fill, opacity))
+                .add_stop(1.0, alpha(p.cyan.fill, opacity));
+            frame.stroke(&Path::line(from, reached), Stroke { style: gradient_style(fill), width: 2.0, line_cap: LineCap::Round, ..Stroke::default() });
+            frame.fill(&Path::circle(reached, 2.5), alpha(Color::WHITE, 0.85 * opacity));
+        }
+
+        frame.fill_text(Text {
+            content: self.status.to_string(),
+            position: Point::new(centre.x, y + 22.0),
+            size: Pixels(12.0),
+            font: MONO,
+            color: alpha(p.text_muted, opacity),
+            align_x: alignment::Horizontal::Center.into(),
+            align_y: alignment::Vertical::Center,
+            ..Text::default()
+        });
+    }
+
+    /// The wordmark shrinking towards its place in the title bar.
+    fn travel(&self, frame: &mut Frame, progress: f32, centre: Point, left: f32) {
+        let p = &self.ctx.p;
+        let Some(slot) = self.slot else {
+            // Zen mode has no title bar: the wordmark lifts and fades.
+            let gone = ease_in_out(span(progress, 0.0, 0.6));
+            let size = lerp(TITLE_SIZE, TITLE_SIZE * 0.8, gone);
+            let narrower = (measure(GEIST_BOLD, TITLE_SIZE) - measure(GEIST_BOLD, size)) / 2.0;
+            wordmark(frame, p, left + narrower, centre.y - 40.0 * gone, size, GEIST_BOLD, |_| (1.0 - gone, 0.0));
+            return;
+        };
+
+        let moved = ease_in_out(span(progress, 0.0, 0.60));
+        // The height leads slightly, so the path bends instead of running straight.
+        let lifted = ease_in_out(span(progress, 0.0, 0.50));
+        let size = lerp(TITLE_SIZE, title_bar::WORDMARK_SIZE, moved);
+        let (x, y) = (lerp(left, slot.x, moved), lerp(centre.y, slot.y, lifted));
+
+        // The title bar sets it in semibold: change weight on the way.
+        let lighter = span(moved, 0.55, 1.0);
+        if lighter < 1.0 {
+            wordmark(frame, p, x, y, size, GEIST_BOLD, |_| (1.0 - lighter, 0.0));
+        }
+        if lighter > 0.0 {
+            wordmark(frame, p, x, y, size, GEIST_SEMIBOLD, |_| (lighter, 0.0));
+        }
+    }
+}
+
+impl canvas::Program<Message> for Scene {
     type State = ();
+
+    fn update(&self, _state: &mut Self::State, event: &Event, _bounds: Rectangle, _cursor: mouse::Cursor) -> Option<Action<Message>> {
+        // The sequence runs at the display's own rate: each frame asks for the next.
+        match event {
+            Event::Window(window::Event::RedrawRequested(_)) if self.live => Some(Action::request_redraw()),
+            _ => None,
+        }
+    }
 
     fn draw(
         &self,
@@ -46,241 +402,149 @@ impl<Message> canvas::Program<Message> for Title {
         let p = &self.ctx.p;
         let t = self.time;
         let mut frame = Frame::new(renderer, bounds.size());
-        let (width, height) = (frame.width(), frame.height());
-        let mid = height * 0.42;
+        let centre = Point::new(frame.width() / 2.0, frame.height() * 0.46);
+        let wide = measure(GEIST_BOLD, TITLE_SIZE);
+        let left = centre.x - wide / 2.0;
+        let cut_y = centre.y + 3.0;
 
-        // Soft halo behind the wordmark.
-        let halo = Path::rounded_rectangle(Point::new(width * 0.1, mid - 26.0), iced::Size::new(width * 0.8, 52.0), 26.0.into());
-        frame.fill(
-            &halo,
-            gradient::Linear::new(Point::new(width * 0.1, 0.0), Point::new(width * 0.9, 0.0))
-                .add_stop(0.0, alpha(p.pink.fill, 0.0))
-                .add_stop(0.3, alpha(p.pink.fill, 0.07 * ease_out(span(t, 0.2, 1.0))))
-                .add_stop(0.7, alpha(p.cyan.fill, 0.08 * ease_out(span(t, 0.2, 1.0))))
-                .add_stop(1.0, alpha(p.cyan.fill, 0.0)),
-        );
+        // Everything but the wordmark leaves at the start of the hand-over.
+        let staying = 1.0 - ease_out(span(self.outro.unwrap_or(0.0), 0.0, 0.25));
 
-        // Wordmark, centred: "Koi" pink → purple → cyan, "Monitor" cyan → pale cyan.
-        let reveal = ease_out(span(t, 0.25, 0.85));
-        let title_width = 300.0;
-        let left = (width - title_width) / 2.0;
-        let fill = gradient::Linear::new(Point::new(left, 0.0), Point::new(left + title_width, 0.0))
-            .add_stop(0.0, alpha(p.pink.fill, reveal))
-            .add_stop(0.20, alpha(p.purple.fill, reveal))
-            .add_stop(0.30, alpha(p.cyan.fill, reveal))
-            .add_stop(1.0, alpha(mix(p.cyan.fill, Color::WHITE, 0.70), reveal));
-        let wordmark = Text {
-            content: "Koi Monitor".to_string(),
-            position: Point::new(width / 2.0, mid),
-            size: Pixels(44.0),
-            font: GEIST_BOLD,
-            align_x: alignment::Horizontal::Center.into(),
-            align_y: alignment::Vertical::Center,
-            ..Text::default()
-        };
-        wordmark.draw_with(|glyph, _color| frame.fill(&glyph, fill));
-
-        // The blade: a streak of light crossing the title at mid-height.
-        let sweep = span(t, 0.55, 1.05);
-        if sweep > 0.0 && sweep < 1.0 {
-            let head = -0.2 * width + ease_out(sweep) * 1.4 * width;
-            let tail = head - width * 0.45;
-            let blade = Path::line(Point::new(tail, mid), Point::new(head, mid));
-            let streak = |opacity: f32| {
-                gradient::Linear::new(Point::new(tail, 0.0), Point::new(head, 0.0))
-                    .add_stop(0.0, alpha(p.cyan.fill, 0.0))
-                    .add_stop(0.7, alpha(p.cyan.fill, 0.6 * opacity))
-                    .add_stop(1.0, alpha(Color::WHITE, opacity))
+        if let Some(progress) = self.outro {
+            self.travel(&mut frame, progress, centre, left);
+        } else if self.calm {
+            let shown = ease_out(span(t, 0.1, 0.7));
+            wordmark(&mut frame, p, left, centre.y, TITLE_SIZE, GEIST_BOLD, |_| (shown, 0.0));
+        } else {
+            // Breath in before the cut, a slight swell on impact.
+            let scale = if t < CUT {
+                1.0 - 0.015 * ease_in_out(span(t, BRACE.0, BRACE.1))
+            } else {
+                1.0 + 0.02 * (1.0 - ease_out(span(t, CUT, CUT + 0.35)))
             };
-            frame.stroke(&blade, Stroke { style: gradient_style(streak(0.25)), width: 9.0, line_cap: LineCap::Round, ..Stroke::default() });
-            frame.stroke(&blade, Stroke { style: gradient_style(streak(1.0)), width: 2.5, line_cap: LineCap::Round, ..Stroke::default() });
+
+            // Flash of the impact, behind the letters.
+            if t >= CUT {
+                let flash = (1.0 - span(t, CUT, CUT + 0.32)).powi(2);
+                let band = Rectangle::new(Point::new(0.0, cut_y - 70.0), Size::new(frame.width(), 140.0));
+                let light = gradient::Linear::new(Point::new(0.0, band.y), Point::new(0.0, band.y + band.height))
+                    .add_stop(0.0, alpha(Color::WHITE, 0.0))
+                    .add_stop(0.5, alpha(Color::WHITE, 0.16 * flash))
+                    .add_stop(1.0, alpha(Color::WHITE, 0.0));
+                frame.fill_rectangle(band.position(), band.size(), light);
+            }
+
+            if (CUT..REJOIN.1).contains(&t) {
+                self.split(&mut frame, centre, left, cut_y, scale);
+            } else {
+                scaled(&mut frame, centre, scale, |frame| {
+                    wordmark(frame, p, left, centre.y, TITLE_SIZE, GEIST_BOLD, |index| {
+                        let written = ease_out(span(t, WRITE + LETTER_GAP * index as f32, WRITE + LETTER_GAP * index as f32 + LETTER_TIME));
+                        (written, 14.0 * (1.0 - written))
+                    });
+                });
+            }
+
+            self.blade(&mut frame, centre, cut_y, wide);
+            self.burst(&mut frame, left, cut_y, wide);
+
+            // A small flare where the halves close.
+            let closing = span(t, REJOIN.0 + 0.12, REJOIN.1 + 0.2);
+            if closing > 0.0 && closing < 1.0 {
+                hairline(&mut frame, Point::new(centre.x, cut_y), wide * 0.6 * ease_out(closing), alpha(Color::WHITE, 0.5 * (1.0 - closing)), 1.5);
+            }
         }
 
-        // Flash left by the cut, fading out.
-        let flash = span(t, 0.95, 1.45);
-        if flash > 0.0 && flash < 1.0 {
-            let line = Path::line(Point::new(left - 20.0, mid), Point::new(left + title_width + 20.0, mid));
-            frame.stroke(&line, Stroke::default().with_color(alpha(Color::WHITE, 0.75 * (1.0 - flash))).with_width(1.5 + 3.0 * (1.0 - flash)));
-        }
-
-        // Underline settling under the title.
-        let settle = ease_out(span(t, 1.0, 1.7));
-        if settle > 0.0 {
-            let half = 108.0 * (0.2 + 0.8 * settle);
-            let y = height - 6.0;
-            let opacity = 0.85 - 0.4 * span(t, 1.3, 1.8);
-            let line = Path::line(Point::new(width / 2.0 - half, y), Point::new(width / 2.0 + half, y));
-            frame.stroke(
-                &line,
-                Stroke {
-                    style: gradient_style(
-                        gradient::Linear::new(Point::new(width / 2.0 - half, 0.0), Point::new(width / 2.0 + half, 0.0))
-                            .add_stop(0.0, alpha(p.cyan.fill, 0.0))
-                            .add_stop(0.35, alpha(p.cyan.fill, opacity))
-                            .add_stop(0.65, alpha(mix(p.pink.fill, p.cyan.fill, 0.55), opacity))
-                            .add_stop(1.0, alpha(p.cyan.fill, 0.0)),
-                    ),
-                    width: 1.5,
-                    ..Stroke::default()
-                },
+        if !self.calm {
+            let settled = ease_out(span(t, UNDERLINE.0, UNDERLINE.1));
+            hairline(
+                &mut frame,
+                Point::new(centre.x, centre.y + 52.0),
+                wide * 0.36 * settled,
+                alpha(mix(p.pink.fill, p.cyan.fill, 0.4), 0.85 * staying),
+                1.5,
             );
         }
+
+        let line = match (self.waiting, self.outro) {
+            (Some(waited), _) => ease_out(span(waited, LINE_DELAY.as_secs_f32(), LINE_DELAY.as_secs_f32() + 0.4)),
+            (None, Some(_)) if self.line_shown => staying,
+            _ => 0.0,
+        };
+        self.wait_line(&mut frame, centre, line);
 
         vec![frame.into_geometry()]
     }
 }
 
-fn step_row<'a>(glyph: Icon, label: &'a str, detail: &'a str, neon: Neon, state: Step, time: f32, ctx: &Ctx) -> Element<'a, Message> {
-    let p = ctx.p;
-    let lit = state != Step::Pending;
-    let tone = if lit { neon.fill } else { p.text_subtle };
-    let green = p.green;
-
-    let marker = container(Space::new()).width(4).height(Fill).style(move |_| container::Style {
-        background: Some(if lit { neon.fill } else { alpha(p.border, p.border.a * 0.35) }.into()),
-        border: iced::border::rounded(2),
-        shadow: if state == Step::Active { Shadow { color: alpha(neon.fill, 0.5), offset: [0.0, 0.0].into(), blur_radius: 12.0 } } else { Shadow::default() },
-        ..container::Style::default()
-    });
-
-    let tile = container(icon(glyph, 16.0, tone)).center_x(36).center_y(36).style(move |_| container::Style {
-        background: Some(if lit { alpha(neon.fill, 0.10) } else { p.surface_inset }.into()),
-        border: Border { color: if lit { alpha(neon.fill, 0.35) } else { p.border }, width: 1.0, radius: 12.0.into() },
-        ..container::Style::default()
-    });
-
-    let status: Element<'a, Message> = match state {
-        Step::Done => container(icon(Icon::Check, 14.0, green.text))
-            .center_x(28)
-            .center_y(28)
-            .style(move |_| container::Style {
-                background: Some(alpha(green.fill, 0.15).into()),
-                border: Border { color: alpha(green.fill, 0.35), width: 1.0, radius: 14.0.into() },
-                shadow: Shadow { color: alpha(green.fill, 0.25), offset: [0.0, 0.0].into(), blur_radius: 12.0 },
-                ..container::Style::default()
-            })
-            .into(),
-        // One turn every 1.2 s.
-        Step::Active => icon(Icon::Loader, 20.0, neon.fill).rotation(Radians(time * std::f32::consts::TAU / 1.2)).into(),
-        Step::Pending => container(Space::new())
-            .width(8)
-            .height(8)
-            .style(move |_| container::Style { background: Some(p.border_strong.into()), border: iced::border::rounded(4), ..container::Style::default() })
-            .into(),
-    };
-
-    container(
-        row![
-            marker,
-            tile,
-            column![
-                text(label).size(14).font(GEIST_SEMIBOLD).color(if lit { neon.text } else { p.text_muted }),
-                text(detail).size(10).color(p.text_subtle),
-            ]
-            .spacing(4)
-            .width(Fill),
-            container(status).center_x(32).center_y(32),
-        ]
-        .spacing(12)
-        .align_y(iced::Center)
-        .height(40),
-    )
-    .padding(Padding { top: 10.0, right: 16.0, bottom: 10.0, left: 6.0 })
-    .style(move |_| {
-        let (background, border, fade) = match state {
-            Step::Done => (p.surface_inset, p.border, 1.0),
-            Step::Active => (alpha(p.surface_muted, p.surface_muted.a * 0.6), p.border_strong, 1.0),
-            Step::Pending => (alpha(p.surface_inset, p.surface_inset.a * 0.5), p.border, 0.55),
-        };
-        container::Style {
-            background: Some(background.into()),
-            border: Border { color: alpha(border, border.a * fade), width: 1.0, radius: 16.0.into() },
-            ..container::Style::default()
-        }
+/// The opening scene, over the whole window. During the hand-over it only carries the
+/// travelling wordmark, above the dashboard.
+pub fn view<'a>(splash: &Splash, flags: Flags, slot: Option<Point>, live: bool, ctx: &Ctx) -> Element<'a, Message> {
+    let now = Instant::now();
+    canvas::Canvas::new(Scene {
+        time: splash.time(now),
+        waiting: splash.waiting(now),
+        outro: splash.outro(now),
+        percent: splash.percent,
+        line_shown: splash.line_shown(),
+        status: ctx.tr.t(splash.message_key(flags)),
+        calm: splash.calm(),
+        slot,
+        live,
+        ctx: *ctx,
     })
+    .width(Fill)
+    .height(Fill)
     .into()
 }
 
-pub fn view<'a>(splash: &Splash, flags: Flags, ctx: &Ctx) -> Element<'a, Message> {
-    let (p, tr) = (ctx.p, ctx.tr);
-    let now = Instant::now();
-    let time = now.duration_since(splash.started).as_secs_f32();
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    let hairline = iced::gradient::Linear::new(Radians(std::f32::consts::FRAC_PI_2))
-        .add_stop(0.0, Color::TRANSPARENT)
-        .add_stop(0.25, p.pink.fill)
-        .add_stop(0.5, p.purple.fill)
-        .add_stop(0.75, p.cyan.fill)
-        .add_stop(1.0, Color::TRANSPARENT);
-
-    let title = canvas::Canvas::new(Title { time, ctx: *ctx }).width(Fill).height(92);
-
-    let mut card = column![title].align_x(iced::Center);
-
-    // The checks and the bar join once the title intro has played, fading in.
-    if splash.intro_done(now) {
-        let fade = ease_out(span(time, INTRO.as_secs_f32(), INTRO.as_secs_f32() + 0.6));
-        let steps = column![
-            step_row(Icon::Cpu, tr.t("splash_step_system"), tr.t("splash_step_system_detail"), p.pink, splash.step(0, flags), time, ctx),
-            step_row(Icon::Globe, tr.t("splash_step_dns"), tr.t("splash_step_dns_detail"), p.cyan, splash.step(1, flags), time, ctx),
-            step_row(Icon::Disc, tr.t("splash_step_drivers"), tr.t("splash_step_drivers_detail"), p.green, splash.step(2, flags), time, ctx),
-        ]
-        .spacing(12);
-
-        let percent = splash.percent.round().clamp(0.0, 100.0);
-        let filled = percent as u16;
-        let bar_fill = iced::gradient::Linear::new(Radians(std::f32::consts::FRAC_PI_2))
-            .add_stop(0.0, p.pink.fill)
-            .add_stop(0.25, p.purple.fill)
-            .add_stop(0.5, p.cyan.fill)
-            .add_stop(0.75, p.purple.fill)
-            .add_stop(1.0, p.pink.fill);
-        let glow = p.cyan.fill;
-
-        let mut bar = row![].height(8);
-        if filled > 0 {
-            bar = bar.push(container(Space::new()).width(FillPortion(filled)).height(Fill).style(move |_| container::Style {
-                background: Some(Background::Gradient(bar_fill.into())),
-                border: iced::border::rounded(4),
-                shadow: Shadow { color: alpha(glow, 0.4), offset: [0.0, 0.0].into(), blur_radius: 16.0 },
-                ..container::Style::default()
-            }));
+    #[test]
+    fn curves_start_at_zero_and_end_at_one() {
+        for curve in [ease_out, ease_in, ease_in_out, ease_out_expo, spring] {
+            assert!(curve(0.0).abs() < 0.001);
+            assert!((curve(1.0) - 1.0).abs() < 0.001);
         }
-        if filled < 100 {
-            bar = bar.push(Space::new().width(FillPortion(100 - filled)));
-        }
-
-        card = card
-            .push(Space::new().height(28))
-            .push(steps)
-            .push(Space::new().height(32))
-            .push(
-                row![
-                    text(tr.t(splash.message_key(flags))).size(12).font(MONO).color(alpha(p.text_muted, fade)).width(Fill),
-                    text(format!("{percent:.0}%")).size(14).font(MONO_BOLD).color(alpha(p.pink.text, fade)),
-                ]
-                .align_y(iced::Bottom)
-                .padding(Padding::from([0, 4])),
-            )
-            .push(Space::new().height(12))
-            .push(container(bar).width(Fill).style(move |_| container::Style {
-                background: Some(p.surface_inset.into()),
-                border: Border { color: p.border, width: 1.0, radius: 4.0.into() },
-                ..container::Style::default()
-            }));
     }
 
-    let top_line = container(Space::new()).width(Fill).height(1).style(move |_| container::Style {
-        background: Some(Background::Gradient(hairline.into())),
-        ..container::Style::default()
-    });
+    #[test]
+    fn spring_overshoots_a_little_then_settles() {
+        let peak = (0..=100).map(|step| spring(step as f32 / 100.0)).fold(0.0, f32::max);
+        assert!(peak > 1.04 && peak < 1.15, "peak {peak}");
+    }
 
-    container(
-        panel(column![top_line, container(card).padding(Padding { top: 43.0, right: 40.0, bottom: 40.0, left: 40.0 })], ctx)
-            .radius(32.0)
-            .width(512),
-    )
-    .center_x(Fill)
-    .center_y(Fill)
-    .into()
+    #[test]
+    fn cards_come_in_one_after_the_other_and_all_arrive() {
+        for step in 0..=20 {
+            let progress = step as f32 / 20.0;
+            for index in 1..6 {
+                assert!(card_entrance(progress, index) <= card_entrance(progress, index - 1));
+            }
+        }
+        for index in 0..6 {
+            assert_eq!(card_entrance(0.0, index), 0.0);
+            assert_eq!(card_entrance(1.0, index), 1.0);
+        }
+        assert_eq!(bar_entrance(1.0), 1.0);
+        assert_eq!(rise(1.0), 0.0);
+        assert!(rise(0.0) > 30.0);
+    }
+
+    #[test]
+    fn scatter_is_stable_and_in_range() {
+        for index in 0..PETALS {
+            let value = scatter(index, 3.0);
+            assert!((0.0..1.0).contains(&value));
+            assert_eq!(value, scatter(index, 3.0));
+        }
+    }
+
+    #[test]
+    fn the_cut_falls_inside_the_blade_sweep_and_the_intro() {
+        assert!(BLADE.0 < CUT && CUT < BLADE.1);
+        assert!(UNDERLINE.1 <= crate::splash::INTRO.as_secs_f32());
+    }
 }

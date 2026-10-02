@@ -12,6 +12,23 @@ use crate::settings::ThemeMode;
 use crate::theme::{mix, GEIST_BOLD, GEIST_SEMIBOLD, MONO_BOLD};
 
 pub const HEIGHT: f32 = 48.0;
+/// Space above the bar, gutters on its sides and widest it gets: those of the dashboard.
+pub const TOP: f32 = 24.0;
+pub const GUTTER: f32 = 32.0;
+pub const MAX_WIDTH: f32 = 1280.0;
+const PADDING: f32 = 16.0;
+
+/// Size of the wordmark in the bar, and the width its gradient runs over.
+pub const WORDMARK_SIZE: f32 = 15.0;
+const WORDMARK_WIDTH: f32 = 108.0;
+pub const WORDMARK_GRADIENT: f32 = WORDMARK_WIDTH * 0.92;
+
+/// Left edge and vertical centre of the wordmark in a window `window_width` wide:
+/// where the opening screen brings its own.
+pub fn wordmark_slot(window_width: f32) -> Point {
+    let bar_width = (window_width - 2.0 * GUTTER).min(MAX_WIDTH);
+    Point::new((window_width - bar_width) / 2.0 + PADDING, TOP + HEIGHT / 2.0)
+}
 
 /// "Koi Monitor" with the brand gradient (`.slash-title-static`).
 pub struct Wordmark<'a> {
@@ -37,7 +54,7 @@ impl<Message> canvas::Program<Message> for Wordmark<'_> {
             let width = frame.width();
 
             // "Koi" runs pink → purple → cyan, " Monitor" cyan → pale cyan.
-            let fill = gradient::Linear::new(Point::new(0.0, 0.0), Point::new(width * 0.92, 0.0))
+            let fill = gradient::Linear::new(Point::new(0.0, 0.0), Point::new(width * WORDMARK_GRADIENT / WORDMARK_WIDTH, 0.0))
                 .add_stop(0.0, p.pink.fill)
                 .add_stop(0.20, p.purple.fill)
                 .add_stop(0.30, p.cyan.fill)
@@ -144,10 +161,18 @@ pub fn view<'a>(app: &'a App, ctx: &Ctx) -> Element<'a, Message> {
     let to_tray = settings.minimize_to_tray;
 
     // Five quick clicks on the wordmark: the secret melody.
-    let wordmark = mouse_area(
-        canvas_widget(Wordmark { cache: &app.wordmark_cache, ctx: *ctx, size: 15.0, bold: false }).width(108).height(24),
-    )
-    .on_press(Message::SecretTap);
+    // While the opening screen brings its wordmark here, the place stays empty.
+    let wordmark: Element<'a, Message> = if app.opening() {
+        Space::new().width(WORDMARK_WIDTH).height(24).into()
+    } else {
+        mouse_area(
+            canvas_widget(Wordmark { cache: &app.wordmark_cache, ctx: *ctx, size: WORDMARK_SIZE, bold: false })
+                .width(WORDMARK_WIDTH)
+                .height(24),
+        )
+        .on_press(Message::SecretTap)
+        .into()
+    };
 
     // Everything that is not a button drags the window; a double click maximizes it.
     let mut center = row![].spacing(8).align_y(iced::Center);
@@ -234,6 +259,6 @@ pub fn view<'a>(app: &'a App, ctx: &Ctx) -> Element<'a, Message> {
     panel(row![drag_area, actions].align_y(iced::Center), ctx)
         .width(Fill)
         .height(HEIGHT)
-        .padding(Padding::from([0, 16]))
+        .padding(Padding::from([0.0, PADDING]))
         .into()
 }

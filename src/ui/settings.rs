@@ -194,8 +194,8 @@ fn section<'a>(title: &'a str, items: Vec<Element<'a, Message>>, ctx: &Ctx) -> E
     column![
         text(title.to_uppercase()).size(10).font(GEIST_MEDIUM).color(p.text_subtle),
         container(rows(items, ctx)).padding(Padding::from([0, 12])).width(Fill).style(move |_| container::Style {
-            background: Some(alpha(p.surface_inset, p.surface_inset.a * 0.3).into()),
-            border: Border { color: alpha(p.border, p.border.a * 0.6), width: 1.0, radius: 12.0.into() },
+            background: Some(alpha(p.surface_inset, 0.3).into()),
+            border: Border { color: alpha(p.border, 0.6), width: 1.0, radius: 12.0.into() },
             ..container::Style::default()
         }),
     ]
@@ -743,7 +743,7 @@ pub fn view<'a>(app: &'a App, dialog: &'a Dialog, ctx: &Ctx) -> Element<'a, Mess
     .width(116)
     .height(Fill)
     .style(move |_| container::Style {
-        background: Some(alpha(p.surface_inset, p.surface_inset.a * 0.4).into()),
+        background: Some(alpha(p.surface_inset, 0.4).into()),
         // Follows the dialog's rounded corner.
         border: Border { radius: iced::border::Radius::default().bottom_left(31), ..Border::default() },
         ..container::Style::default()
