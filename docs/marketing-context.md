@@ -1,45 +1,23 @@
-# Koi Monitor — release notes writing guide
+# Writing for Koi
 
-Reference for drafting **`### For you`** in [`CHANGELOG.md`](../CHANGELOG.md) and GitHub Releases. Tone aligned with [`README.md`](../README.md).
+Koi is a Windows system monitor with a calm, playful personality. Write as if you're showing a friend what's changed on your own PC.
 
-## Product
+## Tone
 
-- **What:** local Windows 10/11 monitor, portable (`koi-monitor.exe`), open source.
-- **Promise:** *Your PC, finally readable. Beautiful. Light. Reliable.*
-- **Not:** dev jargon, fake alerts, invented metrics, aggressive popups.
+Keep it simple and specific. A little pond or sakura humour is welcome; every paragraph doesn't need a joke. Give useful details before adjectives, and let screenshots show the atmosphere.
 
-## End-user audience
+Avoid strings of slogans, inflated promises, digs at other apps and repeating the same benefit in several sections. Don't call something faster or lighter without measurements and context.
 
-- Windows PC owner (gaming, work-from-home, occasional streaming).
-- **Not** a developer: do not mention WebView2, WASM, IPC, CI, crates, or file names unless Settings → About needs it.
-- They want: *what changes for me?* *Will my PC feel lighter / clearer?*
+## Release notes
 
-## Voice
+The `For you` section in `CHANGELOG.md` is for people using the app. Explain what they can now do, what was annoying and is fixed, or what still needs work. A few short bullets are usually enough.
 
-| Do | Avoid |
-|----|--------|
-| Short sentences, benefit first | Stack dumps |
-| “Smoother”, “lighter”, “shown when Windows provides it” | FPS, `backdrop-blur`, library names |
-| Honesty (no temperature = no fake number) | Empty hype (“revolutionary”) |
-| Consistent “you” tone with README | Enterprise release-note tone |
+Put libraries, build changes and implementation details under `Technical details`. Keep alpha limitations visible. Don't direct people to a download until that build has actually been published.
 
-## Changelog structure
+For example:
 
-- **`### For you`** → published on GitHub Release (3–5 bullets when possible).
-- **`### Technical details`** → Added / Changed / Fixed (Keep a Changelog, contributors).
-- **CI / infra / refactors** → Technical details only, never in For you.
+- "The desktop widget now shows GPU usage alongside CPU, RAM and ping."
+- "Koi remembers your music volume for the next launch."
+- "This is the first Rust alpha. Keyboard navigation still needs work."
 
-## Rephrasing examples
-
-| Technical | For you |
-|-----------|---------|
-| WebView2 perf, canvas 30 FPS | The app uses fewer resources; sakura petals and frosted glass stay smooth. |
-| WMI/DXGI temperature | CPU/GPU temperature when Windows provides it; otherwise the badge stays hidden. |
-| CI cargo audit | *(do not publish to end users)* |
-
-## Release workflow
-
-1. Fill `[Unreleased]`: **For you** + **Technical details**.
-2. `prepare-release.ps1 -Version x.y.z`
-3. Proofread **For you** before `git tag`.
-4. Tag `v*` triggers `release.yml` → `extract-release-notes.ps1` exports **For you** only.
+See [CONTRIBUTING.md](../CONTRIBUTING.md) for the release steps. Releases are published manually; there is no automated release workflow.
