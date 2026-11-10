@@ -10,13 +10,21 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · [Sem
 
 ### For you
 
+- Koi is being replanted in Rust. The dashboard, petals, music and Zen pond now run as a native Windows app, without a browser engine.
+- More room for the rest of your PC: recorded development measurements show about 120 MB of working-set RAM, down from 750–810 MB in 1.1.9 with the dashboard and petals visible. Results come from one PC; see the [comparison and its limits](README.md#a-lighter-footprint).
+- Keep an eye on your PC from the dashboard, Zen mode or a small desktop widget. French and English are included.
+- Settings recover from unreadable values, and launching Koi twice brings back the existing window.
+- This is the 2.0.0-alpha.1 source version. Keyboard navigation and screen-reader support still need work; see the development notes before switching from 1.x.
+
 ### Technical details
 
-### Added
+- Replaced the Tauri/React application with iced 0.14 and wgpu at the repository root; assets are embedded in the executable.
+- Ported telemetry, DNS comparisons, latency checks, driver scans, alerts, tray support and audio to the native application.
+- Added timed, hidden helper processes, a single-instance lock, settings recovery and a bounded error log.
+- Reworked the opening animation and its transition to the dashboard, with reduced-motion support.
+- Updated project documentation for the Rust alpha and manual release process.
+- Documented the existing native-versus-1.1.9 resource measurements on a Ryzen 7 7800X3D / RX 7900 XTX: 9 to 1 processes, CPU ~10% to ~0.5%, GPU ~18% to ~1%, and private memory 700–830 MB to ~225 MB. These are development observations, not a new benchmark of this commit; see [measurement context](docs/DEVELOPMENT.md#why-native).
 
-### Changed
-
-### Fixed
 ## [1.1.9] - 2026-06-13
 
 ### For you

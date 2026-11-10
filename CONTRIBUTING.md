@@ -1,109 +1,47 @@
 # Contributing to Koi Monitor
 
-Thank you for your interest in Koi Monitor. This project targets **Windows 10/11** with **Tauri v2 + React**.
+Koi is a Windows 10/11 app written in Rust, with iced and wgpu. Bug reports, fixes and small improvements are welcome.
 
-## Before you start
+## Get set up
 
-- Read [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) for architecture, commands, and troubleshooting.
-- Keep changes **surgical** — match existing style, avoid unrelated refactors.
-
-## Branches & workflow
-
-`master` is **protected** on GitHub:
-
-- **Pull request required** before merge (no direct push)
-- **CI check `audit`** (workflow *Audit & Build*) must pass
-- **Force push blocked** on `master`
-
-### Daily flow
+Install stable Rust (MSVC) and the Visual Studio Build Tools with the C++ workload. From the project directory:
 
 ```powershell
-git checkout master
-git pull
-git checkout -b feat/short-description   # or fix/… chore/… docs/…
-# … edit, commit …
-git push -u origin feat/short-description
+cargo run --release
 ```
 
-Open a PR on GitHub → wait for **Audit & Build** green → merge. Solo maintainer: **0 reviews required** (you can merge your own PR once CI passes).
+The [development notes](docs/DEVELOPMENT.md) cover the source layout, rendering and ways to launch the app in a specific state without changing your saved settings.
 
-### Branch naming
+## Make a change
 
-| Prefix | Use |
-|--------|-----|
-| `feat/` | New feature or UX |
-| `fix/` | Bug fix |
-| `docs/` | README, DEVELOPMENT, comments only |
-| `chore/` | CI, deps, tooling |
+Create a branch from the current development base. Use `feat/`, `fix/`, `docs/` or `chore/` and keep each PR focused on one change.
 
-### Releases
-
-Patch notes live in **[`CHANGELOG.md`](CHANGELOG.md)** ([Keep a Changelog](https://keepachangelog.com/en/1.1.0/), English).
-
-- **`### For you`** — text published on the **GitHub Release** (end users, no dev jargon). Tone guide: [`docs/marketing-context.md`](docs/marketing-context.md).
-- **`### Technical details`** — Added / Changed / Fixed for contributors.
-
-**Before each version:**
-
-1. Fill **`## [Unreleased]`**: **For you** first (3–5 bullets, user benefits), then **Technical details** (Added / Changed / Fixed). Do not put CI/infra in **For you**.
-2. On green `master`:
+Before opening a PR, run:
 
 ```powershell
-.\scripts\prepare-release.ps1 -Version 1.0.1   # CHANGELOG + app version (About, npm, Tauri, Cargo, README)
-git add CHANGELOG.md src/appVersion.ts package.json package-lock.json src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/Cargo.lock README.md
-git commit -m "chore(release): prepare v1.0.1"
-git push origin master
-git tag v1.0.1
-git push origin v1.0.1
-```
-
-3. The **Release** workflow extracts the changelog section and publishes **`koi-monitor.exe`** + notes on GitHub.
-
-**SemVer:** `1.0.x` fixes · `1.x.0` features · `x.0.0` breaking changes.
-
-## Development setup
-
-```powershell
-git clone https://github.com/KatanaCZ/Koi-Monitor.git
-cd koi-monitor
-.\koi.bat setup    # First time — admin
-.\koi.bat dev      # Full Tauri + Vite (port 1420)
-.\koi.bat devfast  # Frontend only + debug exe (after one `dev` build)
-```
-
-## Checks before opening a PR
-
-```powershell
-npm ci
-npm run build
-npx tsc --noEmit
-cd src-tauri
-cargo check --release
-cargo clippy --release -- -D warnings
+cargo clippy --all-targets -- -D warnings
 cargo test
 ```
 
-CI also runs `npm audit`, `cargo audit`, and a Recharts bundle budget (≤ 550 KB). The full **`koi.bat build`** runs on **push to `master`** and on **Release tags** — not on PRs (saves ~7 min; shipping exe is validated at tag).
+For interface changes, include a screenshot or a few steps to check the result. Update the README when behaviour changes and add a note under `Unreleased` in [CHANGELOG.md](CHANGELOG.md).
 
-**Expected CI times (GitHub Actions, `windows-latest`):**
+Target `master`. It is protected: changes go through a pull request, the `audit` check must pass, and force pushes are blocked. CI runs dependency auditing, Clippy and tests on PRs, then builds the release executable after a push to `master`.
 
-| Trigger | Job | Typical duration |
-|---------|-----|------------------|
-| Pull request | `audit` (npm + rust checks) | ~6–10 min (warm cache) · ~12–15 min (cold) |
-| Push `master` | `audit` + build exe | ~12–18 min |
-| Tag `v*` | `release` | ~3–8 min (warm) · ~7 min baseline |
+## A few conventions
 
-## Pull requests
+- Keep Windows telemetry in `src/backend/` and views in `src/ui/`.
+- Add interface strings to both languages in `assets/i18n.json`.
+- Handle external input errors explicitly. Run helper processes through `backend::subprocess` so they stay hidden and have a timeout.
+- Keep unrelated refactors out of bug fixes. Add a regression test when it can meaningfully cover the problem.
 
-- Target branch: **`master`** (protected — merge via PR only)
-- One logical change per PR when possible
-- Update user-visible behavior in `README.md` and technical details in `docs/DEVELOPMENT.md` when relevant
-- **Dependabot PRs:** merge grouped **minor/patch** when CI `audit` is green (weekly, npm + cargo)
-- **Ignored npm majors** in `.github/dependabot.yml`: `react`, `react-dom`, `@types/react*`, `recharts`, `framer-motion`, `@vitejs/plugin-react`, `vite`, `typescript`, `zustand`, `lucide-react` — manual upgrades via `chore/deps-*` or `feat/*` + local QA (`koi.bat dev`, `npm run build`, `tsc`)
-- Close stale Dependabot major PRs instead of leaving them open
+## Publish a release
 
-## Code conventions
+1. Prepare a release branch. Update `Cargo.toml` and `Cargo.lock`, move the notes from `Unreleased` to the new version heading, and update the version mentioned in the README.
+2. Open a PR and merge it after the required checks pass.
+3. From the updated `master`, build with `cargo build --release` and check the app manually.
+4. Tag that commit with the version (for example, `v2.0.0-alpha.1`) and push the tag.
+5. Create the GitHub Release manually. Attach `target\x86_64-pc-windows-msvc\release\koi-monitor.exe` and use the `For you` notes as the release description. Mark alpha and beta versions as prereleases.
 
-- Tauri IPC: centralize calls in [`src/services/api.ts`](src/services/api.ts)
-- Zustand: prefer granular selectors over full-store subscriptions
-- Rust: no `unwrap()` on external input; prefer explicit errors for WMI/PowerShell paths
+There is no automated release workflow. Publishing source doesn't publish a downloadable app.
+
+The [writing notes](docs/marketing-context.md) cover the tone. Keep user-facing changes under `For you` and implementation details under `Technical details`.

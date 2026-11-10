@@ -2,236 +2,98 @@
 
 # 🌸 Koi Monitor
 
-[![Audit & Build](https://github.com/KatanaCZ/Koi-Monitor/actions/workflows/audit.yml/badge.svg)](https://github.com/KatanaCZ/Koi-Monitor/actions/workflows/audit.yml)
-[![Release](https://img.shields.io/github/v/release/KatanaCZ/Koi-Monitor?label=Release&color=9d4edd)](https://github.com/KatanaCZ/Koi-Monitor/releases/latest)
+**Keep an eye on your PC. Let the petals do their thing.**
 
-### *Your PC, finally readable. Beautiful. Light. Reliable.*
+A Windows system monitor with a soft spot for sakura, quiet music and second screens.
 
-**Monitor Windows without opening a gray tool from 2005.**
+[![Build](https://github.com/KatanaCZ/Koi-Monitor/actions/workflows/audit.yml/badge.svg)](https://github.com/KatanaCZ/Koi-Monitor/actions/workflows/audit.yml)
+![Windows 10 / 11](https://img.shields.io/badge/Windows-10%20%2F%2011-687da8)
+![Rust](https://img.shields.io/badge/Rust-native-c99583)
+[![MIT license](https://img.shields.io/badge/license-MIT-91b5a0)](LICENSE)
 
-<br />
-
-![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?style=for-the-badge&logo=windows&logoColor=white)
-![Optimized](https://img.shields.io/badge/Optimized-WebView2-00d4ff?style=for-the-badge)
-![Free](https://img.shields.io/badge/Free-MIT-00ff9d?style=for-the-badge)
-![Version](https://img.shields.io/badge/Version-1.1.9-9d4edd?style=for-the-badge)
-
-<br />
-
-![Koi Monitor preview — dashboard](docs/screenshots/MockupViews_1x_PNG_20260524_274.png)
-
-*Frosted glass · Dark & light theme · Sakura atmosphere*
-
-<br />
-
-[Why Koi](#-why-koi) ·
-[Interface](#-an-interface-youll-want-to-keep-open) ·
-[Light & discreet](#-light-and-discreet) ·
-[Honest metrics](#-honest-numbers) ·
-[Features](#-what-you-can-do) ·
-[Install](#-installation) ·
-[Privacy](#-privacy--security)
+[Getting started](#getting-started) · [Development](docs/DEVELOPMENT.md) · [Report a bug](https://github.com/KatanaCZ/Koi-Monitor/issues)
 
 </div>
 
----
+## A little less dashboard, a little more calm
 
-## 🎐 Why Koi
+Koi puts CPU, RAM, GPU and network activity in one window. Check what's busy, have a look at your connection, then leave it on your second screen while you get on with your day.
 
-Classic system monitors? Numbers everywhere, gray background, unreadable charts. It feels like the Windows control panel on a bad day.
+There are light and dark themes, glass cards and falling petals. You can pick a colour, turn down the motion, mute the music or switch to Zen mode. The interface speaks French and English.
 
-**Koi is the opposite.**
+## Around the pond
 
-A clear, colorful app that answers three simple questions:
+- **Your PC at a glance.** Live usage charts, per-core CPU activity, GPU memory and network throughput. Temperature readings appear where compatible Windows sensors are available; support depends on your hardware and firmware.
+- **A connection check before the next match.** Router ping, internet latency and jitter help spot an unsteady connection. These are diagnostic measurements, not the ping to your game server.
+- **DNS comparisons.** Compare response times to public DNS servers or add your own address. A faster ping alone doesn't guarantee faster DNS lookups or lower in-game latency.
+- **A look at your drivers.** Start with GPU, network and Bluetooth, or run the extended scan. Koi points you to Windows Update and official vendor pages; you choose what to install.
+- **A quiet watch.** Optional load and latency alerts, with a session history behind the bell. They're off by default.
+- **Room to breathe.** Zen mode brings up a clock, a pond and a few metrics. A small desktop widget keeps the essentials nearby when the main window is tucked away.
 
-- Is my PC doing okay?
-- Will my connection hold up for online gaming?
-- Does a driver deserve a look?
+## New roots: Rust
 
-No jargon. No fake alerts to stress you out. **Your machine, in human language.**
+Koi 2 is a native Rust rewrite, using iced and wgpu. The interface and atmosphere run without a browser engine, and fonts, icons and music are bundled into the executable.
 
-**French & English** — full UI translation; pick your language in **Settings → Essential**, or let Koi detect your system language on first launch.
+**The current source version is `2.0.0-alpha.1`.** It is still an alpha: keyboard navigation is limited, screen-reader support is missing, and some details differ from the 1.x app. See the [development notes](docs/DEVELOPMENT.md#differences-from-the-1x-web-version) for those differences.
 
----
+The [1.x source](https://github.com/KatanaCZ/Koi-Monitor/tree/v1.1.9) remains available if you need it.
 
-## ✨ An interface you'll want to keep open
+### A lighter footprint
 
-This isn't a theme slapped on a utility. It's an app you actually **leave open**.
+The [development measurements](docs/DEVELOPMENT.md#why-native) compare both versions on the same Ryzen 7 7800X3D and RX 7900 XTX, with the dashboard visible and sakura animated:
 
-| What you see… | Why it matters |
-|---------------|----------------|
-| 🩷 **CPU** (pink) | Load, chart, per-core view, live temperature (when supported) |
-| 🔵 **RAM** (cyan) | Memory actually in use |
-| 🟣 **GPU** (purple) | Card, VRAM, in-game load, live temperature (when supported) |
-| 🩵 **Network** (turquoise) | Live throughput, Wi‑Fi or Ethernet |
-| 🟢 **DNS & Gaming** (green) | Best server + multiplayer latency |
+| Resource | 1.1.9 (WebView2) | Native Rust |
+|---|---|---|
+| Processes | 9 | 1 |
+| CPU (whole machine) | ~10% | ~0.5% |
+| GPU | ~18% | ~1% |
+| RAM: working set | 750–810 MB | ~120 MB |
+| RAM: private memory | 700–830 MB | ~225 MB |
 
-**What makes the daily difference:**
+These are observations recorded during development on one PC, not a promise for every setup or a fresh benchmark of this commit. The notes don't record the sampling duration, measurement tools or exact native commit. Working set and private memory are different measurements; they should not be added together.
 
-- **Glass cards** — readable; disable them if you prefer something calmer
-- **Sakura** — petals in the background, 4 tints (pink, purple, blue, mint) that tint the UI too
-- **Signature opening** — katana animation, ~8–10 s splash on a fast machine
-- **App icon** — the word **Koi** in neon (same style as the title bar), visible in the window, taskbar, and notification area
-- **Zen music** — starts with the dashboard, volume remembered; a second track hides for the curious
-- **Light or dark theme** — comfortable day and night
-- **Settings** — **Essential · Atmosphere · Connection · Watch · About**; **Zen · Soft · Aura** presets in one click; personal DNS server (IP + nickname); **Support Koi** on About (Ko-fi tip, thank-you toast)
+The native app was also recorded at 44 MB working set and 0% CPU in the tray. The old version's minimised window was recorded as unchanged, but minimised and tray states are not an equivalent comparison. Enabled alerts, diagnostics and a visible desktop widget can change background usage.
 
-> Beautiful enough to keep open — not just useful once a month.
+## Getting started
 
----
+You'll need **64-bit Windows 10 or 11** and a **Direct3D 12-capable GPU**.
 
-## ⚡ Optimized and respectful
+### Downloads
 
-A monitor shouldn't be the heaviest app on your PC.
+Check the [Releases page](https://github.com/KatanaCZ/Koi-Monitor/releases) for published builds and their notes. **Choose a 2.x release for the Rust version.** A 1.x download is the previous app; the latest stable release link may still lead there while 2.x is in alpha.
 
-| | Koi Monitor |
-|--|-------------|
-| **Disk** | ~10–25 MB (thanks to Tauri, no bundled Chromium) |
-| **RAM** | ~100–250 MB (uses Windows WebView2 Edge engine) |
-| **CPU / GPU at rest** | Close to 0% (smart suspension when minimized or hidden) |
+For a native build, download `koi-monitor.exe`, put it wherever you want and launch it. There is no separate runtime to install. If no 2.x binary is available yet, build the source below.
 
-Koi Monitor runs on web technologies (Tauri + React) to deliver a stunning, modern UI. While it requires the Windows WebView2 browser engine (which inherently consumes some RAM), we've engineered strict limits so you don't feel it while working, streaming, or gaming:
+### Build from source
 
-- **Canvas 2D particle engine**: petals in Canvas with pre-rendered textures (offscreen), isolated layer, strict cap at **30 FPS** (focus) / **24 FPS** (unfocused); frosted glass turns off when unfocused to free the GPU.
-- **Smart idle**: minimized, in the tray, or behind another window, Koi suspends telemetry, DNS, and visual effects. Active alerts keep watching in the background.
-
-
-### Zen Mode 🌸
-
-![Zen Mode](docs/screenshots/MockupViews_1x_PNG_20260524_829.png)
-
-One click on the cherry blossom. The dashboard fades. What remains:
-
-- a **large clock** and the date;
-- a **pond** that ripples with **Zen · Flow · Boost** state;
-- **CPU · GPU · Gaming** in large figures, **RAM · Uptime** below (hideable) — the GPU shown is the one actually under load (dual-GPU laptops);
-- the top bar reappears on hover — volume, settings, bell.
-
-Perfect on a second screen, for focus, or when you just want calm.
-
----
-
-## 🛡️ Honest numbers
-
-Pretty is good. Fake is not.
-
-- **Windows data** — no invented numbers
-- **Real temperatures** — CPU/GPU thermal sensors use Windows standard WMI/ACPI classes (`MSAcpi_ThermalZoneTemperature`). If your motherboard (especially AMD) or BIOS doesn't expose those sensors, the badge stays hidden. **Koi never fakes or simulates data.**
-- **Gaming latency ≠ DNS** — your router ping isn't a Cloudflare test; we don't mix the two
-- **Drivers without drama** — “Installed”, “Check recommended”, “Update available”; no “your PC is obsolete”
-- **Driver updates** — Windows Update first; NVIDIA / AMD / Intel links as backup
-- **Alerts** — off by default; if enabled: discreet toast, zero Windows popups
-
-A test fails? **Clear message at the bottom of the screen**, not a cryptic error. If a driver scan takes a while, the app still starts (up to ~90 s worst case).
-
----
-
-## 🧩 What you can do
-
-### 📊 Live PC
-
-CPU, RAM, GPU, network — history charts, CPU cores as an “equalizer”, Wi‑Fi or Ethernet shown clearly, CPU & GPU temperatures (on setups with compatible ACPI/WMI sensors).
-
-### 🌐 Best DNS
-
-Compare Google, Cloudflare, Quad9, OpenDNS. Check the servers, run the test. Add **your** server (router, Pi-hole…) with a nickname. The fastest gets the crown ⚜️.
-
-### 🎮 Ready to game?
-
-Simple badge: *Ready to play*, *Ranked limit*, *Router / Wi‑Fi issue*… Native Windows measurement for a fairer ping. One click for details: router, internet, jitter. Visible on the dashboard and in Zen mode.
-
-### 🔧 Drivers
-
-**Simplified (default)**: 3 essentials — GPU, network, Bluetooth.  
-**Extended**: all important hardware (~1–2 min).  
-Compared versions, **Open Windows Update** when an official update exists. No fake “install in one click” promise.
-
-### 🔔 Alerts (optional)
-
-Off by default. On first launch, you choose — **Escape** = not now.
-
-| Context | Koi warns if… | Example |
-|---------|---------------|---------|
-| **Desktop** | The machine stays under heavy load | *Desktop · PC under pressure · CPU 92%* |
-| **Gaming** | Your ping drifts from its usual baseline | *Gaming · Ping rising · 60 ms · usually ~10 ms* |
-
-One message at a time. Missed something? The **bell** keeps the session log. Tune in **Watch**: **Quiet / Balanced / Attentive** sensitivity, gaming latency on/off.
-
----
-
-## 🚀 Installation
-
-### Download (recommended)
-
-1. Open the **[latest Release](https://github.com/KatanaCZ/Koi-Monitor/releases/latest)**
-2. Download **`koi-monitor.exe`**
-3. Copy it wherever you like and double-click
-
-Release notes: **Release** tab (plain *For you* text) or [`CHANGELOG.md`](CHANGELOG.md) for the full history.
-
-**That's it.** No Node, no Rust, no installer.
-
-| | |
-|--|--|
-| **OS** | Windows 10 or 11, 64-bit |
-| **WebView2** | Already on Windows 11; on Windows 10, via Windows Update or Edge if needed |
-| **Internet** | Recommended (DNS, latency, drivers) |
-| **Account** | Standard user is usually enough |
-| **Enterprise** | Some locked-down PCs limit advanced scans |
-
-<details>
-<summary><strong>Developers — build from source</strong></summary>
+Install stable Rust with the MSVC toolchain and the Visual Studio Build Tools with the C++ workload, then run these commands from the checked-out Rust branch:
 
 ```powershell
-git clone https://github.com/KatanaCZ/Koi-Monitor.git
-cd koi-monitor
-.\koi.bat setup    # Admin — first install
-.\koi.bat dev      # Tauri + Vite (port 1420)
-.\koi.bat devfast  # Frontend only + debug exe
-.\koi.bat build    # Exe in %LOCALAPPDATA%\koi-monitor\
+cargo run --release
 ```
 
-Requirements: Node.js 20+, Rust, WebView2. Technical docs: [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md).
+To build without launching:
 
-</details>
+```powershell
+cargo build --release
+```
 
----
+The executable lands in `target\x86_64-pc-windows-msvc\release\koi-monitor.exe`.
 
-## 🔒 Privacy & security
+## Your PC, your data
 
-**100% local.** No account. No cloud. Your metrics stay on your machine.
+Koi doesn't require an account or upload your system metrics. Settings and an error log stay in `%LOCALAPPDATA%\com.koi.monitor\`. Charts and notification history live in memory and disappear when you quit.
 
-| What | Where | When |
-|------|-------|------|
-| **The exe** | Where *you* copied it | You keep / delete it |
-| **App profile** (WebView2) | `%LOCALAPPDATA%\com.koi.monitor\` | First launch |
-| **Settings** (theme, DNS, alerts…) | In that profile, a few KB | When you change an option |
-| **Charts, log, cache** | RAM only | Cleared on exit |
+Connection tests contact the selected network targets. Driver update checks use Windows services, and vendor links open in your browser. Those features need network access.
 
-**Start with Windows** (off by default): one startup entry — without copying the exe elsewhere.
+Start with Windows is optional. To remove Koi, disable that option first, quit from the tray and delete the executable. You can also delete the settings folder for a clean slate.
 
-**Remove everything:** close the app → disable autostart if needed → delete the exe → optional: folder `%LOCALAPPDATA%\com.koi.monitor\`.
+## Help Koi grow
 
-Network tests and driver scans go through Windows (`ping`, WMI…). Koi installs nothing for you. **Open source** code (MIT).
+Found a bug? [Open an issue](https://github.com/KatanaCZ/Koi-Monitor/issues) with what happened, what you expected and your Windows version. Screenshots are welcome.
 
----
+For code contributions, see [CONTRIBUTING.md](CONTRIBUTING.md). For security issues, use the [private reporting route](SECURITY.md).
 
-## 📄 License
+Made by [Katana](https://github.com/KatanaCZ). Free to use, change and share under the [MIT license](LICENSE).
 
-**MIT** — Katana © 2026  
-Free to use, modify, and share. See [`LICENSE`](LICENSE).
-
----
-
-<div align="center">
-
-### 🌸 Koi Monitor
-
-*Understanding your PC shouldn't be a chore.*  
-*Light. Beautiful. Reliable.*
-
-<br />
-
-**[⬆ Back to top](#-koi-monitor)**
-
-</div>
+*May your ping stay low and your pond stay quiet.*

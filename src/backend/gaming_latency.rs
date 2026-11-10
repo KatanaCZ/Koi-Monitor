@@ -1,0 +1,357 @@
+use serde::{Deserialize, Serialize};
+use std::collections::VecDeque;
+use std::time::{Duration, Instant};
+
+const INTERNET_HOST: &str = "1.1.1.1";
+const MAX_SAMPLES: usize = 15;
+const GATEWAY_REFRESH_SECS: u64 = 120;
+const PING_TIMEOUT_MS: u32 = 800;
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GamingLatencySnapshot {
+    pub gateway_ip: String,
+    pub gateway_ms: f64,
+    pub internet_ms: f64,
+    pub jitter_ms: f64,
+    pub sample_count: u32,
+    pub verdict: String,
+    pub verdict_label: String,
+    pub internet_host: String,
+}
+
+pub struct GamingLatencyTracker {
+    internet_samples: VecDeque<f64>,
+    cached_gateway: Option<String>,
+    last_gateway_refresh: Instant,
+}
+
+impl Default for GamingLatencyTracker {
+    fn default() -> Self {
+        Self {
+            internet_samples: VecDeque::with_capacity(MAX_SAMPLES),
+            cached_gateway: None,
+            last_gateway_refresh: Instant::now()
+                .checked_sub(Duration::from_secs(GATEWAY_REFRESH_SECS))
+                .unwrap_or_else(Instant::now),
+        }
+    }
+}
+
+impl GamingLatencyTracker {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn sample(&mut self) -> GamingLatencySnapshot {
+        if self.last_gateway_refresh.elapsed() >= Duration::from_secs(GATEWAY_REFRESH_SECS) {
+            self.cached_gateway = detect_default_gateway();
+            self.last_gateway_refresh = Instant::now();
+        }
+
+        let gateway_ip = self.cached_gateway.clone().unwrap_or_default();
+
+        let gateway_ms = if gateway_ip.is_empty() {
+            -1.0
+        } else {
+            measure_latency(&gateway_ip).unwrap_or(-1.0)
+        };
+
+        let internet_ms = measure_latency(INTERNET_HOST)
+            .or_else(|| measure_tcp_latency(INTERNET_HOST, 443))
+            .unwrap_or(-1.0);
+
+        if internet_ms >= 0.0 {
+            if self.internet_samples.len() >= MAX_SAMPLES {
+                self.internet_samples.pop_front();
+            }
+            self.internet_samples.push_back(internet_ms);
+        }
+
+        let sample_count = self.internet_samples.len() as u32;
+        let jitter_ms = std_dev(&self.internet_samples);
+
+        let verdict = compute_verdict(gateway_ms, internet_ms, jitter_ms, sample_count);
+
+        GamingLatencySnapshot {
+            gateway_ip,
+            gateway_ms,
+            internet_ms,
+            jitter_ms,
+            sample_count,
+            verdict: verdict.to_string(),
+            verdict_label: verdict.to_string(),
+            internet_host: INTERNET_HOST.to_string(),
+        }
+    }
+}
+
+fn compute_verdict(
+    gateway_ms: f64,
+    internet_ms: f64,
+    jitter_ms: f64,
+    sample_count: u32,
+) -> &'static str {
+    // Only successful pings are counted: with no internet there is nothing to wait for.
+    if sample_count < 3 && internet_ms >= 0.0 {
+        return "measuring";
+    }
+
+    if internet_ms < 0.0 && gateway_ms < 0.0 {
+        return "offline";
+    }
+
+    if gateway_ms > 25.0 {
+        return "local_issue";
+    }
+
+    if gateway_ms >= 0.0
+        && internet_ms >= 0.0
+        && gateway_ms > 15.0
+        && gateway_ms > internet_ms * 0.35
+    {
+        return "local_network";
+    }
+
+    if internet_ms < 0.0 {
+        return "internet_unreachable";
+    }
+
+    if internet_ms > 100.0 {
+        return "high_latency";
+    }
+
+    if internet_ms > 60.0 || jitter_ms > 20.0 {
+        return "marginal";
+    }
+
+    "ready"
+}
+
+fn std_dev(samples: &VecDeque<f64>) -> f64 {
+    if samples.len() < 2 {
+        return 0.0;
+    }
+    let n = samples.len() as f64;
+    let mean = samples.iter().sum::<f64>() / n;
+    let variance = samples.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / n;
+    variance.sqrt()
+}
+
+#[cfg(target_os = "windows")]
+fn measure_latency(host: &str) -> Option<f64> {
+    type IpAddr = u32;
+
+    #[link(name = "iphlpapi")]
+    extern "system" {
+        fn IcmpCreateFile() -> *mut std::ffi::c_void;
+        fn IcmpCloseHandle(icmp_handle: *mut std::ffi::c_void) -> i32;
+        fn IcmpSendEcho(
+            icmp_handle: *mut std::ffi::c_void,
+            destination_address: IpAddr,
+            request_data: *mut std::ffi::c_void,
+            request_size: u16,
+            request_options: *const std::ffi::c_void,
+            reply_buffer: *mut std::ffi::c_void,
+            reply_size: u32,
+            timeout: u32,
+        ) -> u32;
+    }
+
+    use std::net::Ipv4Addr;
+    use std::str::FromStr;
+
+    let ipv4 = Ipv4Addr::from_str(host).ok()?;
+    let octets = ipv4.octets();
+    let destination_address = u32::from_ne_bytes(octets);
+
+    let handle = unsafe { IcmpCreateFile() };
+    if handle.is_null() || handle as usize == usize::MAX {
+        return None;
+    }
+
+    let mut request_data = [0u8; 32];
+    let mut reply_buffer = [0u8; 256];
+    let reply_size = reply_buffer.len() as u32;
+
+    let replies = unsafe {
+        IcmpSendEcho(
+            handle,
+            destination_address,
+            request_data.as_mut_ptr() as _,
+            request_data.len() as u16,
+            std::ptr::null(),
+            reply_buffer.as_mut_ptr() as _,
+            reply_size,
+            PING_TIMEOUT_MS,
+        )
+    };
+
+    unsafe { IcmpCloseHandle(handle) };
+
+    if replies > 0 {
+        echo_reply_rtt(&reply_buffer)
+    } else {
+        None
+    }
+}
+
+/// Round-trip time in ms of the first `ICMP_ECHO_REPLY` in `reply`. `IcmpSendEcho` also
+/// counts the error replies of routers ("destination unreachable"): only `IP_SUCCESS` is a ping.
+#[cfg(target_os = "windows")]
+fn echo_reply_rtt(reply: &[u8]) -> Option<f64> {
+    const IP_SUCCESS: u32 = 0;
+
+    let status = u32::from_ne_bytes(reply.get(4..8)?.try_into().ok()?);
+    if status != IP_SUCCESS {
+        return None;
+    }
+    let rtt = u32::from_ne_bytes(reply.get(8..12)?.try_into().ok()?);
+    Some(rtt.max(1) as f64)
+}
+
+#[cfg(not(target_os = "windows"))]
+fn measure_latency(host: &str) -> Option<f64> {
+    use std::process::Command;
+
+    let timeout_sec = (PING_TIMEOUT_MS as f64 / 1000.0).max(1.0).ceil() as u32;
+    let timeout_arg = timeout_sec.to_string();
+    let output = Command::new("ping")
+        .args(["-c", "1", "-W", &timeout_arg, host])
+        .output()
+        .ok()?;
+
+    parse_ping_ms(String::from_utf8_lossy(&output.stdout).as_ref())
+}
+
+fn measure_tcp_latency(host: &str, port: u16) -> Option<f64> {
+    use std::net::{SocketAddr, TcpStream, ToSocketAddrs};
+    use std::time::Instant;
+
+    let start = Instant::now();
+    let addrs: Vec<SocketAddr> = (host, port).to_socket_addrs().ok()?.collect();
+    let addr = addrs.first()?;
+
+    TcpStream::connect_timeout(addr, Duration::from_millis(PING_TIMEOUT_MS as u64)).ok()?;
+    Some(start.elapsed().as_secs_f64() * 1000.0)
+}
+
+#[allow(dead_code)]
+fn parse_ping_ms(output: &str) -> Option<f64> {
+    let lower = output.to_lowercase();
+
+    for marker in ["time=", "temps=", "time<", "temps<"] {
+        if let Some(idx) = lower.find(marker) {
+            if marker.ends_with('<') {
+                return Some(0.5);
+            }
+            let rest = &output[idx + marker.len()..];
+            let num: String = rest
+                .chars()
+                .take_while(|c| c.is_ascii_digit() || *c == '.')
+                .collect();
+            if let Ok(v) = num.parse::<f64>() {
+                return Some(v);
+            }
+        }
+    }
+
+    None
+}
+
+#[cfg(target_os = "windows")]
+fn detect_default_gateway() -> Option<String> {
+    let script = "(Get-NetRoute -DestinationPrefix '0.0.0.0/0' | Sort-Object RouteMetric | Select-Object -First 1).NextHop";
+
+    let Ok(output) = super::subprocess::run_powershell_with_timeout(script, 10) else {
+        return detect_default_gateway_fallback();
+    };
+
+    if !output.status.success() {
+        return detect_default_gateway_fallback();
+    }
+
+    let ip = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    if is_valid_ipv4(&ip) {
+        Some(ip)
+    } else {
+        detect_default_gateway_fallback()
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn detect_default_gateway_fallback() -> Option<String> {
+    use std::process::Command;
+
+    let mut command = Command::new("cmd");
+    command.args(["/C", "route", "print", "0.0.0.0"]);
+    let output = super::subprocess::run_with_timeout(command, "route", 10).ok()?;
+
+    let text = String::from_utf8_lossy(&output.stdout);
+    for line in text.lines() {
+        let trimmed = line.trim();
+        if !trimmed.starts_with("0.0.0.0") {
+            continue;
+        }
+        let parts: Vec<&str> = trimmed.split_whitespace().collect();
+        if parts.len() >= 3 && is_valid_ipv4(parts[2]) {
+            return Some(parts[2].to_string());
+        }
+    }
+
+    None
+}
+
+#[cfg(not(target_os = "windows"))]
+fn detect_default_gateway() -> Option<String> {
+    None
+}
+
+fn is_valid_ipv4(ip: &str) -> bool {
+    let parts: Vec<&str> = ip.split('.').collect();
+    if parts.len() != 4 {
+        return false;
+    }
+    parts.iter().all(|p| p.parse::<u8>().is_ok())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn offline_is_reported_from_the_first_sample() {
+        assert_eq!(compute_verdict(-1.0, -1.0, 0.0, 0), "offline");
+    }
+
+    #[test]
+    fn unreachable_internet_does_not_wait_for_samples() {
+        assert_eq!(compute_verdict(2.0, -1.0, 0.0, 0), "internet_unreachable");
+    }
+
+    #[test]
+    fn first_successful_pings_are_still_measuring() {
+        assert_eq!(compute_verdict(2.0, 20.0, 0.0, 2), "measuring");
+    }
+
+    /// An `ICMP_ECHO_REPLY` header: address, status, round-trip time.
+    #[cfg(target_os = "windows")]
+    fn echo_reply(status: u32, rtt_ms: u32) -> [u8; 12] {
+        let mut reply = [0u8; 12];
+        reply[4..8].copy_from_slice(&status.to_ne_bytes());
+        reply[8..12].copy_from_slice(&rtt_ms.to_ne_bytes());
+        reply
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn successful_echo_reply_gives_its_round_trip_time() {
+        assert_eq!(echo_reply_rtt(&echo_reply(0, 12)), Some(12.0));
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn router_error_reply_is_not_a_ping() {
+        // 11003 = IP_DEST_HOST_UNREACHABLE, answered by the gateway in about a millisecond.
+        assert_eq!(echo_reply_rtt(&echo_reply(11003, 1)), None);
+    }
+}
