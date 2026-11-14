@@ -1,14 +1,15 @@
-//! Drivers analysis card (`DriversWidget`, `DriverTile`, `DriverDetailPanel`, `DriverVersionCompare`).
+//! Driver inventory, status and version details.
 
-use iced::widget::{button, column, container, row, text, Space};
+use iced::widget::{button, column, container, row, scrollable, text, Space};
 use iced::{Border, Color, Element, Fill, Padding, Shadow};
 
 use super::dns::header_button;
 use super::icons::{icon, Icon};
 use super::kit::{self, caption, icon_tile, inset_style, Ctx};
 use crate::app::{App, Expanded, Message, SettingsTab};
-use crate::backend::driver_status::{INSTALLED, UNKNOWN, UPDATE_AVAILABLE, UPDATE_SOURCE_DRIVER_STORE, UPDATE_SOURCE_WINDOWS, VERIFY_ONLINE};
+use crate::backend::driver_status::{CHECK_FAILED, NO_UPDATE_FOUND, INSTALLED, UNKNOWN, UPDATE_AVAILABLE, UPDATE_SOURCE_WINDOWS, VERIFY_ONLINE};
 use crate::backend::drivers::DriverInfo;
+use crate::backend::driver_version::{display_version as format_version, is_update_available};
 use crate::theme::{alpha, mix, rgb, GEIST_BOLD, GEIST_MEDIUM, GEIST_SEMIBOLD, MONO, MONO_BOLD};
 
 /// Placeholder entry the scan returns when it finds nothing.
@@ -21,30 +22,14 @@ pub fn is_empty_list(drivers: &[DriverInfo]) -> bool {
 }
 
 pub fn driver_key(driver: &DriverInfo) -> String {
-    format!("{}-{}", driver.name, driver.version)
+    if driver.device_id.is_empty() {
+        format!("{}|{}|{}", driver.hardware_id, driver.name, driver.version)
+    } else {
+        driver.device_id.clone()
+    }
 }
 
 // --- versions ---------------------------------------------------------------
-
-/// Human-readable form of a WMI driver version; `None` when there is none.
-///
-/// Some vendors report a packed integer (`3202151234` → `32.2.15.12`).
-fn format_version(raw: &str) -> Option<String> {
-    let trimmed = raw.trim();
-    if trimmed.is_empty() || trimmed == "N/A" {
-        return None;
-    }
-
-    if trimmed.len() >= 8 && trimmed.bytes().all(|b| b.is_ascii_digit()) {
-        let (major, rest) = trimmed.split_at(trimmed.len() - 8);
-        let part = |range: std::ops::Range<usize>| rest[range].parse::<u32>().ok();
-        if let (Ok(major), Some(a), Some(b), Some(c)) = (major.parse::<u64>(), part(0..2), part(2..4), part(4..6)) {
-            return Some(format!("{major}.{a}.{b}.{c}"));
-        }
-    }
-
-    Some(trimmed.to_string())
-}
 
 fn installed_label(version: &str, ctx: &Ctx) -> String {
     match format_version(version) {
@@ -55,7 +40,7 @@ fn installed_label(version: &str, ctx: &Ctx) -> String {
 
 /// A newer version was found by Windows Update or in the driver store.
 pub fn has_update(driver: &DriverInfo) -> bool {
-    !driver.latest_version.trim().is_empty() && format_version(&driver.latest_version) != format_version(&driver.version)
+    is_update_available(&driver.version, &driver.latest_version)
 }
 
 fn version_segments(version: &str) -> Vec<String> {
@@ -161,6 +146,8 @@ fn status_label(driver: &DriverInfo, ctx: &Ctx) -> String {
     } else {
         match driver.status.as_str() {
             INSTALLED => "drivers_status_installed",
+            NO_UPDATE_FOUND => "drivers_status_no_update",
+            CHECK_FAILED => "drivers_status_unverified",
             UPDATE_AVAILABLE => "drivers_status_update",
             VERIFY_ONLINE => "drivers_status_verify",
             UNKNOWN => "drivers_status_unknown",
@@ -180,7 +167,7 @@ fn status_colors(driver: &DriverInfo, ctx: &Ctx) -> (Color, Color, Color) {
 
     if has_update(driver) || driver.status == UPDATE_AVAILABLE {
         tone(SKY, 0x38bdf8, 0x0284c7)
-    } else if driver.status == INSTALLED {
+    } else if driver.status == NO_UPDATE_FOUND {
         tone(0x10b981, 0x34d399, 0x059669)
     } else if driver.status == VERIFY_ONLINE {
         (p.warning.text, mix(p.warning.fill, p.surface_inset, 0.12), mix(p.warning.fill, p.border, 0.28))
@@ -278,7 +265,7 @@ fn tile<'a>(driver: &DriverInfo, density: Density, essential: bool, selectable: 
     let name = display_name(driver, ctx);
 
     let content: Element<'a, Message> = if minimal {
-        // One line: icon, name, status (plus the version in the dense full-scan grid).
+        // Keep installed versions visible even when the online search is unavailable.
         let mut identity = row![].spacing(if ultra { 6 } else { 8 }).align_y(iced::Center).width(Fill);
         if update {
             identity = identity.push(icon(Icon::Crown, if ultra { 10.0 } else { 12.0 }, p.warning.text));
@@ -287,7 +274,12 @@ fn tile<'a>(driver: &DriverInfo, density: Density, essential: bool, selectable: 
             .push(category_icon(driver, if ultra { 28.0 } else { 32.0 }, ctx))
             .push(text(name).size(if essential { 14.0 } else if ultra { 10.0 } else { 12.0 }).font(GEIST_SEMIBOLD).color(p.foreground));
 
-        row![identity, status_chip(driver, if ultra { 7.0 } else { 8.0 }, false, ctx)]
+        let value: Element<'a, Message> = if update {
+            status_chip(driver, 9.0, false, ctx)
+        } else {
+            text(installed_label(&driver.version, ctx)).size(11).font(MONO).color(p.text_muted).into()
+        };
+        row![identity, value]
             .spacing(8)
             .align_y(iced::Center)
             .into()
@@ -314,7 +306,6 @@ fn tile<'a>(driver: &DriverInfo, density: Density, essential: bool, selectable: 
                 heading,
                 row![
                     text(installed_label(&driver.version, ctx)).size(14).font(MONO_BOLD).color(p.purple.text).width(Fill),
-                    status_chip(driver, 8.0, false, ctx),
                 ]
                 .align_y(iced::Center),
             ]
@@ -396,46 +387,10 @@ fn grid<'a>(items: Vec<Element<'a, Message>>, columns: usize, spacing: f32) -> E
 
 // --- essentials -------------------------------------------------------------
 
-fn is_integrated_gpu(name: &str) -> bool {
-    let lower = name.to_lowercase();
-    lower.contains("tm) graphics")
-        || lower.contains("integrated graphics")
-        || (lower.contains("radeon") && lower.contains("graphics") && !lower.contains("rx "))
-}
-
-fn is_ethernet_adapter(name: &str) -> bool {
-    let lower = name.to_lowercase();
-    ["ethernet", "gbe", "2.5g", "gigabit"].iter().any(|needle| lower.contains(needle))
-}
-
-fn is_wifi_adapter(name: &str) -> bool {
-    let lower = name.to_lowercase();
-    ["wi-fi", "wifi", "wlan", "802.11"].iter().any(|needle| lower.contains(needle))
-}
-
-fn primary_driver<'d>(drivers: &'d [DriverInfo], category: &str) -> Option<&'d DriverInfo> {
-    let matches = || drivers.iter().filter(move |d| d.category == category);
-    match category {
-        "Graphics" => matches().find(|d| !is_integrated_gpu(&d.name)).or_else(|| matches().next()),
-        "Network" => matches()
-            .find(|d| is_ethernet_adapter(&d.name))
-            .or_else(|| matches().find(|d| is_wifi_adapter(&d.name)))
-            .or_else(|| matches().next()),
-        _ => matches().next(),
-    }
-}
-
-/// What the card shows: the three essentials in simplified mode, everything otherwise.
+/// Filtering happens once in the inventory, so no second view can hide a device.
 pub fn visible_drivers(app: &App) -> Vec<&DriverInfo> {
-    let drivers = &app.drivers;
-    if is_empty_list(drivers) || !app.settings.simplified_mode {
-        return drivers.iter().collect();
-    }
-    let essentials: Vec<&DriverInfo> =
-        ["Graphics", "Network", "Bluetooth"].iter().filter_map(|category| primary_driver(drivers, category)).collect();
-    if essentials.is_empty() { drivers.iter().collect() } else { essentials }
+    app.drivers.iter().collect()
 }
-
 // --- card sections ----------------------------------------------------------
 
 fn header_subtitle(drivers: &[&DriverInfo], simplified: bool, empty: bool, ctx: &Ctx) -> String {
@@ -460,16 +415,26 @@ fn summary_band<'a>(drivers: &[&DriverInfo], compact: bool, ctx: &Ctx) -> Elemen
     let (p, tr) = (ctx.p, ctx.tr);
     let purple = p.purple.fill;
 
-    let installed = drivers.iter().filter(|d| d.status == INSTALLED).count();
+    let installed = drivers.iter().filter(|d| d.status == NO_UPDATE_FOUND).count();
     let updates = drivers.iter().filter(|d| has_update(d)).count();
     let verify = drivers.iter().filter(|d| d.status == VERIFY_ONLINE).count();
 
-    let (badge, tone) = if updates > 0 {
+    let failed = drivers.iter().any(|d| d.status == CHECK_FAILED);
+    let pending = drivers.iter().any(|d| d.status == INSTALLED || d.status == UNKNOWN);
+    let (badge, tone) = if drivers.iter().any(|d| d.drivers_excluded) && updates == 0 {
+        (tr.t("drivers_search_limited").to_string(), p.text_muted)
+    } else if failed {
+        (tr.t("drivers_status_check_failed").to_string(), p.warning.text)
+    } else if updates > 0 {
         (counted(tr, updates, "drivers_badge_update_one", "drivers_badge_update_many"), p.purple.text)
     } else if verify > 0 {
         (counted(tr, verify, "drivers_badge_verify_one", "drivers_badge_verify_many"), p.fading(rgb(0xf59e0b)))
     } else {
-        (tr.t("drivers_badge_all_ok").to_string(), p.green.text)
+        if pending {
+            (tr.t("drivers_check_pending").to_string(), p.text_muted)
+        } else {
+            (tr.t("drivers_status_no_update").to_string(), p.green.text)
+        }
     };
 
     let title = match drivers.len() {
@@ -479,7 +444,7 @@ fn summary_band<'a>(drivers: &[&DriverInfo], compact: bool, ctx: &Ctx) -> Elemen
 
     let mut parts = Vec::new();
     if installed > 0 {
-        parts.push(counted(tr, installed, "drivers_summary_stable_one", "drivers_summary_stable_many"));
+        parts.push(counted(tr, installed, "drivers_summary_checked_one", "drivers_summary_checked_many"));
     }
     if updates > 0 {
         parts.push(counted(tr, updates, "drivers_summary_update_one", "drivers_summary_update_many"));
@@ -487,7 +452,15 @@ fn summary_band<'a>(drivers: &[&DriverInfo], compact: bool, ctx: &Ctx) -> Elemen
     if verify > 0 {
         parts.push(counted(tr, verify, "drivers_summary_verify_one", "drivers_summary_verify_many"));
     }
-    let subtitle = if parts.is_empty() { tr.t("drivers_summary_scan_start").to_string() } else { parts.join(", ") };
+    let subtitle = if drivers.iter().any(|d| d.drivers_excluded) {
+        tr.t("drivers_policy_limited").to_string()
+    } else if failed {
+        tr.t("drivers_check_failed_detail").to_string()
+    } else if parts.is_empty() {
+        tr.t("drivers_check_pending").to_string()
+    } else {
+        parts.join(", ")
+    };
 
     let tinted = move |radius: f32, strength: f32| container::Style {
         background: Some(alpha(purple, strength).into()),
@@ -569,7 +542,7 @@ fn detail_panel<'a>(driver: &DriverInfo, ctx: &Ctx) -> Element<'a, Message> {
     let (p, tr) = (ctx.p, ctx.tr);
     let update = has_update(driver);
     let from_windows_update = driver.update_source == UPDATE_SOURCE_WINDOWS;
-    let store_only = driver.update_source == UPDATE_SOURCE_DRIVER_STORE;
+
     let sky = rgb(SKY);
 
     let mut panel = column![column![
@@ -617,6 +590,28 @@ fn detail_panel<'a>(driver: &DriverInfo, ctx: &Ctx) -> Element<'a, Message> {
     };
     panel = panel.push(column![first_row.spacing(16), second_row.spacing(16)].spacing(16));
 
+    let reason = match driver.status.as_str() {
+        UPDATE_AVAILABLE => "drivers_check_update_detail",
+        NO_UPDATE_FOUND => "drivers_check_none_detail",
+        CHECK_FAILED => "drivers_check_failed_detail",
+        VERIFY_ONLINE => "drivers_check_inconclusive_detail",
+        _ => "drivers_check_pending",
+    };
+    panel = panel.push(text(tr.t(reason)).size(12).color(p.text_muted));
+    if let Some(checked_at) = &driver.checked_at {
+        panel = panel.push(field(
+            tr.t("drivers_checked_at"),
+            text(checked_at.clone()).size(12).font(MONO).color(p.foreground),
+            ctx,
+        ));
+    }
+
+    if !driver.machine.is_empty() {
+        panel = panel.push(field(tr.t("drivers_machine"), text(driver.machine.clone()).size(12).color(p.text_muted), ctx));
+    }
+    if let Some(error) = &driver.search_error {
+        panel = panel.push(field(tr.t("drivers_search_error"), text(error.clone()).size(11).color(p.text_muted), ctx));
+    }
     if !driver.hardware_id.is_empty() {
         panel = panel.push(field(
             tr.t("drivers_hwid"),
@@ -640,30 +635,17 @@ fn detail_panel<'a>(driver: &DriverInfo, ctx: &Ctx) -> Element<'a, Message> {
 
     if update {
         let mut actions = column![].spacing(12);
-        if store_only {
-            let amber = if p.is_dark() { p.fading(rgb(0xfbbf24)) } else { p.fading(rgb(0xb45309)) };
-            actions = actions.push(
-                column![
-                    text(tr.t("drivers_store_warning_1")).size(11).color(amber),
-                    text(tr.t("drivers_store_warning_2")).size(11).color(amber),
-                ]
-                .spacing(4),
-            );
-        }
         if from_windows_update {
             actions = actions.push(action_button(tr.t("drivers_btn_open_wu").to_string(), true, Some(sky), Message::OpenWindowsUpdate, ctx));
         }
-        if !driver.update_url.is_empty() && (store_only || from_windows_update) {
+        if !driver.update_url.is_empty() && from_windows_update {
             actions = actions.push(action_button(
                 vendor_label.to_string(),
                 true,
-                if from_windows_update { None } else { Some(sky) },
+                None,
                 Message::OpenUrl(driver.update_url.clone()),
                 ctx,
             ));
-        }
-        if store_only {
-            actions = actions.push(action_button(tr.t("drivers_btn_check_wu").to_string(), false, None, Message::OpenWindowsUpdate, ctx));
         }
         panel = panel.push(actions);
     } else if !driver.update_url.is_empty() {
@@ -738,28 +720,32 @@ pub fn card<'a>(app: &'a App, ctx: &Ctx, expanded: bool) -> Element<'a, Message>
         })
         .collect();
 
+    let columns = if app.window_size.width < 1200.0 { 2 } else { 3 };
     let list: Element<'a, Message> = if simplified && drivers.len() <= 3 {
         iced::widget::Column::with_children(tiles).spacing(8).width(Fill).into()
     } else {
         match density {
-            Density::Ultra => grid(tiles, 4, 8.0),
-            Density::Compact => grid(tiles, 3, 8.0),
+            Density::Ultra | Density::Compact => grid(tiles, columns, 8.0),
             Density::Default => grid(tiles, drivers.len().max(1), 16.0),
         }
     };
 
     if expanded {
         let mut body = column![list].spacing(12);
-        if let Some(driver) = selected_key.and_then(|key| drivers.iter().find(|d| driver_key(d) == key).copied()) {
-            body = body.push(detail_panel(driver, ctx));
-        }
-        kit::card(column![header, body].spacing(16), ctx).width(Fill).into()
-    } else {
-        let mut body = column![container(list).center_y(Fill)].spacing(8).height(Fill);
         if !empty {
             body = body.push(summary_band(&drivers, compact, ctx));
         }
-        kit::card(column![header, body].spacing(16), ctx).width(Fill).height(380).into()
+        if let Some(driver) = selected_key.and_then(|key| drivers.iter().find(|d| driver_key(d) == key).copied()) {
+            body = body.push(detail_panel(driver, ctx));
+        }
+        let available = (app.window_size.height - 180.0).max(180.0);
+        kit::card(column![header, scrollable(body).height(available)].spacing(16), ctx).width(Fill).into()
+    } else {
+        let mut body = column![list].spacing(16);
+        if !empty {
+            body = body.push(summary_band(&drivers, compact, ctx));
+        }
+        kit::card(column![header, body].spacing(16), ctx).width(Fill).into()
     }
 }
 
@@ -768,8 +754,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn packed_wmi_versions_are_unpacked() {
-        assert_eq!(format_version("3202151234").as_deref(), Some("32.2.15.12"));
+    fn reported_versions_are_preserved() {
+        assert_eq!(format_version("3202151234").as_deref(), Some("3202151234"));
         assert_eq!(format_version("31.0.24033.1003").as_deref(), Some("31.0.24033.1003"));
         assert_eq!(format_version("N/A"), None);
         assert_eq!(format_version("  "), None);
@@ -779,6 +765,11 @@ mod tests {
     fn update_requires_a_different_latest_version() {
         let driver = |version: &str, latest: &str| DriverInfo {
             name: "GPU".into(),
+            device_id: "test-gpu".into(),
+            checked_at: None,
+            machine: String::new(),
+            search_error: None,
+            drivers_excluded: false,
             version: version.into(),
             latest_version: latest.into(),
             date: "N/A".into(),
@@ -793,5 +784,8 @@ mod tests {
         assert!(!has_update(&driver("1.2.3", "")));
         assert!(!has_update(&driver("1.2.3", "1.2.3")));
         assert!(has_update(&driver("1.2.3", "1.2.4")));
+        assert!(!has_update(&driver("1.2.3", "1.2.2")));
+        assert!(!has_update(&driver("1.2.3", "1.2.3.0")));
+        assert!(!has_update(&driver("3202151234", "32.2.15.12")));
     }
 }

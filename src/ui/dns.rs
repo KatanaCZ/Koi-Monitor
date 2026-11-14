@@ -1,4 +1,4 @@
-//! DNS comparator and gaming latency card (`DnsWidget`, `DnsViaBand`, `GamingLatencyBreakdown`).
+//! DNS comparison and gaming latency details.
 
 use iced::widget::{button, column, container, row, rule, text, Space};
 use iced::{Border, Color, Element, Fill, FillPortion, Padding, Shadow};
@@ -510,7 +510,7 @@ pub fn gaming_breakdown<'a>(gaming: &GamingLatencySnapshot, ctx: &Ctx) -> Elemen
 
 // --- card -------------------------------------------------------------------
 
-/// "Test auto", "1 serveur", "Tous les serveurs"…
+/// Label for automatic, single-server and all-server test modes.
 fn test_mode_label(app: &App, ctx: &Ctx) -> String {
     let checklist = &app.settings.dns_checklist;
     if is_auto_checklist(checklist) {

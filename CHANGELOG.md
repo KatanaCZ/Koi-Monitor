@@ -8,13 +8,32 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · [Sem
 
 ## [Unreleased]
 
+## [2.0.0-alpha.2]
+
 ### For you
 
-- Koi is being replanted in Rust. The dashboard, petals, music and Zen pond now run as a native Windows app, without a browser engine.
+- Driver rows show the installed version, even when online checks fail. One summary explains unavailable searches or a detected Windows driver-exclusion policy. Koi does not change Windows settings.
+- Essential mode hides Bluetooth services and software adapters while keeping graphics cards, network adapters and Bluetooth radios. Full mode retains the additional components.
+- Driver details include the detected machine, last check time and search error. The expanded view scrolls, and the dashboard card no longer leaves a large empty space.
+- Update checks no longer flag old driver dates or locally cached packages as newer compatible drivers. Manufacturer links remain manual checks, independent of Windows Update.
+- The light theme has clearer contrast. Dashboard cards adapt to smaller windows, and hovering over a chart shows the selected sample.
+
+### Technical details
+
+- Match Windows Update offers against complete reported hardware or compatible IDs. Share conservative version comparison between the backend and UI, and discard superseded scan results.
+- Select AMD, NVIDIA and Intel support links from PCI vendor IDs when available. Read the driver-exclusion policy without modifying it.
+- Keep chart hover state separate from cached curves and share throughput formatting.
+- Add the cleangithub release checklist and a CI check for consistent manifest, lockfile, README and changelog versions.
+
+## [2.0.0-alpha.1]
+
+### For you
+
+- Koi now runs natively in Rust. The dashboard, petals, music and Zen pond now run as a native Windows app, without a browser engine.
 - More room for the rest of your PC: recorded development measurements show about 120 MB of working-set RAM, down from 750–810 MB in 1.1.9 with the dashboard and petals visible. Results come from one PC; see the [comparison and its limits](README.md#a-lighter-footprint).
 - Keep an eye on your PC from the dashboard, Zen mode or a small desktop widget. French and English are included.
 - Settings recover from unreadable values, and launching Koi twice brings back the existing window.
-- This is the 2.0.0-alpha.1 source version. Keyboard navigation and screen-reader support still need work; see the development notes before switching from 1.x.
+- This first native alpha replaces the 1.x web interface. Keyboard navigation and screen-reader support still need work; see the development notes before switching from 1.x.
 
 ### Technical details
 
@@ -288,6 +307,8 @@ First public release — local Windows monitor, open source.
 
 - n/a
 
-[Unreleased]: https://github.com/KatanaCZ/Koi-Monitor/compare/v1.1.9...HEAD
+[Unreleased]: https://github.com/KatanaCZ/Koi-Monitor/compare/v2.0.0-alpha.2...HEAD
+[2.0.0-alpha.2]: https://github.com/KatanaCZ/Koi-Monitor/compare/v2.0.0-alpha.1...v2.0.0-alpha.2
+[2.0.0-alpha.1]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v2.0.0-alpha.1
 [1.1.9]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.9
 [1.1.8]: https://github.com/KatanaCZ/Koi-Monitor/releases/tag/v1.1.8

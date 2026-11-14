@@ -15,7 +15,7 @@ use crate::zen_state::LoadState;
 /// Height of the strip that brings the title bar back when hovered.
 pub const PEEK_HEIGHT: f32 = 14.0;
 
-/// Text sizes follow the Tailwind breakpoints of the web UI.
+/// Keep the clock and its metrics readable at each window size.
 struct Scale {
     clock: f32,
     seconds: f32,

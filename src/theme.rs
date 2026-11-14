@@ -1,4 +1,4 @@
-//! Colour tokens and fonts — the `:root` / `[data-theme="dark"]` variables of `globals.css`.
+//! Shared palettes and embedded fonts.
 
 use iced::font::{Family, Weight};
 use iced::{Color, Font};
@@ -126,27 +126,27 @@ const DARK: Palette = Palette {
 const LIGHT: Palette = Palette {
     mode: ThemeMode::Light,
     opacity: 1.0,
-    background: rgb(0xe4e8f2),
-    foreground: rgb(0x100818),
-    text_muted: rgb(0x3a3348),
-    text_subtle: rgb(0x2a2436),
-    border: rgba(0x1f0d2c, 0.13),
-    border_strong: rgba(0x2b1040, 0.19),
-    surface_inset: rgb(0xe8ecf6),
-    surface_muted: rgb(0xdce2ef),
-    surface_raised: rgb(0xf7f8fd),
-    card_solid: rgb(0xf7f8fd),
-    glass_surface: rgba(0xf7f8fd, 0.88),
+    background: rgb(0xc8d3e3),
+    foreground: rgb(0x172238),
+    text_muted: rgb(0x39465c),
+    text_subtle: rgb(0x29364d),
+    border: rgba(0x344966, 0.20),
+    border_strong: rgba(0x344966, 0.32),
+    surface_inset: rgb(0xd6e0ee),
+    surface_muted: rgb(0xcbd8e9),
+    surface_raised: rgb(0xf0f4fa),
+    card_solid: rgb(0xeaf0f8),
+    glass_surface: rgba(0xeaf0f8, 0.94),
     overlay: rgba(0x100818, 0.5),
     ring_track: rgb(0xacd3e7),
-    spectrum_trough: rgb(0xf7f0f9),
-    pink: Neon { fill: rgb(0xff2d95), text: rgb(0x7a0042) },
-    cyan: Neon { fill: rgb(0x00d4ff), text: rgb(0x003844) },
-    purple: Neon { fill: rgb(0x9d4edd), text: rgb(0x5510a8) },
-    turquoise: Neon { fill: rgb(0x00fff7), text: rgb(0x003836) },
-    green: Neon { fill: rgb(0x00ff9d), text: rgb(0x004d30) },
-    warning: Neon { fill: rgb(0xf59e0b), text: rgb(0x6b3000) },
-    error: Neon { fill: rgb(0xef4444), text: rgb(0x7f0d0d) },
+    spectrum_trough: rgb(0xe2d9ed),
+    pink: Neon { fill: rgb(0xc81d78), text: rgb(0x7a0042) },
+    cyan: Neon { fill: rgb(0x007f9e), text: rgb(0x003844) },
+    purple: Neon { fill: rgb(0x7a38c2), text: rgb(0x5510a8) },
+    turquoise: Neon { fill: rgb(0x007f80), text: rgb(0x003836) },
+    green: Neon { fill: rgb(0x008353), text: rgb(0x004d30) },
+    warning: Neon { fill: rgb(0xa65c00), text: rgb(0x6b3000) },
+    error: Neon { fill: rgb(0xc33742), text: rgb(0x7f0d0d) },
 };
 
 impl Palette {
@@ -213,10 +213,10 @@ impl Palette {
 pub fn neon_glow_alpha(glow: NeonGlow, is_dark: bool) -> f32 {
     match (glow, is_dark) {
         (NeonGlow::Soft, true) => 0.10,
-        (NeonGlow::Soft, false) => 0.22,
+        (NeonGlow::Soft, false) => 0.08,
         (NeonGlow::Balanced, true) => 0.20,
-        (NeonGlow::Balanced, false) => 0.34,
+        (NeonGlow::Balanced, false) => 0.14,
         (NeonGlow::Vivid, true) => 0.34,
-        (NeonGlow::Vivid, false) => 0.46,
+        (NeonGlow::Vivid, false) => 0.22,
     }
 }

@@ -26,7 +26,7 @@ There are light and dark themes, glass cards and falling petals. You can pick a 
 - **Your PC at a glance.** Live usage charts, per-core CPU activity, GPU memory and network throughput. Temperature readings appear where compatible Windows sensors are available; support depends on your hardware and firmware.
 - **A connection check before the next match.** Router ping, internet latency and jitter help spot an unsteady connection. These are diagnostic measurements, not the ping to your game server.
 - **DNS comparisons.** Compare response times to public DNS servers or add your own address. A faster ping alone doesn't guarantee faster DNS lookups or lower in-game latency.
-- **A look at your drivers.** Start with GPU, network and Bluetooth, or run the extended scan. Koi points you to Windows Update and official vendor pages; you choose what to install.
+- **A look at your drivers.** Start with GPU, network and Bluetooth, or run the extended scan. Installed versions stay visible when online checks are unavailable. Koi checks Windows Update and links to official vendor pages for manual checks; you choose what to install.
 - **A quiet watch.** Optional load and latency alerts, with a session history behind the bell. They're off by default.
 - **Room to breathe.** Zen mode brings up a clock, a pond and a few metrics. A small desktop widget keeps the essentials nearby when the main window is tucked away.
 
@@ -34,7 +34,7 @@ There are light and dark themes, glass cards and falling petals. You can pick a 
 
 Koi 2 is a native Rust rewrite, using iced and wgpu. The interface and atmosphere run without a browser engine, and fonts, icons and music are bundled into the executable.
 
-**The current source version is `2.0.0-alpha.1`.** It is still an alpha: keyboard navigation is limited, screen-reader support is missing, and some details differ from the 1.x app. See the [development notes](docs/DEVELOPMENT.md#differences-from-the-1x-web-version) for those differences.
+**The current source version is `2.0.0-alpha.2`.** It is still an alpha: keyboard navigation is limited, screen-reader support is missing, and some details differ from the 1.x app. See the [development notes](docs/DEVELOPMENT.md#differences-from-the-1x-web-version) for those differences.
 
 The [1.x source](https://github.com/KatanaCZ/Koi-Monitor/tree/v1.1.9) remains available if you need it.
 

@@ -1,6 +1,6 @@
 [package]
 name = "koi-monitor"
-version = "2.0.0-alpha.1"
+version = "2.0.0-alpha.2"
 description = "Koi Monitor - Windows system monitor (native UI, no WebView)"
 authors = ["Katana"]
 license = "MIT"

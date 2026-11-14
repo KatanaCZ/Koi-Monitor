@@ -5,13 +5,13 @@ use iced::{Border, Element, Fill, FillPortion, Padding};
 
 use super::charts::{AreaChart, CoreSpectrum, DualAreaChart};
 use super::icons::{icon, Icon};
+use super::format::format_speed;
 use super::kit::{badge, caption, card, detail_tile, header, inset_style, mono, Ctx, GAP};
 use super::{dns, drivers, splash};
 use crate::app::{App, Message};
 use crate::backend::system::{InterfaceKind, NetworkInterface};
 use crate::theme::{alpha, GEIST_SEMIBOLD};
 
-/// Height of the CPU / RAM / GPU cards (`h-[380px]`).
 const METRIC_CARD_HEIGHT: f32 = 380.0;
 
 /// Identifies the dashboard scroll area.
@@ -64,7 +64,7 @@ fn cpu_card<'a>(app: &'a App, ctx: &Ctx) -> Element<'a, Message> {
     card(
         column![
             header(Icon::Cpu, "CPU", Some(name), p.pink, Some(badges.into()), ctx),
-            canvas(AreaChart { history: &app.cpu_history, color: p.pink.fill }).width(Fill).height(128),
+            canvas(AreaChart { history: &app.cpu_history, color: p.pink.fill, palette: p }).width(Fill).height(128),
             Space::new().height(Fill),
             column![
                 caption(&tr.tf("cpu_cores", &[("count", &core_count)]), ctx),
@@ -124,7 +124,7 @@ fn ram_card<'a>(app: &'a App, ctx: &Ctx) -> Element<'a, Message> {
                 Some(badge(format!("{usage:.1}%"), p.cyan, ctx)),
                 ctx,
             ),
-            canvas(AreaChart { history: &app.ram_history, color: p.cyan.fill }).width(Fill).height(128),
+            canvas(AreaChart { history: &app.ram_history, color: p.cyan.fill, palette: p }).width(Fill).height(128),
             Space::new().height(Fill),
             row![
                 detail_tile(tr.t("ram_used"), mono(gigabytes(memory.map(|m| m.used).unwrap_or(0)), 14.0, p.cyan.text), ctx),
@@ -167,7 +167,7 @@ fn gpu_card<'a>(app: &'a App, ctx: &Ctx) -> Element<'a, Message> {
     card(
         column![
             header(Icon::Monitor, "GPU", Some(name), p.purple, Some(badges.into()), ctx),
-            canvas(AreaChart { history: &app.gpu_history, color: p.purple.fill }).width(Fill).height(128),
+            canvas(AreaChart { history: &app.gpu_history, color: p.purple.fill, palette: p }).width(Fill).height(128),
             Space::new().height(Fill),
             row![
                 detail_tile(
@@ -258,15 +258,6 @@ fn network_subtitle(app: &App, connection: Option<&ActiveConnection<'_>>, french
     subtitle
 }
 
-/// (value, unit) for a throughput in MB/s.
-pub fn format_speed(megabytes_per_second: f64, french: bool) -> (String, &'static str) {
-    if megabytes_per_second < 1.0 {
-        (format!("{:.1}", megabytes_per_second * 1024.0), if french { "Ko/s" } else { "KB/s" })
-    } else {
-        (format!("{megabytes_per_second:.2}"), if french { "Mo/s" } else { "MB/s" })
-    }
-}
-
 fn format_total(bytes: u64) -> String {
     let bytes = bytes as f64;
     const MB: f64 = 1024.0 * 1024.0;
@@ -330,6 +321,8 @@ fn network_card<'a>(app: &'a App, ctx: &Ctx) -> Element<'a, Message> {
                 upload: &app.upload_history,
                 download_color: p.turquoise.fill,
                 upload_color: p.green.fill,
+                palette: p,
+                french: tr.is_french(),
             })
             .width(Fill)
             .height(Fill),
@@ -369,16 +362,26 @@ pub fn view<'a>(app: &'a App, ctx: &Ctx, entrance: f32) -> Element<'a, Message> 
     // One context per card, in reading order.
     let card: [Ctx; 6] = std::array::from_fn(|index| ctx.entering(splash::card_entrance(entrance, index)));
 
-    let content = column![
-        row![cpu_card(app, &card[0]), ram_card(app, &card[1]), gpu_card(app, &card[2])].spacing(GAP),
-        row![
-            container(network_card(app, &card[3])).width(FillPortion(1)),
-            container(dns::card(app, &card[4], false)).width(FillPortion(2)),
+    let content = if app.window_size.width < 1200.0 {
+        column![
+            row![cpu_card(app, &card[0]), ram_card(app, &card[1])].spacing(GAP),
+            row![gpu_card(app, &card[2]), network_card(app, &card[3])]
+                .spacing(GAP)
+                .height(METRIC_CARD_HEIGHT),
+            container(dns::card(app, &card[4], false)).height(dns_height),
         ]
-        .spacing(GAP)
-        .height(dns_height),
-        drivers::card(app, &card[5], false),
-    ]
+    } else {
+        column![
+            row![cpu_card(app, &card[0]), ram_card(app, &card[1]), gpu_card(app, &card[2])].spacing(GAP),
+            row![
+                container(network_card(app, &card[3])).width(FillPortion(1)),
+                container(dns::card(app, &card[4], false)).width(FillPortion(2)),
+            ]
+            .spacing(GAP)
+            .height(dns_height),
+        ]
+    }
+    .push(drivers::card(app, &card[5], false))
     .spacing(GAP)
     // Room for the cards' drop shadows inside the scroll area.
     .padding(Padding { top: splash::rise(entrance), right: 32.0, bottom: 32.0, left: 32.0 });
@@ -428,9 +431,4 @@ mod tests {
         assert_eq!(normalize_cpu_name("Some CPU Processor"), "Some CPU");
     }
 
-    #[test]
-    fn speeds_switch_unit_at_one_megabyte() {
-        assert_eq!(format_speed(0.5, true), ("512.0".to_string(), "Ko/s"));
-        assert_eq!(format_speed(2.345, false), ("2.35".to_string(), "MB/s"));
-    }
 }

@@ -65,7 +65,30 @@ and dimmed, then lays its tint, sheen, border and shadow on top. Petal motion is
 computed in the vertex shader from a static instance buffer, so a frame costs a few
 small uniform uploads and a handful of draw calls.
 
-### Strings
+### Driver checks
+
+The inventory joins signed drivers with present Plug and Play devices. Optional CIM metadata identifies the computer, motherboard, Windows version and architecture; metadata failure does not discard the inventory. PCI vendor IDs provide official support links independently of Windows Update. These links do not constitute automatic manufacturer version checks. Simplified
+mode shows graphics, network and Bluetooth, excluding Bluetooth service enumerators and software/root-enumerated components. Unknown buses remain visible. Full mode retains those components and also includes audio, storage
+and firmware. It is not an inventory of every Windows driver class.
+
+Updates come from the Windows Update service configured on the machine. An offer
+must match a complete hardware or compatible ID reported by the device. Koi only
+compares dotted numeric versions; it preserves unknown version formats as reported.
+An old date or a newer package in the local driver store is not proof of an update.
+
+The UI distinguishes an unchecked inventory, a failed search, an inconclusive check,
+no newer version found and a matching higher version. "None found" only covers the
+Windows Update search, not all manufacturer releases. The displayed time is the last
+attempt in local time. Installed versions remain visible when searches fail. The driver-exclusion policy is reported separately, not assumed to explain every failure. Expanded details scroll to keep diagnostics accessible. Nothing is installed automatically.
+
+The default tests use fixtures from several vendors and buses. To check the real
+inventory on a Windows machine with WMI access, run:
+
+```powershell
+cargo test backend::drivers::tests::live_inventory -- --ignored --exact --nocapture
+```
+
+### Translations
 
 `assets/i18n.json` holds two tables, `fr` and `en`. A key missing in French falls back
 to English, then to the key itself. Add a string to both tables.
@@ -108,7 +131,7 @@ fades in and out.
   screen is the exception: it was redone for the native version.
 - **Accessibility**: iced exposes no accessibility tree yet, so screen readers do not see
   the interface, and keyboard navigation is limited to Escape and text fields.
-- **Charts** have no hover tooltip.
+- **Charts** show sample values on hover. Historical timestamps and keyboard inspection are not yet available.
 - **Desktop widget** is a small rounded window, not a transparent pill, and a double
   click (not a single one) reopens the dashboard, since a single press drags it.
 - **Zen quote** is not italic (Geist has no italic face).

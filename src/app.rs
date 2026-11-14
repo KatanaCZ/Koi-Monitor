@@ -119,7 +119,7 @@ pub enum Message {
     ToggleGamingDetails,
 
     DriversRefresh,
-    DriversLoaded { simplified: bool, enriched: bool, manual: bool, result: Result<Vec<DriverInfo>, String> },
+    DriversLoaded { generation: u64, simplified: bool, enriched: bool, manual: bool, result: Result<Vec<DriverInfo>, String> },
     DriverSelect(String),
     OpenWindowsUpdate,
     OpenUrl(String),
@@ -167,6 +167,7 @@ pub struct App {
 
     pub drivers: Vec<DriverInfo>,
     pub drivers_loading: bool,
+    driver_scan_generation: u64,
     /// The opening screen, until it has played.
     splash: Option<Splash>,
     /// Key of the driver picked in the expanded drivers view.
@@ -237,6 +238,7 @@ impl App {
             gaming_details_open: false,
             drivers: Vec::new(),
             drivers_loading: false,
+            driver_scan_generation: 0,
             splash: Some(Splash::new(Instant::now(), calm)),
             driver_selected: None,
             cpu_history: History::new(),
@@ -615,10 +617,12 @@ impl App {
     }
 
     /// Scans the installed drivers; `enrich` also looks for newer versions
-    /// (Windows Update and the driver store), which takes much longer.
+    /// (Windows Update), which takes much longer.
     fn scan_drivers(&mut self, enrich: bool, manual: bool) -> Task<Message> {
         let simplified = self.settings.simplified_mode;
         self.drivers_loading = true;
+        self.driver_scan_generation = self.driver_scan_generation.wrapping_add(1);
+        let generation = self.driver_scan_generation;
 
         Task::perform(
             async move {
@@ -632,12 +636,14 @@ impl App {
                 .await
                 .map_err(|error| format!("Driver scan task failed: {error}"))?
             },
-            move |result| Message::DriversLoaded { simplified, enriched: enrich, manual, result },
+            move |result| Message::DriversLoaded { generation, simplified, enriched: enrich, manual, result },
         )
     }
 
     /// Looks for updates to the drivers already listed, without blocking the card.
-    fn enrich_drivers(&self) -> Task<Message> {
+    fn enrich_drivers(&mut self) -> Task<Message> {
+        self.drivers_loading = true;
+        let generation = self.driver_scan_generation;
         let simplified = self.settings.simplified_mode;
         let mut list = self.drivers.clone();
 
@@ -650,7 +656,7 @@ impl App {
                 .await
                 .map_err(|error| format!("Driver enrich task failed: {error}"))
             },
-            move |result| Message::DriversLoaded { simplified, enriched: true, manual: false, result },
+            move |result| Message::DriversLoaded { generation, simplified, enriched: true, manual: false, result },
         )
     }
 
@@ -1010,10 +1016,14 @@ impl App {
             }
             Message::ToggleGamingDetails => self.gaming_details_open = !self.gaming_details_open,
 
-            Message::DriversRefresh => return self.scan_drivers(true, true),
-            Message::DriversLoaded { simplified, enriched, manual, result } => {
-                // A scan started before the mode was switched in Settings is stale.
-                if simplified != self.settings.simplified_mode {
+            Message::DriversRefresh => {
+                if !self.drivers_loading {
+                    return self.scan_drivers(true, true);
+                }
+            }
+            Message::DriversLoaded { generation, simplified, enriched, manual, result } => {
+                // A slower, older scan must not overwrite a newer result.
+                if generation != self.driver_scan_generation || simplified != self.settings.simplified_mode {
                     return Task::none();
                 }
                 self.drivers_loading = false;
