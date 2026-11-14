@@ -8,7 +8,7 @@ use crate::gfx::glass::{glass, Glass};
 use crate::gfx::{Atmosphere, Surface};
 use crate::i18n::Tr;
 use crate::settings::NeonGlow;
-use crate::theme::{alpha, mix, Neon, Palette, GEIST_BOLD, GEIST_MEDIUM, GEIST_SEMIBOLD, MONO, MONO_BOLD};
+use crate::theme::{alpha, mix, Neon, Palette, GEIST_MEDIUM, GEIST_SEMIBOLD, MONO, MONO_BOLD};
 
 /// What every view function needs to draw itself.
 #[derive(Debug, Clone, Copy)]
@@ -40,17 +40,17 @@ pub const CARD_PADDING: f32 = 24.0;
 pub const CARD_RADIUS: f32 = 32.0;
 pub const GAP: f32 = 24.0;
 
-/// Dashboard card (`.bento-card`): frosted glass, 24 px padding.
+/// Shared glass surface for dashboard cards.
 pub fn card<'a, Message: 'a>(content: impl Into<Element<'a, Message>>, ctx: &Ctx) -> Glass<'a, Message> {
     glass(content, ctx.atmosphere).radius(CARD_RADIUS).padding(CARD_PADDING)
 }
 
-/// Floating panel (`.liquid-glass`).
+/// Floating panel above the dashboard.
 pub fn panel<'a, Message: 'a>(content: impl Into<Element<'a, Message>>, ctx: &Ctx) -> Glass<'a, Message> {
     glass(content, ctx.atmosphere).surface(Surface::Panel).radius(16.0)
 }
 
-/// Rounded surface sunk into a card (`bg-[var(--surface-inset)] border`).
+/// Recessed surface for secondary information.
 pub fn inset_style(p: &Palette, radius: f32) -> container::Style {
     container::Style {
         background: Some(p.surface_inset.into()),
@@ -59,9 +59,9 @@ pub fn inset_style(p: &Palette, radius: f32) -> container::Style {
     }
 }
 
-/// Small uppercase label above a value (`text-[10px] uppercase font-bold tracking-widest`).
+/// Secondary label above a value.
 pub fn caption<'a>(label: &str, ctx: &Ctx) -> iced::widget::Text<'a> {
-    text(label.to_uppercase()).size(10).font(GEIST_BOLD).color(ctx.p.text_subtle)
+    text(label.to_owned()).size(11).font(GEIST_MEDIUM).color(ctx.p.text_muted)
 }
 
 /// Label + value tile at the bottom of a metric card.
@@ -102,7 +102,7 @@ pub fn icon_tile<'a, Message: 'a>(glyph: Icon, color: Color) -> Element<'a, Mess
         .into()
 }
 
-/// Pill showing the headline figure of a card (`MetricPercentBadge`).
+/// Headline metric, tinted to match its chart.
 pub fn badge<'a, Message: 'a>(value: String, neon: Neon, ctx: &Ctx) -> Element<'a, Message> {
     let glow = crate::theme::neon_glow_alpha(ctx.glow, ctx.p.is_dark());
 
@@ -119,7 +119,7 @@ pub fn badge<'a, Message: 'a>(value: String, neon: Neon, ctx: &Ctx) -> Element<'
         .into()
 }
 
-/// Icon, title and subtitle on the left, optional badges on the right (`WidgetMetricHeader`).
+/// Keep hardware names below the headline so they never compete with metrics.
 pub fn header<'a, Message: 'a>(
     glyph: Icon,
     label: &'a str,
@@ -128,16 +128,19 @@ pub fn header<'a, Message: 'a>(
     trailing: Option<Element<'a, Message>>,
     ctx: &Ctx,
 ) -> Element<'a, Message> {
-    let mut titles = column![text(label).size(16).font(GEIST_SEMIBOLD).color(ctx.p.foreground)].spacing(4).width(Fill);
-    if let Some(subtitle) = subtitle {
-        titles = titles.push(text(subtitle).size(12).color(ctx.p.text_muted));
-    }
-
-    let mut header = row![icon_tile(glyph, neon.fill), titles].spacing(8).align_y(iced::Center);
+    let title = text(label).size(16).font(GEIST_SEMIBOLD).color(ctx.p.foreground).width(Fill);
+    let mut header = row![icon_tile(glyph, neon.fill), title].spacing(12).align_y(iced::Center);
     if let Some(trailing) = trailing {
         header = header.push(Space::new().width(8)).push(trailing);
     }
-    header.into()
+    let mut content = column![header].spacing(12);
+    if let Some(subtitle) = subtitle {
+        content = content.push(text(subtitle).size(12).line_height(1.5).color(ctx.p.text_muted));
+    } else {
+        // Align the charts even when Windows supplies no hardware name.
+        content = content.push(Space::new().height(18));
+    }
+    content.into()
 }
 
 /// Dark rounded hint shown under a hovered control.

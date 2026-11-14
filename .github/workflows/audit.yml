@@ -11,6 +11,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check release metadata
+        shell: pwsh
+        run: ./scripts/check-release.ps1
+
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
@@ -25,11 +29,11 @@ jobs:
         run: cargo audit
 
       - name: cargo clippy
-        run: cargo clippy --all-targets -- -D warnings
+        run: cargo clippy --locked --all-targets -- -D warnings
 
       - name: cargo test
-        run: cargo test
+        run: cargo test --locked
 
       - name: Build release exe
         if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
-        run: cargo build --release
+        run: cargo build --locked --release

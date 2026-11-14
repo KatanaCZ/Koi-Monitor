@@ -36,10 +36,14 @@ Target `master`. It is protected: changes go through a pull request, the `audit`
 
 ## Publish a release
 
+Start with the [cleangithub checklist](docs/RELEASING.md) for every new version.
+It covers the release diff, editorial review, version consistency and verification.
+Agents must follow it through [AGENTS.md](AGENTS.md); it does not publish anything.
+
 1. Prepare a release branch. Update `Cargo.toml` and `Cargo.lock`, move the notes from `Unreleased` to the new version heading, and update the version mentioned in the README.
 2. Open a PR and merge it after the required checks pass.
 3. From the updated `master`, build with `cargo build --release` and check the app manually.
-4. Tag that commit with the version (for example, `v2.0.0-alpha.1`) and push the tag.
+4. Tag that commit with the version (for example, `v2.0.0-alpha.2`) and push the tag.
 5. Create the GitHub Release manually. Attach `target\x86_64-pc-windows-msvc\release\koi-monitor.exe` and use the `For you` notes as the release description. Mark alpha and beta versions as prereleases.
 
 There is no automated release workflow. Publishing source doesn't publish a downloadable app.

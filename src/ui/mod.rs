@@ -4,6 +4,7 @@ pub mod charts;
 pub mod dashboard;
 pub mod dns;
 pub mod drivers;
+mod format;
 pub mod icons;
 pub mod kit;
 pub mod overlays;
